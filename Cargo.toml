@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
@@ -17,7 +17,7 @@ repository = "https://github.com/udoprog/fixed-map"
 readme = "README.md"
 
 [dependencies]
-fixed-map-derive = {version = "0.1.1", path = "./fixed-map-derive"}
+fixed-map-derive = {version = "0.1.2", path = "./fixed-map-derive"}
 
 [dev-dependencies]
 criterion = { version = "0.2", default-features = false }
