@@ -1,0 +1,27 @@
+[package]
+name = "fixed-map-derive"
+version = "0.1.0"
+authors = ["John-John Tedro <udoprog@tedro.se>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
+categories = ["data-structures"]
+
+description = """
+A fixed hash map where storage layout is calculated by a procedural macro.
+
+This crate contains the procedural macros.
+"""
+
+documentation = "https://docs.rs/fixed-map"
+homepage = "https://github.com/udoprog/fixed-map"
+repository = "https://github.com/udoprog/fixed-map"
+
+readme = "README.md"
+
+[dependencies]
+syn = "0.15"
+quote = "0.6"
+proc-macro2 = "0.4"
+
+[lib]
+proc-macro = true

@@ -1,0 +1,16 @@
+language: rust
+rust:
+  - 1.26.0
+  - nightly
+  - beta
+  - stable
+cache: cargo
+branches:
+  only:
+    - master
+script:
+  - cargo build --verbose
+  - cargo doc --verbose
+  - cargo test --verbose
+env:
+  - RUST_BACKTRACE=1
