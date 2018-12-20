@@ -7,7 +7,7 @@ license = "MIT/Apache-2.0"
 categories = ["data-structures"]
 
 description = """
-A fixed hash map where storage layout is calculated by a procedural macro.
+A fixed map where storage layout is calculated by a procedural macro.
 
 This crate contains the procedural macros.
 """

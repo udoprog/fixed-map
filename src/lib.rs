@@ -1,6 +1,6 @@
 pub use fixed_map_derive::Key;
 
-/// A value that can be statically stored in the hash map.
+/// The trait for a key that can be used to store values in the maps.
 pub trait Key<K, V> {
     type Storage: Storage<K, V>;
 }
@@ -12,12 +12,16 @@ pub trait Key<K, V> {
 /// - `K` is the key being stored.
 /// - `V` is the value being stored.
 pub trait Storage<K, V>: Default {
+    /// This is the storage abstraction for [`Map::insert`](struct.Map.html#method.insert).
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
+    /// This is the storage abstraction for [`Map::get`](struct.Map.html#method.get).
     fn get(&self, key: &K) -> Option<&V>;
 
+    /// This is the storage abstraction for [`Map::get_mut`](struct.Map.html#method.get_mut).
     fn get_mut(&mut self, key: &K) -> Option<&mut V>;
 
+    /// This is the storage abstraction for [`Map::remove`](struct.Map.html#method.remove).
     fn remove(&mut self, key: &K) -> Option<V>;
 
     /// Call the given closure for each key and value combination that is present in storage.
@@ -216,5 +220,17 @@ where
         });
 
         len
+    }
+}
+
+impl<K, V> Clone for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Clone,
+{
+    fn clone(&self) -> Map<K, V> {
+        Map {
+            storage: self.storage.clone(),
+        }
     }
 }

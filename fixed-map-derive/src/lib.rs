@@ -91,6 +91,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
         }
 
         #[allow(non_camel_case_types)]
+        #[derive(Clone)]
         pub struct #storage<V> {
             #(#fields,)*
         }
