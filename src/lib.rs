@@ -1,4 +1,5 @@
 pub use fixed_map_derive::Key;
+use std::vec;
 
 /// The trait for a key that can be used to store values in the maps.
 pub trait Key<K: 'static, V: 'static>: Copy {
@@ -100,7 +101,7 @@ where
     }
 
     /// An iterator visiting all keys in arbitrary order.
-    /// The iterator element type is `&'a K`.
+    /// The iterator element type is `K`.
     ///
     /// # Examples
     ///
@@ -118,15 +119,10 @@ where
     /// map.insert(Key::One, 1);
     /// map.insert(Key::Two, 2);
     ///
-    /// let mut out = Vec::new();
-    /// map.keys(|key| out.push(key));
-    /// assert_eq!(out, vec![Key::One, Key::Two]);
+    /// assert_eq!(map.keys().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
-    pub fn keys<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut(K),
-    {
-        self.iter(|(k, _)| f(k));
+    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
+        Keys { inner: self.iter() }
     }
 
     /// An iterator visiting all values in arbitrary order.
@@ -148,15 +144,10 @@ where
     /// map.insert(Key::One, 1);
     /// map.insert(Key::Two, 2);
     ///
-    /// let mut out = Vec::new();
-    /// map.values(|val| out.push(*val));
-    /// assert_eq!(out, vec![1, 2]);
+    /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![1, 2]);
     /// ```
-    pub fn values<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut(&'a V),
-    {
-        self.iter(|(_, v)| f(v));
+    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
+        Values { inner: self.iter() }
     }
 
     /// An iterator visiting all values mutably in arbitrary order.
@@ -178,21 +169,61 @@ where
     /// map.insert(Key::One, 1);
     /// map.insert(Key::Two, 2);
     ///
-    /// map.values_mut(|val| *val = *val + 10);
+    /// for val in map.values_mut() {
+    ///     *val += 10;
+    /// }
     ///
-    /// let mut out = Vec::new();
-    /// map.values(|val| out.push(*val));
-    /// assert_eq!(out, vec![11, 12]);
+    /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![11, 12]);
     /// ```
-    pub fn values_mut<'a, F>(&'a mut self, mut f: F)
-    where
-        F: FnMut(&'a mut V),
-    {
-        self.iter_mut(|(_, v)| f(v));
+    pub fn values_mut<'a>(&'a mut self) -> ValuesMut<'a, K, V> {
+        ValuesMut {
+            inner: self.iter_mut(),
+        }
     }
 
     /// An iterator visiting all key-value pairs in arbitrary order.
-    /// The iterator element type is `(&'a K, &'a V)`.
+    /// The iterator element type is `(K, &'a V)`.
+    ///
+    /// Because of limitations in how Rust can express lifetimes through traits, this method will
+    /// first pre-allocate a vector to store all references.
+    ///
+    /// For a zero-cost version of this function, see [`Map::iter_fn`].
+    ///
+    /// [`Map::iter_fn`]: struct.Map.html#method.iter_fn
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::Map;
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::One, 1);
+    /// map.insert(Key::Two, 2);
+    ///
+    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &1), (Key::Two, &2)]);
+    /// ```
+    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
+        let mut out = vec![];
+        self.storage.iter(|e| out.push(e));
+
+        Iter {
+            inner: out.into_iter(),
+        }
+    }
+
+    /// An closure visiting all key-value pairs in arbitrary order.
+    /// The closure argument type is `(K, &'a V)`.
+    ///
+    /// This is a zero-cost version of [`Map::iter`].
+    ///
+    /// [`Map::iter`]: struct.Map.html#method.iter
     ///
     /// # Examples
     ///
@@ -211,10 +242,10 @@ where
     /// map.insert(Key::Two, 2);
     ///
     /// let mut out = Vec::new();
-    /// map.iter(|e| out.push(e));
+    /// map.iter_fn(|e| out.push(e));
     /// assert_eq!(out, vec![(Key::One, &1), (Key::Two, &2)]);
     /// ```
-    pub fn iter<'a, F>(&'a self, f: F)
+    pub fn iter_fn<'a, F>(&'a self, f: F)
     where
         F: FnMut((K, &'a V)),
     {
@@ -223,7 +254,14 @@ where
 
     /// An iterator visiting all key-value pairs in arbitrary order,
     /// with mutable references to the values.
-    /// The iterator element type is `(&'a K, &'a mut V)`.
+    /// The iterator element type is `(K, &'a mut V)`.
+    ///
+    /// Because of limitations in how Rust can express lifetimes through traits, this method will
+    /// first pre-allocate a vector to store all references.
+    ///
+    /// For a zero-cost version of this function, see [`Map::iter_mut_fn`].
+    ///
+    /// [`Map::iter_mut_fn`]: struct.Map.html#method.iter_mut_fn
     ///
     /// # Examples
     ///
@@ -242,15 +280,55 @@ where
     /// map.insert(Key::Two, 2);
     ///
     /// // Update all values
-    /// map.iter_mut(|(_, val)| {
+    /// for (_, val) in map.iter_mut() {
+    ///     *val *= 2;
+    /// }
+    ///
+    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &2), (Key::Two, &4)]);
+    /// ```
+    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
+        let mut out = vec![];
+        self.storage.iter_mut(|e| out.push(e));
+
+        IterMut {
+            inner: out.into_iter(),
+        }
+    }
+
+    /// An closure visiting all key-value pairs in arbitrary order,
+    /// with mutable references to the values.
+    /// The closure argument type is `(K, &'a mut V)`.
+    ///
+    /// This is a zero-cost version of [`Map::iter_mut`].
+    ///
+    /// [`Map::iter_mut`]: struct.Map.html#method.iter_mut
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::Map;
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::One, 1);
+    /// map.insert(Key::Two, 2);
+    ///
+    /// // Update all values
+    /// map.iter_mut_fn(|(_, val)| {
     ///     *val *= 2;
     /// });
     ///
     /// let mut out = Vec::new();
-    /// map.iter(|e| out.push(e));
+    /// map.iter_fn(|e| out.push(e));
     /// assert_eq!(out, vec![(Key::One, &2), (Key::Two, &4)]);
     /// ```
-    pub fn iter_mut<'a, F>(&'a mut self, f: F)
+    pub fn iter_mut_fn<'a, F>(&'a mut self, f: F)
     where
         F: FnMut((K, &'a mut V)),
     {
@@ -445,5 +523,103 @@ where
         Map {
             storage: self.storage.clone(),
         }
+    }
+}
+
+/// An iterator over the entries of a `Map`.
+///
+/// This `struct` is created by the [`iter`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`iter`]: struct.Map.html#method.iter
+/// [`Map`]: struct.Map.html
+#[derive(Clone)]
+pub struct Iter<'a, K, V: 'a> {
+    inner: vec::IntoIter<(K, &'a V)>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
+    type Item = (K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
+
+/// A mutable iterator over the entries of a `Map`.
+///
+/// This `struct` is created by the [`iter_mut`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`iter_mut`]: struct.Map.html#method.iter_mut
+/// [`Map`]: struct.Map.html
+pub struct IterMut<'a, K, V: 'a> {
+    inner: vec::IntoIter<(K, &'a mut V)>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for IterMut<'a, K, V> {
+    type Item = (K, &'a mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+}
+
+/// An iterator over the keys of a `Map`.
+///
+/// This `struct` is created by the [`keys`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`keys`]: struct.Map.html#method.keys
+/// [`Map`]: struct.Map.html
+#[derive(Clone)]
+pub struct Keys<'a, K, V: 'a> {
+    inner: Iter<'a, K, V>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for Keys<'a, K, V> {
+    type Item = K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(k, _)| k)
+    }
+}
+
+/// An iterator over the values of a `Map`.
+///
+/// This `struct` is created by the [`values`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`values`]: struct.Map.html#method.values
+/// [`Map`]: struct.Map.html
+#[derive(Clone)]
+pub struct Values<'a, K, V: 'a> {
+    inner: Iter<'a, K, V>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for Values<'a, K, V> {
+    type Item = &'a V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, v)| v)
+    }
+}
+
+/// A mutable iterator over the values of a `Map`.
+///
+/// This `struct` is created by the [`values_mut`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`values_mut`]: struct.Map.html#method.values_mut
+/// [`Map`]: struct.Map.html
+pub struct ValuesMut<'a, K, V: 'a> {
+    inner: IterMut<'a, K, V>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for ValuesMut<'a, K, V> {
+    type Item = &'a mut V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|(_, v)| v)
     }
 }

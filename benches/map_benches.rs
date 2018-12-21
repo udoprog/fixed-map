@@ -3,7 +3,7 @@ use criterion::{Bencher, Benchmark, Criterion};
 fn get_bench(criterion: &mut Criterion) {
     fn fixed_map(b: &mut Bencher) {
         #[allow(unused)]
-        #[derive(fixed_map::Key)]
+        #[derive(Clone, Copy, fixed_map::Key)]
         pub enum Key {
             One,
             Two,
@@ -15,7 +15,7 @@ fn get_bench(criterion: &mut Criterion) {
         map.insert(Key::One, 1);
         map.insert(Key::Four, 4);
 
-        b.iter(|| map.get(&Key::Four))
+        b.iter(|| map.get(Key::Four))
     }
 
     fn array(b: &mut Bencher) {
@@ -62,7 +62,7 @@ fn get_bench(criterion: &mut Criterion) {
 fn insert_bench(criterion: &mut Criterion) {
     fn fixed_map(b: &mut Bencher) {
         #[allow(unused)]
-        #[derive(fixed_map::Key)]
+        #[derive(Clone, Copy, fixed_map::Key)]
         pub enum Key {
             One,
             Two,
@@ -75,7 +75,7 @@ fn insert_bench(criterion: &mut Criterion) {
         b.iter(|| {
             let mut map = map.clone();
             map.insert(Key::Four, 4);
-            map.get(&Key::Four).cloned()
+            map.get(Key::Four).cloned()
         })
     }
 
@@ -127,7 +127,7 @@ fn insert_bench(criterion: &mut Criterion) {
 fn iter_bench(criterion: &mut Criterion) {
     fn fixed_map(b: &mut Bencher) {
         #[allow(unused)]
-        #[derive(fixed_map::Key)]
+        #[derive(Clone, Copy, fixed_map::Key)]
         pub enum Key {
             One,
             Two,
@@ -139,11 +139,7 @@ fn iter_bench(criterion: &mut Criterion) {
         map.insert(Key::One, 1);
         map.insert(Key::Four, 4);
 
-        b.iter(|| {
-            let mut count = 0;
-            map.iter(|_| count += 1);
-            count
-        })
+        b.iter(|| map.iter().count())
     }
 
     fn array(b: &mut Bencher) {
