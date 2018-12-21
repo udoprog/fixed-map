@@ -51,6 +51,31 @@ let mut map = fixed_map::Map::new();
 map.insert(Dir::North, Item::Bow);
 ```
 
+## Performance
+
+The goal is for the performance of fixed-map to be identical to storing the data linearly in memory.
+
+In the following benchmarks, fixed-map is compared to:
+
+* [`hashbrown`] - a high performance hash map.
+* `array`, which is a simple `[Option<Key>; 4]` array.
+
+```
+get/fixed_map           time:   [255.71 ps 257.67 ps 259.98 ps]
+get/array               time:   [512.06 ps 514.43 ps 516.83 ps]
+get/hashbrown           time:   [3.2981 ns 3.3287 ns 3.3607 ns]
+
+insert/fixed_map        time:   [254.23 ps 255.44 ps 257.31 ps]
+insert/array            time:   [274.18 ps 275.29 ps 276.47 ps]
+insert/hashbrown        time:   [35.409 ns 35.635 ns 35.861 ns]
+
+iter/fixed_map          time:   [249.76 ps 251.58 ps 253.69 ps]
+iter/array              time:   [256.04 ps 259.76 ps 264.41 ps]
+iter/hashbrown          time:   [1.5128 ns 1.5322 ns 1.5534 ns]
+```
+
+[`hashbrown`]: https://github.com/Amanieu/hashbrown
+
 ## LICENSE
 
 This project is distributed under the terms of both the MIT license and the Apache License (Version
