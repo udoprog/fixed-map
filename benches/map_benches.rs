@@ -4,7 +4,7 @@ use criterion::{Bencher, Benchmark, Criterion};
 macro_rules! benches {
     (
     $({
-        $len:expr, ($($member:ident,)*), ($($insert:ident,)*), $get:ident
+        $len:expr, ($($member:ident),*), ($($insert:ident),*), $get:ident
     };)*
     ) => {fn benches(criterion: &mut Criterion) {
     $(
@@ -200,23 +200,33 @@ macro_rules! benches {
 benches! {
     {
         4,
-        (T0, T1, T2, T3,),
-        (T0, T3,),
-        T3
+        (T00, T01, T02, T03),
+        (T00, T03),
+        T03
     };
 
     {
         8,
-        (T0, T1, T2, T3 ,T4, T5, T6, T7,),
-        (T0, T3, T6,),
-        T3
+        (T00, T01, T02, T03, T04, T05, T06, T07),
+        (T00, T03, T06),
+        T03
     };
 
     {
         16,
-        (T0, T1, T2, T3 ,T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15,),
-        (T0, T3, T6, T12, T14,),
+        (T00, T01, T02, T03, T04, T05, T06, T07, T8, T9, T10, T11, T12, T13, T14, T15),
+        (T00, T03, T06, T12, T14),
         T14
+    };
+
+    {
+        32,
+        (
+            T00, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15,
+            T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31
+        ),
+        (T00, T03, T06, T12, T14, T23, T28, T31),
+        T28
     };
 }
 
