@@ -58,6 +58,22 @@ impl<K: 'static> Set<K>
 where
     K: Key<K, ()>,
 {
+    /// Creates an empty `Set`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::Set;
+    ///
+    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    /// }
+    ///
+    /// let set: Set<Key> = Set::new();
+    /// ```
+    #[inline]
     pub fn new() -> Set<K> {
         Set {
             storage: K::Storage::default(),

@@ -3,38 +3,53 @@
 
 **Note:** this crate is still in heavy development. Please be careful!
 
-This crate provides a map implementation that relies on fixed-size backing storage.
-
-It accomplishes this by deriving an optimal storage strategy from the _key_ to be used in the map
-using the `Key` derive:
-
-```rust
-#[derive(Clone, Copy, fixed_map::Key)]
-pub enum Part {
-    First,
-    Second,
-}
-
-#[derive(Clone, Copy, fixed_map::Key)]
-pub enum Key {
-    Simple,
-    Composite(Part),
-}
-
-let mut map = fixed_map::Map::new();
-assert_eq!(map.get(Key::Simple), None);
-
-map.insert(Key::Simple, 1);
-map.insert(Key::Composite(Part::One), 2);
-
-assert_eq!(map.get(Key::Simple), Some(&1));
-assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
-assert_eq!(map.get(Key::Composite(Part::Two)), None);
-```
+This crate provides a map implementation that can make use of a fixed-size backing storage.
 
 For more information on how to use `fixed-map`, see the [documentation].
 
 [documentation]: https://docs.rs/fixed-map
+
+## The `Key` derive
+
+The `Key` derive is provided to construct optimized storage for a given Key.
+
+For example:
+
+```rust
+use fixed_map::Map;
+
+#[derive(Clone, Copy, fixed_map::Key)]
+enum Part {
+    One,
+    Two,
+}
+
+#[derive(Clone, Copy, fixed_map::Key)]
+enum Key {
+    Simple,
+    Composite(Part),
+    String(&'static str),
+    Number(u32),
+    Singleton(()),
+}
+
+let mut map = Map::new();
+
+map.insert(Key::Simple, 1);
+map.insert(Key::Composite(Part::One), 2);
+map.insert(Key::String("foo"), 3);
+map.insert(Key::Number(1), 4);
+map.insert(Key::Singleton(()), 5);
+
+assert_eq!(map.get(Key::Simple), Some(&1));
+assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
+assert_eq!(map.get(Key::Composite(Part::Two)), None);
+assert_eq!(map.get(Key::String("foo")), Some(&3));
+assert_eq!(map.get(Key::String("bar")), None);
+assert_eq!(map.get(Key::Number(1)), Some(&4));
+assert_eq!(map.get(Key::Number(2)), None);
+assert_eq!(map.get(Key::Singleton(())), Some(&5));
+```
 
 ## Missing APIs
 

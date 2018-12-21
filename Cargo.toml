@@ -18,6 +18,7 @@ readme = "README.md"
 
 [dependencies]
 fixed-map-derive = {version = "0.3.2", path = "./fixed-map-derive"}
+hashbrown = "0.1"
 
 [dev-dependencies]
 criterion = { version = "0.2", default-features = false }
