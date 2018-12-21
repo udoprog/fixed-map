@@ -1,4 +1,5 @@
 use criterion::{Bencher, Benchmark, Criterion};
+use std::mem;
 
 /// Macro to build a benchmark.
 macro_rules! benches {
@@ -16,6 +17,12 @@ macro_rules! benches {
                 pub enum Key {
                     $($member,)*
                 }
+
+                // Assert that size of Key is identical to array.
+                assert_eq!(
+                    mem::size_of::<<Key as fixed_map::Key<Key, usize>>::Storage>(),
+                    mem::size_of::<[Option<usize>; $len]>(),
+                );
 
                 let mut it = 1..;
                 let mut map = fixed_map::Map::<_, u32>::new();
