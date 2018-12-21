@@ -3,7 +3,7 @@ use std::vec;
 
 use crate::{Key, Storage};
 
-/// A map with a fixed, pre-determined size.
+/// A fixed map with a predetermined size.
 pub struct Map<K: 'static, V: 'static>
 where
     K: Key<K, V>,

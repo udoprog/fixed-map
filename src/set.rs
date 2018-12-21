@@ -3,7 +3,7 @@ use std::vec;
 
 use crate::{Key, Storage};
 
-/// A map with a fixed, pre-determined size.
+/// A fixed set implemented as a `Map` where the value is `()`.
 pub struct Set<K: 'static>
 where
     K: Key<K, ()>,
