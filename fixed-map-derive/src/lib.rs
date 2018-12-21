@@ -9,6 +9,54 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 /// Derive to implement the `Key` trait.
 ///
 /// Requires that `fixed_map` is in scope.
+///
+/// This derive implements the `Key` trait for a given type.
+///
+/// The `Key` trait is what allows fixed_map to set up storage for a type that will be the key in
+/// a fixed map.
+///
+/// Given the following enum:
+///
+/// ```rust,no_run
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// pub enum Key {
+///     First,
+///     Second,
+///     Third,
+/// }
+/// ```
+///
+/// It performs the following simplified expansion:
+///
+/// ```rust,no_run
+/// /// Build a storage struct containing an item for each key:
+/// pub struct KeyStorage<V> {
+///     /// Storage for `Key::First`.
+///     f1: Option<V>,
+///     /// Storage for `Key::Second`.
+///     f2: Option<V>,
+///     /// Storage for `Key::Third`.
+///     f3: Option<V>,
+/// }
+///
+/// /// Implement storage for `KeyStorage`.
+/// impl<V> fixed_map::Storage<Key, V> for KeyStorage<V> {
+///     fn get(&self, key: Key) -> Option<&V> {
+///         match *self {
+///             Key::First => self.f1.as_ref(),
+///             Key::Second => self.f2.as_ref(),
+///             Key::Third => self.f3.as_ref(),
+///         }
+///     }
+///
+///     /* other methods skipped */
+/// }
+///
+/// /// Implement the `Key` trait to point out storage.
+/// impl<V> fixed_map::Key<Key, V> for Key {
+///     type Storage = KeyStorage<V>;
+/// }
+/// ```
 #[proc_macro_derive(Key, attributes(key))]
 pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
