@@ -1,4 +1,4 @@
-#![recursion_limit = "128"]
+#![recursion_limit = "256"]
 
 extern crate proc_macro;
 
@@ -26,7 +26,9 @@ fn impl_storage(ast: &DeriveInput) -> TokenStream {
 
 /// Implement `Key` for enums.
 fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
+    let vis = &ast.vis;
     let base = &ast.ident;
+
     let storage = Ident::new(&format!("{}Storage", base), Span::call_site());
 
     let mut field_inits = Vec::new();
@@ -36,7 +38,10 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
-    let mut for_each_value = Vec::new();
+    let mut clear = Vec::new();
+
+    let mut iter_as_ref = Vec::new();
+    let mut iter_as_mut = Vec::new();
 
     let first = en
         .variants
@@ -64,18 +69,31 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 fields.push(quote!(#field: Option<V>));
                 field_inits.push(quote!(#field: None));
+
                 get.push(quote!(#m => return self.#field.as_ref()));
+
                 get_mut.push(quote!(#m => return self.#field.as_mut()));
+
                 insert.push(
                     quote!{#m => {
                         return ::std::mem::replace(&mut self.#field, Some(value));
                     }}
                 );
+
                 remove
                     .push(quote!(#m => return ::std::mem::replace(&mut self.#field, None)));
-                for_each_value.push(quote! {
-                    if let Some(c) = self.#field.as_ref() {
-                        f(c);
+
+                clear.push(quote!(self.#field = None));
+
+                iter_as_ref.push(quote!{
+                    if let Some(value) = self.#field.as_ref() {
+                        f((&#m, value));
+                    }
+                });
+
+                iter_as_mut.push(quote!{
+                    if let Some(value) = self.#field.as_mut() {
+                        f((&#m, value));
                     }
                 });
             }
@@ -90,9 +108,8 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
         }
 
-        #[allow(non_camel_case_types)]
         #[derive(Clone)]
-        pub struct #storage<V> {
+        #vis struct #storage<V> {
             #(#fields,)*
         }
 
@@ -102,7 +119,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
         }
 
-        impl<V> fixed_map::Storage<#base, V> for #storage<V> {
+        impl<V: 'static> fixed_map::Storage<#base, V> for #storage<V> {
             fn insert(
                 &mut self,
                 key: #base,
@@ -131,12 +148,20 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            fn for_each_value<F>(&self, mut f: F) where F: FnMut(&V) {
-                #(#for_each_value)*
+            fn clear(&mut self) {
+                #(#clear;)*
+            }
+
+            fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((&'a #base, &'a V)) {
+                #(#iter_as_ref)*
+            }
+
+            fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((&'a #base, &'a mut V)) {
+                #(#iter_as_mut)*
             }
         }
 
-        impl<V> fixed_map::Key<#base, V> for #base {
+        impl<V: 'static> fixed_map::Key<#base, V> for #base {
             type Storage = #storage<V>;
         }
     }
