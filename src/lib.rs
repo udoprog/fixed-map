@@ -47,8 +47,8 @@
 #![deny(missing_docs)]
 
 mod key;
-mod map;
-mod set;
+pub mod map;
+pub mod set;
 mod storage;
 
 pub use self::key::Key;
