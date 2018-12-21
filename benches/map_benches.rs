@@ -24,8 +24,8 @@ macro_rules! benches {
                     mem::size_of::<[Option<usize>; $len]>(),
                 );
 
-                let mut it = 1..;
-                let mut map = fixed_map::Map::<_, u32>::new();
+                let mut it = 1u32..;
+                let mut map = fixed_map::Map::new();
                 $(map.insert(Key::$insert, it.next().unwrap());)*
 
                 b.iter(|| map.get(Key::$get))
@@ -43,7 +43,7 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let mut it = 1..;
+                let mut it = 1u32..;
                 let mut map = [None; $len];
                 $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
 
@@ -62,8 +62,8 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let mut it = 1..;
-                let mut map = hashbrown::HashMap::<_, u32>::with_capacity($len);
+                let mut it = 1u32..;
+                let mut map = hashbrown::HashMap::with_capacity($len);
                 $(map.insert(Key::$insert, it.next().unwrap());)*
 
                 b.iter(|| map.get(&Key::$get))

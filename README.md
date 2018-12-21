@@ -124,6 +124,22 @@ hashbrown/iter32        time:   [5.9786 ns 6.0241 ns 6.0869 ns]
 
 [`hashbrown`]: https://github.com/Amanieu/hashbrown
 
+## Examples
+
+Most examples are in place to test what kind of assembler they compile to.
+
+To do this, run:
+
+```
+RUSTFLAGS="--emit asm" cargo build --release --example <example>
+```
+
+You should be able to find the assembler generated in the target folder:
+
+```
+ls target/release/examples/
+```
+
 ## LICENSE
 
 This project is distributed under the terms of both the MIT license and the Apache License (Version
