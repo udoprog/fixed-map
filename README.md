@@ -63,53 +63,63 @@ map.insert(Dir::North, Item::Bow);
 
 ## Performance
 
-The goal is for the performance of fixed-map to be identical to storing the data linearly in memory.
+The goal is for the performance of fixed-map to be identical to storing the data linearly in memory
+like when using `[Option<Key>; N]`.
 
 In the following benchmarks, fixed-map is compared to:
 
-* [`hashbrown`] - a high performance hash map created with `HashMap::with_capacity`.
-* `array`, which is a simple `[Option<Key>; N]` array.
+* `fixed` - A `fixed_map::Map` with a derived `Key` with `N` variants.
+* [`hashbrown`] - A high performance hash map. This is only included for reference.
+  - Note: Maps are created with `HashMap::with_capacity(N)`.
+* `array` - A simple `[Option<Key>; N]` array.
 
-Note: for the `insert` benchmark the underlying map is cloned in each iteration.
+Note: for all `insert` benchmarks the underlying map is cloned in each iteration.
 
 ```
-get_bench4/fixed_map    time:   [233.38 ps 233.72 ps 234.15 ps]
-get_bench8/fixed_map    time:   [241.19 ps 245.81 ps 251.53 ps]
-get_bench16/fixed_map   time:   [1.3941 ns 1.3957 ns 1.3981 ns]
+fixed/get4              time:   [240.19 ps 241.25 ps 242.46 ps]
+fixed/get8              time:   [236.54 ps 237.33 ps 238.19 ps]
+fixed/get16             time:   [255.66 ps 256.90 ps 258.11 ps]
+fixed/get32             time:   [1.8133 ns 1.8212 ns 1.8284 ns]
 
-get_bench4/array        time:   [464.69 ps 465.17 ps 465.85 ps]
-get_bench8/array        time:   [478.36 ps 484.59 ps 492.95 ps]
-get_bench16/array       time:   [464.86 ps 465.65 ps 466.71 ps]
+array/get4              time:   [516.23 ps 519.27 ps 521.86 ps]
+array/get8              time:   [519.22 ps 521.55 ps 523.52 ps]
+array/get16             time:   [473.06 ps 474.45 ps 475.91 ps]
+array/get32             time:   [516.33 ps 518.58 ps 520.51 ps]
 
-get_bench4/hashbrown    time:   [3.0677 ns 3.0753 ns 3.0829 ns]
-get_bench8/hashbrown    time:   [3.1362 ns 3.1653 ns 3.1957 ns]
-get_bench16/hashbrown   time:   [3.0293 ns 3.0328 ns 3.0373 ns]
+hashbrown/get4          time:   [3.1502 ns 3.1804 ns 3.2172 ns]
+hashbrown/get8          time:   [3.1468 ns 3.1666 ns 3.1921 ns]
+hashbrown/get16         time:   [3.0559 ns 3.0616 ns 3.0693 ns]
+hashbrown/get32         time:   [3.4007 ns 3.4204 ns 3.4364 ns]
 
-insert_bench4/fixed_map time:   [251.08 ps 252.22 ps 253.44 ps]
-insert_bench8/fixed_map time:   [5.9293 ns 5.9604 ns 5.9946 ns]
-insert_bench16/fixed_map
-                        time:   [12.549 ns 12.561 ns 12.577 ns]
+fixed/insert4           time:   [255.35 ps 256.28 ps 257.33 ps]
+fixed/insert8           time:   [254.84 ps 256.28 ps 257.89 ps]
+fixed/insert16          time:   [12.732 ns 12.789 ns 12.850 ns]
+fixed/insert32          time:   [19.602 ns 19.720 ns 19.868 ns]
 
-insert_bench4/array     time:   [251.16 ps 251.45 ps 251.82 ps]
-insert_bench8/array     time:   [263.79 ps 267.37 ps 270.81 ps]
-insert_bench16/array    time:   [250.07 ps 250.42 ps 250.83 ps]
+array/insert4           time:   [258.83 ps 260.36 ps 262.32 ps]
+array/insert8           time:   [258.48 ps 259.14 ps 259.86 ps]
+array/insert16          time:   [268.11 ps 271.70 ps 275.91 ps]
+array/insert32          time:   [256.29 ps 257.54 ps 258.83 ps]
 
-insert_bench4/hashbrown time:   [32.153 ns 32.373 ns 32.734 ns]
-insert_bench8/hashbrown time:   [33.509 ns 33.825 ns 34.176 ns]
-insert_bench16/hashbrown
-                        time:   [32.113 ns 32.160 ns 32.220 ns]
+hashbrown/insert4       time:   [32.985 ns 33.108 ns 33.238 ns]
+hashbrown/insert8       time:   [32.479 ns 32.566 ns 32.673 ns]
+hashbrown/insert16      time:   [35.995 ns 36.180 ns 36.334 ns]
+hashbrown/insert32      time:   [37.159 ns 37.383 ns 37.570 ns]
 
-iter_bench4/fixed_map   time:   [233.42 ps 234.21 ps 235.07 ps]
-iter_bench8/fixed_map   time:   [232.64 ps 233.39 ps 234.38 ps]
-iter_bench16/fixed_map  time:   [5.0975 ns 5.1016 ns 5.1055 ns]
+fixed/iter4             time:   [253.92 ps 258.03 ps 262.92 ps]
+fixed/iter8             time:   [238.28 ps 238.74 ps 239.26 ps]
+fixed/iter16            time:   [5.7057 ns 5.7416 ns 5.7852 ns]
+fixed/iter32            time:   [7.7160 ns 7.7793 ns 7.8619 ns]
 
-iter_bench4/array       time:   [245.52 ps 248.31 ps 251.31 ps]
-iter_bench8/array       time:   [232.42 ps 232.71 ps 233.08 ps]
-iter_bench16/array      time:   [232.45 ps 232.83 ps 233.37 ps]
+array/iter4             time:   [248.58 ps 252.06 ps 256.00 ps]
+array/iter8             time:   [256.90 ps 258.58 ps 260.22 ps]
+array/iter16            time:   [259.71 ps 261.15 ps 262.78 ps]
+array/iter32            time:   [257.05 ps 258.52 ps 260.07 ps]
 
-iter_bench4/hashbrown   time:   [1.4189 ns 1.4311 ns 1.4446 ns]
-iter_bench8/hashbrown   time:   [1.8590 ns 1.8609 ns 1.8635 ns]
-iter_bench16/hashbrown  time:   [3.2537 ns 3.2579 ns 3.2635 ns]
+hashbrown/iter4         time:   [1.4265 ns 1.4359 ns 1.4485 ns]
+hashbrown/iter8         time:   [1.9639 ns 1.9830 ns 2.0062 ns]
+hashbrown/iter16        time:   [3.6334 ns 3.6486 ns 3.6630 ns]
+hashbrown/iter32        time:   [7.4109 ns 7.4662 ns 7.5130 ns]
 ```
 
 [`hashbrown`]: https://github.com/Amanieu/hashbrown
