@@ -9,17 +9,27 @@ It accomplishes this by deriving an optimal storage strategy from the _key_ to b
 using the `Key` derive:
 
 ```rust
-#[derive(fixed_map::Key)]
+#[derive(Clone, Copy, fixed_map::Key)]
+pub enum Part {
+    First,
+    Second,
+}
+
+#[derive(Clone, Copy, fixed_map::Key)]
 pub enum Key {
-    One,
-    Two,
+    Simple,
+    Composite(Part),
 }
 
 let mut map = fixed_map::Map::new();
-assert_eq!(map.get(&Key::One), None);
-map.insert(Key::One, 42);
-assert_eq!(map.get(&Key::One), Some(&42));
-assert_eq!(map.get(&Key::Two), None);
+assert_eq!(map.get(Key::Simple), None);
+
+map.insert(Key::Simple, 1);
+map.insert(Key::Composite(Part::One), 2);
+
+assert_eq!(map.get(Key::Simple), Some(&1));
+assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
+assert_eq!(map.get(Key::Composite(Part::Two)), None);
 ```
 
 ## Missing APIs

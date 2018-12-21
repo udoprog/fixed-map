@@ -68,7 +68,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 let m = quote!(#base::#var);
 
                 fields.push(quote!(#field: Option<V>));
-                field_inits.push(quote!(#field: None));
+                field_inits.push(quote!(#field: Default::default()));
 
                 get.push(quote!(#m => return self.#field.as_ref()));
 
@@ -87,16 +87,59 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 iter_as_ref.push(quote!{
                     if let Some(value) = self.#field.as_ref() {
-                        f((&#m, value));
+                        f((#m, value));
                     }
                 });
 
                 iter_as_mut.push(quote!{
                     if let Some(value) = self.#field.as_mut() {
-                        f((&#m, value));
+                        f((#m, value));
                     }
                 });
-            }
+            },
+            Fields::Unnamed(ref unnamed) => {
+                if unnamed.unnamed.len() > 1 {
+                    panic!("Unnamed variants must have exactly one element");
+                }
+
+                let element = unnamed.unnamed.first().expect("Expected one element");
+
+                let var = &variant.ident;
+                let m = quote!(#base::#var(v));
+
+                fields.push(
+                    quote!(#field: <#element as fixed_map::Key<#element, V>>::Storage),
+                );
+
+                field_inits.push(quote!(#field: Default::default()));
+
+                get.push(quote!(#m => return self.#field.get(v)));
+                get_mut.push(quote!(#m => return self.#field.get_mut(v)));
+
+                insert.push(
+                    quote!{#m => {
+                        return self.#field.insert(v, value);
+                    }}
+                );
+
+                remove.push(quote!{#m => {
+                    return self.#field.remove(v);
+                }});
+
+                clear.push(quote!(self.#field.clear()));
+
+                iter_as_ref.push(quote!{
+                    self.#field.iter(|(k, v)| {
+                        f((#base::#var(k), v));
+                    });
+                });
+
+                iter_as_mut.push(quote!{
+                    self.#field.iter_mut(|(k, v)| {
+                        f((#base::#var(k), v));
+                    });
+                });
+            },
             _ => panic!("Only unit fields are supported in fixed enums"),
         }
     }
@@ -109,11 +152,11 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
         }
 
         #[derive(Clone)]
-        #vis struct #storage<V> {
+        #vis struct #storage<V: 'static> {
             #(#fields,)*
         }
 
-        impl<V> Default for #storage<V> {
+        impl<V: 'static> Default for #storage<V> {
             fn default() -> #storage<V> {
                 #storage { #(#field_inits,)* }
             }
@@ -130,20 +173,20 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            fn get(&self, value: &#base) -> Option<&V> {
-                match *value {
+            fn get(&self, value: #base) -> Option<&V> {
+                match value {
                     #(#get,)*
                 }
             }
 
-            fn get_mut(&mut self, value: &#base) -> Option<&mut V> {
-                match *value {
+            fn get_mut(&mut self, value: #base) -> Option<&mut V> {
+                match value {
                     #(#get_mut,)*
                 }
             }
 
-            fn remove(&mut self, value: &#base) -> Option<V> {
-                match *value {
+            fn remove(&mut self, value: #base) -> Option<V> {
+                match value {
                     #(#remove,)*
                 }
             }
@@ -152,11 +195,11 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #(#clear;)*
             }
 
-            fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((&'a #base, &'a V)) {
+            fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((#base, &'a V)) {
                 #(#iter_as_ref)*
             }
 
-            fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((&'a #base, &'a mut V)) {
+            fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((#base, &'a mut V)) {
                 #(#iter_as_mut)*
             }
         }

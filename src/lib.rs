@@ -1,7 +1,7 @@
 pub use fixed_map_derive::Key;
 
 /// The trait for a key that can be used to store values in the maps.
-pub trait Key<K: 'static, V: 'static> {
+pub trait Key<K: 'static, V: 'static>: Copy {
     type Storage: Storage<K, V>;
 }
 
@@ -16,13 +16,13 @@ pub trait Storage<K: 'static, V: 'static>: Default {
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
     /// This is the storage abstraction for [`Map::get`](struct.Map.html#method.get).
-    fn get(&self, key: &K) -> Option<&V>;
+    fn get(&self, key: K) -> Option<&V>;
 
     /// This is the storage abstraction for [`Map::get_mut`](struct.Map.html#method.get_mut).
-    fn get_mut(&mut self, key: &K) -> Option<&mut V>;
+    fn get_mut(&mut self, key: K) -> Option<&mut V>;
 
     /// This is the storage abstraction for [`Map::remove`](struct.Map.html#method.remove).
-    fn remove(&mut self, key: &K) -> Option<V>;
+    fn remove(&mut self, key: K) -> Option<V>;
 
     /// This is the storage abstraction for [`Map::clear`](struct.Map.html#method.clear).
     fn clear(&mut self);
@@ -30,12 +30,12 @@ pub trait Storage<K: 'static, V: 'static>: Default {
     /// This is the storage abstraction for [`Map::iter`](struct.Map.html#method.iter).
     fn iter<'a, F>(&'a self, f: F)
     where
-        F: FnMut((&'a K, &'a V));
+        F: FnMut((K, &'a V));
 
     /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
     fn iter_mut<'a, F>(&'a mut self, f: F)
     where
-        F: FnMut((&'a K, &'a mut V));
+        F: FnMut((K, &'a mut V));
 }
 
 /// A map with a fixed, pre-determined size.
@@ -53,17 +53,41 @@ where
 /// ```rust
 /// use fixed_map::Map;
 ///
-/// #[derive(fixed_map::Key)]
-/// enum MyKey {
-///     Foo,
-///     Bar,
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// enum Key {
+///     One,
+///     Two,
 /// }
 ///
 /// let mut m = Map::new();
-/// m.insert(MyKey::Foo, 42);
+/// m.insert(Key::One, 1);
 ///
-/// assert_eq!(m.get(&MyKey::Foo), Some(&42));
-/// assert_eq!(m.get(&MyKey::Bar), None);
+/// assert_eq!(m.get(Key::One), Some(&1));
+/// assert_eq!(m.get(Key::Two), None);
+/// ```
+///
+/// ```rust
+/// use fixed_map::Map;
+///
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// enum Part {
+///     A,
+///     B,
+/// }
+///
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// enum Key {
+///     Simple,
+///     Composite(Part),
+/// }
+///
+/// let mut m = Map::new();
+/// m.insert(Key::Simple, 1);
+/// m.insert(Key::Composite(Part::A), 2);
+///
+/// assert_eq!(m.get(Key::Simple), Some(&1));
+/// assert_eq!(m.get(Key::Composite(Part::A)), Some(&2));
+/// assert_eq!(m.get(Key::Composite(Part::B)), None);
 /// ```
 impl<K: 'static, V: 'static> Map<K, V>
 where
@@ -83,7 +107,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(Debug, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
     /// pub enum Key {
     ///     One,
     ///     Two,
@@ -96,11 +120,11 @@ where
     ///
     /// let mut out = Vec::new();
     /// map.keys(|key| out.push(key));
-    /// assert_eq!(out, vec![&Key::One, &Key::Two]);
+    /// assert_eq!(out, vec![Key::One, Key::Two]);
     /// ```
     pub fn keys<'a, F>(&'a self, mut f: F)
     where
-        F: FnMut(&'a K),
+        F: FnMut(K),
     {
         self.iter(|(k, _)| f(k));
     }
@@ -113,7 +137,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(Debug, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
     /// pub enum Key {
     ///     One,
     ///     Two,
@@ -143,7 +167,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(Debug, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
     /// pub enum Key {
     ///     One,
     ///     Two,
@@ -175,7 +199,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(Debug, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -188,11 +212,11 @@ where
     ///
     /// let mut out = Vec::new();
     /// map.iter(|e| out.push(e));
-    /// assert_eq!(out, vec![(&Key::One, &1), (&Key::Two, &2)]);
+    /// assert_eq!(out, vec![(Key::One, &1), (Key::Two, &2)]);
     /// ```
     pub fn iter<'a, F>(&'a self, f: F)
     where
-        F: FnMut((&'a K, &'a V)),
+        F: FnMut((K, &'a V)),
     {
         self.storage.iter(f)
     }
@@ -206,7 +230,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(Debug, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -224,11 +248,11 @@ where
     ///
     /// let mut out = Vec::new();
     /// map.iter(|e| out.push(e));
-    /// assert_eq!(out, vec![(&Key::One, &2), (&Key::Two, &4)]);
+    /// assert_eq!(out, vec![(Key::One, &2), (Key::Two, &4)]);
     /// ```
     pub fn iter_mut<'a, F>(&'a mut self, f: F)
     where
-        F: FnMut((&'a K, &'a mut V)),
+        F: FnMut((K, &'a mut V)),
     {
         self.storage.iter_mut(f)
     }
@@ -240,7 +264,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -248,10 +272,10 @@ where
     ///
     /// let mut map = Map::new();
     /// map.insert(Key::One, "a");
-    /// assert_eq!(map.get(&Key::One), Some(&"a"));
-    /// assert_eq!(map.get(&Key::Two), None);
+    /// assert_eq!(map.get(Key::One), Some(&"a"));
+    /// assert_eq!(map.get(Key::Two), None);
     /// ```
-    pub fn get(&self, key: &K) -> Option<&V> {
+    pub fn get(&self, key: K) -> Option<&V> {
         self.storage.get(key)
     }
 
@@ -262,7 +286,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -270,12 +294,12 @@ where
     ///
     /// let mut map = Map::new();
     /// map.insert(Key::One, "a");
-    /// if let Some(x) = map.get_mut(&Key::One) {
+    /// if let Some(x) = map.get_mut(Key::One) {
     ///     *x = "b";
     /// }
-    /// assert_eq!(map.get(&Key::One), Some(&"b"));
+    /// assert_eq!(map.get(Key::One), Some(&"b"));
     /// ```
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+    pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         self.storage.get_mut(key)
     }
 
@@ -291,7 +315,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -303,7 +327,7 @@ where
     ///
     /// map.insert(Key::Two, "b");
     /// assert_eq!(map.insert(Key::Two, "c"), Some("b"));
-    /// assert_eq!(map.get(&Key::Two), Some(&"c"));
+    /// assert_eq!(map.get(Key::Two), Some(&"c"));
     /// ```
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         self.storage.insert(key, value)
@@ -317,7 +341,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -325,10 +349,10 @@ where
     ///
     /// let mut map = Map::new();
     /// map.insert(Key::One, "a");
-    /// assert_eq!(map.remove(&Key::One), Some("a"));
-    /// assert_eq!(map.remove(&Key::One), None);
+    /// assert_eq!(map.remove(Key::One), Some("a"));
+    /// assert_eq!(map.remove(Key::One), None);
     /// ```
-    pub fn remove(&mut self, key: &K) -> Option<V> {
+    pub fn remove(&mut self, key: K) -> Option<V> {
         self.storage.remove(key)
     }
 
@@ -340,7 +364,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -362,7 +386,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -390,7 +414,7 @@ where
     /// ```
     /// use fixed_map::Map;
     ///
-    /// #[derive(fixed_map::Key)]
+    /// #[derive(Clone, Copy, fixed_map::Key)]
     /// enum Key {
     ///     One,
     ///     Two,
