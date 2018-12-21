@@ -36,7 +36,7 @@ pub trait Storage<K: 'static, V: 'static>: Default {
         F: FnMut((K, &'a mut V));
 }
 
-/// Storage for a type that only has a single value (like `()`).
+/// Storage types that only has a single value (like `()`).
 pub struct SingletonStorage<K: 'static, V: 'static> {
     inner: Option<V>,
     key: marker::PhantomData<K>,
@@ -113,7 +113,7 @@ where
     }
 }
 
-/// Storage static types that must be stored in a map.
+/// Storage for static types that must be stored in a map.
 pub struct MapStorage<K: 'static, V: 'static> {
     inner: hashbrown::HashMap<K, V>,
 }

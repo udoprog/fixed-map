@@ -54,5 +54,5 @@ mod storage;
 pub use self::key::Key;
 pub use self::map::Map;
 pub use self::set::Set;
-pub use self::storage::{MapStorage, Storage};
+pub use self::storage::{MapStorage, SingletonStorage, Storage};
 pub use fixed_map_derive::Key;
