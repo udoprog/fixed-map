@@ -245,6 +245,7 @@ where
     /// map.iter_fn(|e| out.push(e));
     /// assert_eq!(out, vec![(Key::One, &1), (Key::Two, &2)]);
     /// ```
+    #[inline]
     pub fn iter_fn<'a, F>(&'a self, f: F)
     where
         F: FnMut((K, &'a V)),
@@ -328,6 +329,7 @@ where
     /// map.iter_fn(|e| out.push(e));
     /// assert_eq!(out, vec![(Key::One, &2), (Key::Two, &4)]);
     /// ```
+    #[inline]
     pub fn iter_mut_fn<'a, F>(&'a mut self, f: F)
     where
         F: FnMut((K, &'a mut V)),
@@ -353,6 +355,7 @@ where
     /// assert_eq!(map.get(Key::One), Some(&"a"));
     /// assert_eq!(map.get(Key::Two), None);
     /// ```
+    #[inline]
     pub fn get(&self, key: K) -> Option<&V> {
         self.storage.get(key)
     }
@@ -377,6 +380,7 @@ where
     /// }
     /// assert_eq!(map.get(Key::One), Some(&"b"));
     /// ```
+    #[inline]
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         self.storage.get_mut(key)
     }
@@ -407,6 +411,7 @@ where
     /// assert_eq!(map.insert(Key::Two, "c"), Some("b"));
     /// assert_eq!(map.get(Key::Two), Some(&"c"));
     /// ```
+    #[inline]
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         self.storage.insert(key, value)
     }
@@ -430,6 +435,7 @@ where
     /// assert_eq!(map.remove(Key::One), Some("a"));
     /// assert_eq!(map.remove(Key::One), None);
     /// ```
+    #[inline]
     pub fn remove(&mut self, key: K) -> Option<V> {
         self.storage.remove(key)
     }
@@ -453,6 +459,7 @@ where
     /// map.clear();
     /// assert!(map.is_empty());
     /// ```
+    #[inline]
     pub fn clear(&mut self) {
         self.storage.clear()
     }

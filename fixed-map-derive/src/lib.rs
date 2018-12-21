@@ -163,7 +163,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
         }
 
         impl<V: 'static> fixed_map::Storage<#base, V> for #storage<V> {
-            #[inline(always)]
+            #[inline]
             fn insert(
                 &mut self,
                 key: #base,
@@ -174,38 +174,38 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            #[inline(always)]
+            #[inline]
             fn get(&self, value: #base) -> Option<&V> {
                 match value {
                     #(#get,)*
                 }
             }
 
-            #[inline(always)]
+            #[inline]
             fn get_mut(&mut self, value: #base) -> Option<&mut V> {
                 match value {
                     #(#get_mut,)*
                 }
             }
 
-            #[inline(always)]
+            #[inline]
             fn remove(&mut self, value: #base) -> Option<V> {
                 match value {
                     #(#remove,)*
                 }
             }
 
-            #[inline(always)]
+            #[inline]
             fn clear(&mut self) {
                 #(#clear;)*
             }
 
-            #[inline(always)]
+            #[inline]
             fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((#base, &'a V)) {
                 #(#iter_as_ref)*
             }
 
-            #[inline(always)]
+            #[inline]
             fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((#base, &'a mut V)) {
                 #(#iter_as_mut)*
             }

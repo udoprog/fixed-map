@@ -38,6 +38,7 @@ macro_rules! benches {
             "array",
             Benchmark::new(concat!("get", stringify!($len)), |b: &mut Bencher| {
                 #[allow(unused)]
+                #[repr(usize)]
                 pub enum Key {
                     $($member,)*
                 }
@@ -80,12 +81,10 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let map = fixed_map::Map::<Key, u32>::new();
-
                 b.iter(|| {
-                    let mut map = map.clone();
-                    map.insert(Key::$get, 4);
-                    map.get(Key::$get).cloned()
+                    let mut map = fixed_map::Map::<Key, u32>::new();
+                    $(map.insert(Key::$insert, 42u32);)*
+                    ($(map.get(Key::$insert).cloned(),)*)
                 })
             }),
         );
@@ -96,16 +95,15 @@ macro_rules! benches {
             "array",
             Benchmark::new(concat!("insert", stringify!($len)), |b: &mut Bencher| {
                 #[allow(unused)]
+                #[repr(usize)]
                 pub enum Key {
                     $($member,)*
                 }
 
-                let map = [None; $len] as [Option<usize>; $len];
-
                 b.iter(|| {
-                    let mut map = map.clone();
-                    map[Key::$get as usize] = Some(4);
-                    map[Key::$get as usize].as_ref().cloned()
+                    let mut map = [None; $len];
+                    $(map[Key::$insert as usize] = Some(42u32);)*
+                    ($(map[Key::$insert as usize].as_ref().cloned(),)*)
                 })
             }),
         );
@@ -121,12 +119,10 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let map = hashbrown::HashMap::<_, u32>::with_capacity($len);
-
                 b.iter(|| {
-                    let mut map = map.clone();
-                    map.insert(Key::$get, 4);
-                    map.get(&Key::$get).cloned()
+                    let mut map = hashbrown::HashMap::<_, u32>::with_capacity($len);
+                    $(map.insert(Key::$insert, 42u32);)*
+                    ($(map.get(&Key::$insert).cloned(),)*)
                 })
             }),
         );
@@ -160,6 +156,7 @@ macro_rules! benches {
             "array",
             Benchmark::new(concat!("iter", stringify!($len)), |b: &mut Bencher| {
                 #[allow(unused)]
+                #[repr(usize)]
                 pub enum Key {
                     $($member,)*
                 }
