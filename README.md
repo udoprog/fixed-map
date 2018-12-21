@@ -32,6 +32,10 @@ assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
 assert_eq!(map.get(Key::Composite(Part::Two)), None);
 ```
 
+For more information on how to use `fixed-map`, see the [documentation].
+
+[documentation]: https://docs.rs/fixed-map
+
 ## Missing APIs
 
 The API of this project is incomplete since it is experimental.
