@@ -4,6 +4,44 @@ use std::vec;
 use crate::{Key, Storage};
 
 /// A fixed set implemented as a `Map` where the value is `()`.
+///
+/// # Examples
+///
+/// ```rust
+/// use fixed_map::Set;
+///
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// enum Part {
+///     One,
+///     Two,
+/// }
+///
+/// #[derive(Clone, Copy, fixed_map::Key)]
+/// enum Key {
+///     Simple,
+///     Composite(Part),
+///     String(&'static str),
+///     Number(u32),
+///     Singleton(()),
+/// }
+///
+/// let mut set = Set::new();
+///
+/// set.insert(Key::Simple);
+/// set.insert(Key::Composite(Part::One));
+/// set.insert(Key::String("foo"));
+/// set.insert(Key::Number(1));
+/// set.insert(Key::Singleton(()));
+///
+/// assert!(set.contains(Key::Simple));
+/// assert!(set.contains(Key::Composite(Part::One)));
+/// assert!(!set.contains(Key::Composite(Part::Two)));
+/// assert!(set.contains(Key::String("foo")));
+/// assert!(!set.contains(Key::String("bar")));
+/// assert!(set.contains(Key::Number(1)));
+/// assert!(!set.contains(Key::Number(2)));
+/// assert!(set.contains(Key::Singleton(())));
+/// ```
 pub struct Set<K: 'static>
 where
     K: Key<K, ()>,
