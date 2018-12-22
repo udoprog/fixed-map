@@ -1,4 +1,6 @@
-use crate::Key;
+//! Module for the trait to define `Storage`.
+
+use crate::key::Key;
 use std::hash;
 use std::marker;
 use std::mem;

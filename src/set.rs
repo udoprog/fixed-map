@@ -1,22 +1,22 @@
 //! Contains the fixed `Set` implementation.
 use std::vec;
 
-use crate::{Key, Storage};
+use crate::{key::Key, storage::Storage};
 
 /// A fixed set implemented as a `Map` where the value is `()`.
 ///
 /// # Examples
 ///
 /// ```rust
-/// use fixed_map::Set;
+/// use fixed_map::{Key, Set};
 ///
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// #[derive(Clone, Copy, Key)]
 /// enum Part {
 ///     One,
 ///     Two,
 /// }
 ///
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// #[derive(Clone, Copy, Key)]
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
@@ -54,9 +54,9 @@ where
 /// # Examples
 ///
 /// ```rust
-/// use fixed_map::Set;
+/// use fixed_map::{Key, Set};
 ///
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// #[derive(Clone, Copy, Key)]
 /// enum Key {
 ///     One,
 ///     Two,
@@ -70,15 +70,15 @@ where
 /// ```
 ///
 /// ```rust
-/// use fixed_map::Set;
+/// use fixed_map::{Key, Set};
 ///
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// #[derive(Clone, Copy, Key)]
 /// enum Part {
 ///     A,
 ///     B,
 /// }
 ///
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// #[derive(Clone, Copy, Key)]
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
@@ -101,9 +101,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -131,9 +131,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -165,9 +165,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, fixed_map::Key)]
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -196,9 +196,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -223,9 +223,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -250,9 +250,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -273,9 +273,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -296,9 +296,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,
@@ -324,9 +324,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use fixed_map::Set;
+    /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Clone, Copy, fixed_map::Key)]
+    /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     One,
     ///     Two,

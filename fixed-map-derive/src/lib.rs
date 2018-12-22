@@ -18,7 +18,9 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 /// Given the following enum:
 ///
 /// ```rust,no_run
-/// #[derive(Clone, Copy, fixed_map::Key)]
+/// use fixed_map::Key;
+///
+/// #[derive(Clone, Copy, Key)]
 /// pub enum Key {
 ///     First,
 ///     Second,
@@ -40,7 +42,7 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 /// }
 ///
 /// /// Implement storage for `KeyStorage`.
-/// impl<V> fixed_map::Storage<Key, V> for KeyStorage<V> {
+/// impl<V> fixed_map::storage::Storage<Key, V> for KeyStorage<V> {
 ///     fn get(&self, key: Key) -> Option<&V> {
 ///         match *self {
 ///             Key::First => self.f1.as_ref(),
@@ -53,7 +55,7 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 /// }
 ///
 /// /// Implement the `Key` trait to point out storage.
-/// impl<V> fixed_map::Key<Key, V> for Key {
+/// impl<V> fixed_map::key::Key<Key, V> for Key {
 ///     type Storage = KeyStorage<V>;
 /// }
 /// ```
@@ -156,7 +158,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 let m = quote!(#base::#var(v));
 
                 fields.push(
-                    quote!(#field: <#element as fixed_map::Key<#element, V>>::Storage),
+                    quote!(#field: <#element as fixed_map::key::Key<#element, V>>::Storage),
                 );
 
                 field_inits.push(quote!(#field: Default::default()));
@@ -210,7 +212,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
         }
 
-        impl<V: 'static> fixed_map::Storage<#base, V> for #storage<V> {
+        impl<V: 'static> fixed_map::storage::Storage<#base, V> for #storage<V> {
             #[inline]
             fn insert(
                 &mut self,
@@ -259,7 +261,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
         }
 
-        impl<V: 'static> fixed_map::Key<#base, V> for #base {
+        impl<V: 'static> fixed_map::key::Key<#base, V> for #base {
             type Storage = #storage<V>;
         }
     }

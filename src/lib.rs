@@ -9,15 +9,15 @@
 //! For example:
 //!
 //! ```rust
-//! use fixed_map::Map;
+//! use fixed_map::{Key, Map};
 //!
-//! #[derive(Clone, Copy, fixed_map::Key)]
+//! #[derive(Clone, Copy, Key)]
 //! enum Part {
 //!     One,
 //!     Two,
 //! }
 //!
-//! #[derive(Clone, Copy, fixed_map::Key)]
+//! #[derive(Clone, Copy, Key)]
 //! enum Key {
 //!     Simple,
 //!     Composite(Part),
@@ -46,13 +46,11 @@
 
 #![deny(missing_docs)]
 
-mod key;
+pub mod key;
 pub mod map;
 pub mod set;
-mod storage;
+pub mod storage;
 
-pub use self::key::Key;
 pub use self::map::Map;
 pub use self::set::Set;
-pub use self::storage::{MapStorage, SingletonStorage, Storage};
 pub use fixed_map_derive::Key;
