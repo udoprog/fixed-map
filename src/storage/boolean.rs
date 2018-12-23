@@ -1,7 +1,7 @@
 use crate::storage::Storage;
 use std::mem;
 
-/// Storage for static types that must be stored in a map.
+/// Storage for `bool`s.
 pub struct BooleanStorage<V: 'static> {
     t: Option<V>,
     f: Option<V>,

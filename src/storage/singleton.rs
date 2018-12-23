@@ -2,7 +2,7 @@ use crate::storage::Storage;
 use std::marker;
 use std::mem;
 
-/// Storage types that only has a single value (like `()`).
+/// Storage types that can only inhabit a single value (like `()`).
 pub struct SingletonStorage<K: 'static, V: 'static> {
     inner: Option<V>,
     key: marker::PhantomData<K>,

@@ -1,7 +1,7 @@
 use crate::{key::Key, storage::Storage};
 use std::mem;
 
-/// Storage for static types that must be stored in a map.
+/// Storage for `Option<T>`s.
 pub struct OptionStorage<K: 'static, V: 'static>
 where
     K: Key<K, V>,
