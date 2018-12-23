@@ -1,9 +1,11 @@
 //! Module for the trait to define `Storage`.
 
+mod boolean;
 mod map;
 mod option;
 mod singleton;
 
+pub use self::boolean::BooleanStorage;
 pub use self::map::MapStorage;
 pub use self::option::OptionStorage;
 pub use self::singleton::SingletonStorage;

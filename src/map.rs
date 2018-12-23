@@ -24,6 +24,7 @@ use crate::{key::Key, storage::Storage};
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
+///     Boolean(bool),
 /// }
 ///
 /// let mut map = Map::new();
@@ -35,6 +36,7 @@ use crate::{key::Key, storage::Storage};
 /// map.insert(Key::Singleton(()), 5);
 /// map.insert(Key::Option(None), 6);
 /// map.insert(Key::Option(Some(Part::One)), 7);
+/// map.insert(Key::Boolean(true), 8);
 ///
 /// assert_eq!(map.get(Key::Simple), Some(&1));
 /// assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
@@ -47,6 +49,8 @@ use crate::{key::Key, storage::Storage};
 /// assert_eq!(map.get(Key::Option(None)), Some(&6));
 /// assert_eq!(map.get(Key::Option(Some(Part::One))), Some(&7));
 /// assert_eq!(map.get(Key::Option(Some(Part::Two))), None);
+/// assert_eq!(map.get(Key::Boolean(true)), Some(&8));
+/// assert_eq!(map.get(Key::Boolean(false)), None);
 /// ```
 pub struct Map<K: 'static, V: 'static>
 where

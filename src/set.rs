@@ -24,6 +24,7 @@ use crate::{key::Key, storage::Storage};
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
+///     Boolean(bool),
 /// }
 ///
 /// let mut set = Set::new();
@@ -35,6 +36,7 @@ use crate::{key::Key, storage::Storage};
 /// set.insert(Key::Singleton(()));
 /// set.insert(Key::Option(None));
 /// set.insert(Key::Option(Some(Part::One)));
+/// set.insert(Key::Boolean(true));
 ///
 /// assert!(set.contains(Key::Simple));
 /// assert!(set.contains(Key::Composite(Part::One)));
@@ -47,6 +49,8 @@ use crate::{key::Key, storage::Storage};
 /// assert!(set.contains(Key::Option(None)));
 /// assert!(set.contains(Key::Option(Some(Part::One))));
 /// assert!(!set.contains(Key::Option(Some(Part::Two))));
+/// assert!(set.contains(Key::Boolean(true)));
+/// assert!(!set.contains(Key::Boolean(false)));
 /// ```
 pub struct Set<K: 'static>
 where

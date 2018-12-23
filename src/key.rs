@@ -1,6 +1,6 @@
 //! Module for the trait to define a `Key`.
 
-use crate::storage::{MapStorage, OptionStorage, SingletonStorage, Storage};
+use crate::storage::{BooleanStorage, MapStorage, OptionStorage, SingletonStorage, Storage};
 
 /// The trait for a key that can be used to store values in the maps.
 pub trait Key<K: 'static, V: 'static>: Copy {
@@ -35,6 +35,7 @@ macro_rules! impl_singleton_storage {
     };
 }
 
+impl_map_storage!(char);
 impl_map_storage!(u8);
 impl_map_storage!(u32);
 impl_map_storage!(u64);
@@ -46,3 +47,7 @@ impl_map_storage!(i64);
 impl_map_storage!(i128);
 impl_map_storage!(isize);
 impl_singleton_storage!(());
+
+impl<V: 'static> Key<bool, V> for bool {
+    type Storage = BooleanStorage<V>;
+}
