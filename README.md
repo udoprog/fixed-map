@@ -16,15 +16,15 @@ The `Key` derive is provided to construct optimized storage for a given Key.
 For example:
 
 ```rust
-use fixed_map::Map;
+use fixed_map::{Key, Map};
 
-#[derive(Clone, Copy, fixed_map::Key)]
+#[derive(Clone, Copy, Key)]
 enum Part {
     One,
     Two,
 }
 
-#[derive(Clone, Copy, fixed_map::Key)]
+#[derive(Clone, Copy, Key)]
 enum Key {
     Simple,
     Composite(Part),
@@ -64,7 +64,7 @@ identified by an enum.
 For example, let's say you have a game where each room has something in for directions:
 
 ```rust
-#[derive(fixed_map::Key)]
+#[derive(Key)]
 pub enum Dir {
     North,
     East,
