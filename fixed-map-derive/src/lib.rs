@@ -77,9 +77,9 @@ fn impl_storage(ast: &DeriveInput) -> TokenStream {
 /// Implement `Key` for enums.
 fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let vis = &ast.vis;
-    let base = &ast.ident;
+    let ident = &ast.ident;
 
-    let storage = Ident::new(&format!("{}Storage", base), Span::call_site());
+    let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
 
     let mut field_inits = Vec::new();
     let mut fields = Vec::new();
@@ -99,7 +99,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
         match variant.fields {
             Fields::Unit => {
                 let var = &variant.ident;
-                let m = quote!(#base::#var);
+                let m = quote!(#ident::#var);
 
                 fields.push(quote!(#field: Option<V>));
                 field_inits.push(quote!(#field: Default::default()));
@@ -139,7 +139,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 let element = unnamed.unnamed.first().expect("Expected one element");
 
                 let var = &variant.ident;
-                let m = quote!(#base::#var(v));
+                let m = quote!(#ident::#var(v));
 
                 fields.push(
                     quote!(#field: <#element as fixed_map::key::Key<#element, V>>::Storage),
@@ -164,13 +164,13 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 iter_as_ref.push(quote!{
                     self.#field.iter(|(k, v)| {
-                        f((#base::#var(k), v));
+                        f((#ident::#var(k), v));
                     });
                 });
 
                 iter_as_mut.push(quote!{
                     self.#field.iter_mut(|(k, v)| {
-                        f((#base::#var(k), v));
+                        f((#ident::#var(k), v));
                     });
                 });
             },
@@ -179,68 +179,68 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     }
 
     quote! {
-        #[derive(Clone)]
-        #vis struct #storage<V: 'static> {
-            #(#fields,)*
-        }
-
-        impl<V: 'static> Default for #storage<V> {
-            fn default() -> #storage<V> {
-                #storage { #(#field_inits,)* }
+        const #const_wrapper: () = {
+            #[derive(Clone)]
+            #vis struct Storage<V: 'static> {
+                #(#fields,)*
             }
-        }
 
-        impl<V: 'static> fixed_map::storage::Storage<#base, V> for #storage<V> {
-            #[inline]
-            fn insert(
-                &mut self,
-                key: #base,
-                value: V,
-            ) -> Option<V> {
-                match key {
-                    #(#insert,)*
+            impl<V: 'static> Default for Storage<V> {
+                fn default() -> Storage<V> {
+                    Storage {
+                        #(#field_inits,)*
+                    }
                 }
             }
 
-            #[inline]
-            fn get(&self, value: #base) -> Option<&V> {
-                match value {
-                    #(#get,)*
+            impl<V: 'static> fixed_map::storage::Storage<#ident, V> for Storage<V> {
+                #[inline]
+                fn insert(&mut self, key: #ident, value: V) -> Option<V> {
+                    match key {
+                        #(#insert,)*
+                    }
+                }
+
+                #[inline]
+                fn get(&self, value: #ident) -> Option<&V> {
+                    match value {
+                        #(#get,)*
+                    }
+                }
+
+                #[inline]
+                fn get_mut(&mut self, value: #ident) -> Option<&mut V> {
+                    match value {
+                        #(#get_mut,)*
+                    }
+                }
+
+                #[inline]
+                fn remove(&mut self, value: #ident) -> Option<V> {
+                    match value {
+                        #(#remove,)*
+                    }
+                }
+
+                #[inline]
+                fn clear(&mut self) {
+                    #(#clear;)*
+                }
+
+                #[inline]
+                fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((#ident, &'a V)) {
+                    #(#iter_as_ref)*
+                }
+
+                #[inline]
+                fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((#ident, &'a mut V)) {
+                    #(#iter_as_mut)*
                 }
             }
 
-            #[inline]
-            fn get_mut(&mut self, value: #base) -> Option<&mut V> {
-                match value {
-                    #(#get_mut,)*
-                }
+            impl<V: 'static> fixed_map::key::Key<#ident, V> for #ident {
+                type Storage = Storage<V>;
             }
-
-            #[inline]
-            fn remove(&mut self, value: #base) -> Option<V> {
-                match value {
-                    #(#remove,)*
-                }
-            }
-
-            #[inline]
-            fn clear(&mut self) {
-                #(#clear;)*
-            }
-
-            #[inline]
-            fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((#base, &'a V)) {
-                #(#iter_as_ref)*
-            }
-
-            #[inline]
-            fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((#base, &'a mut V)) {
-                #(#iter_as_mut)*
-            }
-        }
-
-        impl<V: 'static> fixed_map::key::Key<#base, V> for #base {
-            type Storage = #storage<V>;
-        }
+        };
     }
 }
