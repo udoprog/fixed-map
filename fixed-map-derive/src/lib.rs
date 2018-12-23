@@ -93,22 +93,6 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut iter_as_ref = Vec::new();
     let mut iter_as_mut = Vec::new();
 
-    let first = en
-        .variants
-        .iter()
-        .next()
-        .expect("enum must have at least one variant");
-
-    let default_fn = match first.fields {
-        Fields::Unit => {
-            let ident = &first.ident;
-            quote!(#base::#ident)
-        }
-        _ => {
-            panic!("Only unit fields are supported in fixed enums");
-        }
-    };
-
     for (i, variant) in en.variants.iter().enumerate() {
         let field = Ident::new(&format!("f{}", i), Span::call_site());
 
@@ -195,12 +179,6 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     }
 
     quote! {
-        impl Default for #base {
-            fn default() -> #base {
-                #default_fn
-            }
-        }
-
         #[derive(Clone)]
         #vis struct #storage<V: 'static> {
             #(#fields,)*
