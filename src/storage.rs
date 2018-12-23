@@ -122,7 +122,7 @@ pub struct MapStorage<K: 'static, V: 'static> {
 
 impl<K: 'static, V: 'static> Clone for MapStorage<K, V>
 where
-    K: Clone + Eq + hash::Hash,
+    K: Clone,
     V: Clone,
 {
     fn clone(&self) -> Self {
