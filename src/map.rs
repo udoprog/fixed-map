@@ -570,6 +570,20 @@ where
     }
 }
 
+impl<K, V> std::fmt::Debug for Map<K, V>
+where
+    K: Key<K, V> + std::fmt::Debug,
+    V: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut debug_map = f.debug_map();
+        self.iter_fn(|(k, v)| {
+            debug_map.entry(&k, v);
+        });
+        debug_map.finish()
+    }
+}
+
 /// An iterator over the entries of a `Map`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Map`]. See its
