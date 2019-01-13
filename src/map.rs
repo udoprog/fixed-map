@@ -561,6 +561,15 @@ where
     }
 }
 
+impl<K, V> Default for Map<K, V>
+where
+    K: Key<K, V>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// An iterator over the entries of a `Map`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Map`]. See its
