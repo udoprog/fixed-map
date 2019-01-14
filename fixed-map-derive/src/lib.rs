@@ -180,7 +180,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
     quote! {
         const #const_wrapper: () = {
-            #[derive(Clone)]
+            #[derive(Clone, PartialEq, Eq)]
             #vis struct Storage<V: 'static> {
                 #(#fields,)*
             }

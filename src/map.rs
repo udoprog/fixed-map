@@ -584,6 +584,23 @@ where
     }
 }
 
+impl<K, V> PartialEq for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.storage == other.storage
+    }
+}
+
+impl<K, V> Eq for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Eq,
+{
+}
+
 /// An iterator over the entries of a `Map`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Map`]. See its

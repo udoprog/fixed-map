@@ -28,6 +28,17 @@ impl<V: 'static> Default for BooleanStorage<V> {
     }
 }
 
+impl<V: 'static> PartialEq for BooleanStorage<V>
+where
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.t == other.t && self.f == other.f
+    }
+}
+
+impl<V: 'static> Eq for BooleanStorage<V> where V: Eq {}
+
 impl<V> Storage<bool, V> for BooleanStorage<V> {
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
