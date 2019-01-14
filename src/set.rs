@@ -52,7 +52,7 @@ use crate::{key::Key, storage::Storage};
 /// assert!(set.contains(Key::Boolean(true)));
 /// assert!(!set.contains(Key::Boolean(false)));
 /// ```
-pub struct Set<K: 'static>
+pub struct Set<K>
 where
     K: Key<K, ()>,
 {
@@ -102,7 +102,7 @@ where
 /// assert_eq!(m.contains(Key::Composite(Part::A)), true);
 /// assert_eq!(m.contains(Key::Composite(Part::B)), false);
 /// ```
-impl<K: 'static> Set<K>
+impl<K> Set<K>
 where
     K: Key<K, ()>,
 {

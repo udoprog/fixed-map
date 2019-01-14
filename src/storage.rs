@@ -16,7 +16,7 @@ pub use self::singleton::SingletonStorage;
 ///
 /// - `K` is the key being stored.
 /// - `V` is the value being stored.
-pub trait Storage<K: 'static, V: 'static>: Default {
+pub trait Storage<K, V: 'static>: Default {
     /// This is the storage abstraction for [`Map::insert`](struct.Map.html#method.insert).
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
@@ -33,12 +33,8 @@ pub trait Storage<K: 'static, V: 'static>: Default {
     fn clear(&mut self);
 
     /// This is the storage abstraction for [`Map::iter`](struct.Map.html#method.iter).
-    fn iter<'a, F>(&'a self, f: F)
-    where
-        F: FnMut((K, &'a V));
+    fn iter<'a>(&'a self, f: impl FnMut((K, &'a V)));
 
     /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
-    fn iter_mut<'a, F>(&'a mut self, f: F)
-    where
-        F: FnMut((K, &'a mut V));
+    fn iter_mut<'a>(&'a mut self, f: impl FnMut((K, &'a mut V)));
 }

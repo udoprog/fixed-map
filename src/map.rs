@@ -52,7 +52,7 @@ use crate::{key::Key, storage::Storage};
 /// assert_eq!(map.get(Key::Boolean(true)), Some(&8));
 /// assert_eq!(map.get(Key::Boolean(false)), None);
 /// ```
-pub struct Map<K: 'static, V: 'static>
+pub struct Map<K, V: 'static>
 where
     K: Key<K, V>,
 {
@@ -102,7 +102,7 @@ where
 /// assert_eq!(m.get(Key::Composite(Part::A)), Some(&2));
 /// assert_eq!(m.get(Key::Composite(Part::B)), None);
 /// ```
-impl<K: 'static, V: 'static> Map<K, V>
+impl<K, V: 'static> Map<K, V>
 where
     K: Key<K, V>,
 {

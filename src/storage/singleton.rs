@@ -3,12 +3,12 @@ use std::marker;
 use std::mem;
 
 /// Storage types that can only inhabit a single value (like `()`).
-pub struct SingletonStorage<K: 'static, V: 'static> {
+pub struct SingletonStorage<K, V> {
     inner: Option<V>,
     key: marker::PhantomData<K>,
 }
 
-impl<K: 'static, V: 'static> Clone for SingletonStorage<K, V>
+impl<K, V> Clone for SingletonStorage<K, V>
 where
     V: Clone,
 {
@@ -20,7 +20,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Default for SingletonStorage<K, V> {
+impl<K, V> Default for SingletonStorage<K, V> {
     fn default() -> Self {
         Self {
             inner: Default::default(),
@@ -29,7 +29,7 @@ impl<K: 'static, V: 'static> Default for SingletonStorage<K, V> {
     }
 }
 
-impl<K: 'static, V: 'static> PartialEq for SingletonStorage<K, V>
+impl<K, V> PartialEq for SingletonStorage<K, V>
 where
     V: PartialEq,
 {
@@ -38,9 +38,9 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Eq for SingletonStorage<K, V> where V: Eq {}
+impl<K, V> Eq for SingletonStorage<K, V> where V: Eq {}
 
-impl<K: 'static, V: 'static> Storage<K, V> for SingletonStorage<K, V>
+impl<K, V: 'static> Storage<K, V> for SingletonStorage<K, V>
 where
     K: Default,
 {
@@ -70,20 +70,14 @@ where
     }
 
     #[inline]
-    fn iter<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut((K, &'a V)),
-    {
+    fn iter<'a>(&'a self, mut f: impl FnMut((K, &'a V))) {
         if let Some(value) = self.inner.as_ref() {
             f((K::default(), value));
         }
     }
 
     #[inline]
-    fn iter_mut<'a, F>(&'a mut self, mut f: F)
-    where
-        F: FnMut((K, &'a mut V)),
-    {
+    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((K, &'a mut V))) {
         if let Some(value) = self.inner.as_mut() {
             f((K::default(), value));
         }

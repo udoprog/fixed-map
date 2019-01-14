@@ -2,11 +2,11 @@ use crate::storage::Storage;
 use std::hash;
 
 /// Storage for static types that must be stored in a map.
-pub struct MapStorage<K: 'static, V: 'static> {
+pub struct MapStorage<K, V> {
     inner: hashbrown::HashMap<K, V>,
 }
 
-impl<K: 'static, V: 'static> Clone for MapStorage<K, V>
+impl<K, V> Clone for MapStorage<K, V>
 where
     K: Clone,
     V: Clone,
@@ -18,7 +18,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Default for MapStorage<K, V>
+impl<K, V> Default for MapStorage<K, V>
 where
     K: Eq + hash::Hash,
 {
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> PartialEq for MapStorage<K, V>
+impl<K, V> PartialEq for MapStorage<K, V>
 where
     K: Eq + hash::Hash,
     V: PartialEq,
@@ -39,14 +39,14 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Eq for MapStorage<K, V>
+impl<K, V> Eq for MapStorage<K, V>
 where
     K: Eq + hash::Hash,
     V: Eq,
 {
 }
 
-impl<K, V> Storage<K, V> for MapStorage<K, V>
+impl<K, V: 'static> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + hash::Hash,
 {
@@ -76,20 +76,14 @@ where
     }
 
     #[inline]
-    fn iter<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut((K, &'a V)),
-    {
+    fn iter<'a>(&'a self, mut f: impl FnMut((K, &'a V))) {
         for (key, value) in &self.inner {
             f((*key, value));
         }
     }
 
     #[inline]
-    fn iter_mut<'a, F>(&'a mut self, mut f: F)
-    where
-        F: FnMut((K, &'a mut V)),
-    {
+    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((K, &'a mut V))) {
         for (key, value) in &mut self.inner {
             f((*key, value));
         }

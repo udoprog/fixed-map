@@ -2,12 +2,12 @@ use crate::storage::Storage;
 use std::mem;
 
 /// Storage for `bool`s.
-pub struct BooleanStorage<V: 'static> {
+pub struct BooleanStorage<V> {
     t: Option<V>,
     f: Option<V>,
 }
 
-impl<V: 'static> Clone for BooleanStorage<V>
+impl<V> Clone for BooleanStorage<V>
 where
     V: Clone,
 {
@@ -19,7 +19,7 @@ where
     }
 }
 
-impl<V: 'static> Default for BooleanStorage<V> {
+impl<V> Default for BooleanStorage<V> {
     fn default() -> Self {
         Self {
             t: Default::default(),
@@ -28,7 +28,7 @@ impl<V: 'static> Default for BooleanStorage<V> {
     }
 }
 
-impl<V: 'static> PartialEq for BooleanStorage<V>
+impl<V> PartialEq for BooleanStorage<V>
 where
     V: PartialEq,
 {
@@ -37,9 +37,9 @@ where
     }
 }
 
-impl<V: 'static> Eq for BooleanStorage<V> where V: Eq {}
+impl<V> Eq for BooleanStorage<V> where V: Eq {}
 
-impl<V> Storage<bool, V> for BooleanStorage<V> {
+impl<V: 'static> Storage<bool, V> for BooleanStorage<V> {
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
         match key {
@@ -79,10 +79,7 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
-    fn iter<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut((bool, &'a V)),
-    {
+    fn iter<'a>(&'a self, mut f: impl FnMut((bool, &'a V))) {
         if let Some(v) = self.t.as_ref() {
             f((true, v));
         }
@@ -93,10 +90,7 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
-    fn iter_mut<'a, F>(&'a mut self, mut f: F)
-    where
-        F: FnMut((bool, &'a mut V)),
-    {
+    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((bool, &'a mut V))) {
         if let Some(v) = self.t.as_mut() {
             f((true, v));
         }

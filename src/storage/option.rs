@@ -2,7 +2,7 @@ use crate::{key::Key, storage::Storage};
 use std::mem;
 
 /// Storage for `Option<T>`s.
-pub struct OptionStorage<K: 'static, V: 'static>
+pub struct OptionStorage<K, V: 'static>
 where
     K: Key<K, V>,
 {
@@ -10,7 +10,7 @@ where
     none: Option<V>,
 }
 
-impl<K: 'static, V: 'static> Clone for OptionStorage<K, V>
+impl<K, V> Clone for OptionStorage<K, V>
 where
     K: Key<K, V>,
     K::Storage: Clone,
@@ -24,7 +24,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Default for OptionStorage<K, V>
+impl<K, V> Default for OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
@@ -36,7 +36,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> PartialEq for OptionStorage<K, V>
+impl<K, V> PartialEq for OptionStorage<K, V>
 where
     K: Key<K, V>,
     K::Storage: PartialEq,
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<K: 'static, V: 'static> Eq for OptionStorage<K, V>
+impl<K, V> Eq for OptionStorage<K, V>
 where
     K: Key<K, V>,
     K::Storage: Eq,
@@ -98,10 +98,7 @@ where
     }
 
     #[inline]
-    fn iter<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut((Option<K>, &'a V)),
-    {
+    fn iter<'a>(&'a self, mut f: impl FnMut((Option<K>, &'a V))) {
         self.some.iter(|(k, v)| {
             f((Some(k), v));
         });
@@ -112,10 +109,7 @@ where
     }
 
     #[inline]
-    fn iter_mut<'a, F>(&'a mut self, mut f: F)
-    where
-        F: FnMut((Option<K>, &'a mut V)),
-    {
+    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((Option<K>, &'a mut V))) {
         self.some.iter_mut(|(k, v)| {
             f((Some(k), v));
         });

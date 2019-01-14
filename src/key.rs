@@ -3,7 +3,7 @@
 use crate::storage::{BooleanStorage, MapStorage, OptionStorage, SingletonStorage, Storage};
 
 /// The trait for a key that can be used to store values in the maps.
-pub trait Key<K: 'static, V: 'static>: Copy {
+pub trait Key<K, V: 'static>: Copy {
     /// The `Storage` implementation to use for the key implementing this trait.
     type Storage: Storage<K, V>;
 }
@@ -12,7 +12,7 @@ impl<V: 'static> Key<&'static str, V> for &'static str {
     type Storage = MapStorage<Self, V>;
 }
 
-impl<K: 'static, V: 'static> Key<Option<K>, V> for Option<K>
+impl<K, V: 'static> Key<Option<K>, V> for Option<K>
 where
     K: Key<K, V>,
 {

@@ -191,7 +191,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #(#fields,)*
             }
 
-            impl<V: 'static> Clone for Storage<V> where V: Clone {
+            impl<V> Clone for Storage<V> where V: Clone {
                 fn clone(&self) -> Storage<V> {
                     Storage {
                         #(#field_clones,)*
@@ -199,17 +199,17 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V: 'static> std::cmp::PartialEq for Storage<V> where V: std::cmp::PartialEq {
+            impl<V> std::cmp::PartialEq for Storage<V> where V: std::cmp::PartialEq {
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #(#field_partial_eqs;)*
                     true
                 }
             }
 
-            impl<V: 'static> std::cmp::Eq for Storage<V> where V: std::cmp::Eq {
+            impl<V> std::cmp::Eq for Storage<V> where V: std::cmp::Eq {
             }
 
-            impl<V: 'static> Default for Storage<V> {
+            impl<V> Default for Storage<V> {
                 fn default() -> Storage<V> {
                     Storage {
                         #(#field_inits,)*
@@ -217,7 +217,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V: 'static> fixed_map::storage::Storage<#ident, V> for Storage<V> {
+            impl<V> fixed_map::storage::Storage<#ident, V> for Storage<V> {
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> Option<V> {
                     match key {
@@ -252,12 +252,12 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 #[inline]
-                fn iter<'a, F>(&'a self, mut f: F) where F: FnMut((#ident, &'a V)) {
+                fn iter<'a>(&'a self, mut f: impl FnMut((#ident, &'a V))) {
                     #(#iter_as_ref)*
                 }
 
                 #[inline]
-                fn iter_mut<'a, F>(&'a mut self, mut f: F) where F: FnMut((#ident, &'a mut V)) {
+                fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((#ident, &'a mut V))) {
                     #(#iter_as_mut)*
                 }
             }
