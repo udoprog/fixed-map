@@ -379,6 +379,19 @@ where
     }
 }
 
+impl<K> std::fmt::Debug for Set<K>
+where
+    K: Key<K, ()> + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut debug_set = f.debug_set();
+        self.iter_fn(|k| {
+            debug_set.entry(&k);
+        });
+        debug_set.finish()
+    }
+}
+
 /// An iterator over the items of a `Set`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Set`].
