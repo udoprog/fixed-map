@@ -20,7 +20,7 @@ macro_rules! benches {
 
                 // Assert that size of Key is identical to array.
                 assert_eq!(
-                    mem::size_of::<<Key as fixed_map::Key<Key, usize>>::Storage>(),
+                    mem::size_of::<<Key as fixed_map::key::Key<Key, usize>>::Storage>(),
                     mem::size_of::<[Option<usize>; $len]>(),
                 );
 
@@ -138,15 +138,11 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let mut it = 1..;
-                let mut map = fixed_map::Map::<_, u32>::new();
+                let mut it = 1u32..;
+                let mut map = fixed_map::Map::new();
                 $(map.insert(Key::$insert, it.next().unwrap());)*
 
-                b.iter(|| {
-                    let mut count = 0;
-                    map.iter_fn(|_| count += 1);
-                    count
-                })
+                b.iter(|| map.values().cloned().sum::<u32>())
             }),
         );
     )*
@@ -161,21 +157,10 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let mut it = 1..;
+                let mut it = 1u32..;
                 let mut map = [None; $len];
                 $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
-
-                b.iter(|| {
-                    let mut count = 0;
-
-                    for i in 0..4 {
-                        if map[i].is_some() {
-                            count += 1;
-                        }
-                    }
-
-                    count
-                })
+                b.iter(|| map.iter().flat_map(|v| v.clone()).sum::<u32>())
             }),
         );
     )*
@@ -190,11 +175,11 @@ macro_rules! benches {
                     $($member,)*
                 }
 
-                let mut it = 1..;
-                let mut map = hashbrown::HashMap::<_, u32>::with_capacity($len);
+                let mut it = 1u32..;
+                let mut map = hashbrown::HashMap::with_capacity($len);
                 $(map.insert(Key::$insert, it.next().unwrap());)*
 
-                b.iter(|| map.iter().count())
+                b.iter(|| map.values().cloned().sum::<u32>())
             }),
         );
     )*

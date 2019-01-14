@@ -39,7 +39,61 @@ where
 
 impl<V> Eq for BooleanStorage<V> where V: Eq {}
 
-impl<V: 'static> Storage<bool, V> for BooleanStorage<V> {
+pub struct Iter<V> {
+    t: Option<*const V>,
+    f: Option<*const V>,
+}
+
+impl<V> Clone for Iter<V> {
+    fn clone(&self) -> Iter<V> {
+        Iter {
+            t: self.t.clone(),
+            f: self.f.clone(),
+        }
+    }
+}
+
+impl<V> Iterator for Iter<V> {
+    type Item = (bool, *const V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(t) = self.t.take() {
+            return Some((true, t));
+        }
+
+        if let Some(f) = self.f.take() {
+            return Some((false, f));
+        }
+
+        None
+    }
+}
+
+pub struct IterMut<V> {
+    t: Option<*mut V>,
+    f: Option<*mut V>,
+}
+
+impl<V> Iterator for IterMut<V> {
+    type Item = (bool, *mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(t) = self.t.take() {
+            return Some((true, t));
+        }
+
+        if let Some(f) = self.f.take() {
+            return Some((false, f));
+        }
+
+        None
+    }
+}
+
+impl<V> Storage<bool, V> for BooleanStorage<V> {
+    type Iter = Iter<V>;
+    type IterMut = IterMut<V>;
+
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
         match key {
@@ -79,24 +133,18 @@ impl<V: 'static> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
-    fn iter<'a>(&'a self, mut f: impl FnMut((bool, &'a V))) {
-        if let Some(v) = self.t.as_ref() {
-            f((true, v));
-        }
-
-        if let Some(v) = self.f.as_ref() {
-            f((false, v));
+    fn iter(&self) -> Self::Iter {
+        Iter {
+            t: self.t.as_ref().map(|v| v as *const V),
+            f: self.f.as_ref().map(|v| v as *const V),
         }
     }
 
     #[inline]
-    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((bool, &'a mut V))) {
-        if let Some(v) = self.t.as_mut() {
-            f((true, v));
-        }
-
-        if let Some(v) = self.f.as_mut() {
-            f((false, v));
+    fn iter_mut(&mut self) -> Self::IterMut {
+        IterMut {
+            t: self.t.as_mut().map(|v| v as *mut V),
+            f: self.f.as_mut().map(|v| v as *mut V),
         }
     }
 }

@@ -40,10 +40,48 @@ where
 
 impl<K, V> Eq for SingletonStorage<K, V> where V: Eq {}
 
-impl<K, V: 'static> Storage<K, V> for SingletonStorage<K, V>
+pub struct Iter<K, V> {
+    value: Option<(K, *const V)>,
+}
+
+impl<K, V> Clone for Iter<K, V>
 where
-    K: Default,
+    K: Copy,
 {
+    fn clone(&self) -> Self {
+        Iter {
+            value: self.value.clone(),
+        }
+    }
+}
+
+impl<K, V> Iterator for Iter<K, V> {
+    type Item = (K, *const V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
+pub struct IterMut<K, V> {
+    value: Option<(K, *mut V)>,
+}
+
+impl<K, V> Iterator for IterMut<K, V> {
+    type Item = (K, *mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
+impl<K, V> Storage<K, V> for SingletonStorage<K, V>
+where
+    K: Copy + Default,
+{
+    type Iter = Iter<K, V>;
+    type IterMut = IterMut<K, V>;
+
     #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {
         mem::replace(&mut self.inner, Some(value))
@@ -70,16 +108,16 @@ where
     }
 
     #[inline]
-    fn iter<'a>(&'a self, mut f: impl FnMut((K, &'a V))) {
-        if let Some(value) = self.inner.as_ref() {
-            f((K::default(), value));
+    fn iter(&self) -> Self::Iter {
+        Iter {
+            value: self.inner.as_ref().map(|v| (K::default(), v as *const V)),
         }
     }
 
     #[inline]
-    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((K, &'a mut V))) {
-        if let Some(value) = self.inner.as_mut() {
-            f((K::default(), value));
+    fn iter_mut(&mut self) -> Self::IterMut {
+        IterMut {
+            value: self.inner.as_mut().map(|v| (K::default(), v as *mut V)),
         }
     }
 }

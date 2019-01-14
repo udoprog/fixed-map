@@ -1,6 +1,4 @@
 //! Contains the fixed `Set` implementation.
-use std::vec;
-
 use crate::{key::Key, storage::Storage};
 
 /// A fixed set implemented as a `Map` where the value is `()`.
@@ -157,47 +155,9 @@ where
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     pub fn iter(&self) -> Iter<K> {
-        let mut out = vec![];
-        self.storage.iter(|(k, _)| out.push(k));
-
         Iter {
-            inner: out.into_iter(),
+            iter: self.storage.iter(),
         }
-    }
-
-    /// An closure visiting all values in arbitrary order.
-    /// The closure argument type is `K`.
-    ///
-    /// This is a zero-cost version of [`Set::iter`].
-    ///
-    /// [`Set::iter`]: struct.Set.html#method.iter
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use fixed_map::{Key, Set};
-    ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-    /// enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
-    /// }
-    ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// map.insert(Key::Two);
-    ///
-    /// let mut out = Vec::new();
-    /// map.iter_fn(|e| out.push(e));
-    /// assert_eq!(out, vec![Key::One, Key::Two]);
-    /// ```
-    #[inline]
-    pub fn iter_fn<'a, F>(&'a self, mut f: F)
-    where
-        F: FnMut(K),
-    {
-        self.storage.iter(|(k, _)| f(k))
     }
 
     /// Returns `true` if the set contains a value.
@@ -320,13 +280,7 @@ where
     /// assert!(!set.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
-        let mut empty = true;
-
-        self.storage.iter(|_| {
-            empty = false;
-        });
-
-        empty
+        self.storage.iter().next().is_none()
     }
 
     /// Returns the number of elements in the set.
@@ -348,13 +302,7 @@ where
     /// assert_eq!(set.len(), 1);
     /// ```
     pub fn len(&self) -> usize {
-        let mut len = 0;
-
-        self.storage.iter(|_| {
-            len += 1;
-        });
-
-        len
+        self.storage.iter().count()
     }
 }
 
@@ -385,9 +333,9 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut debug_set = f.debug_set();
-        self.iter_fn(|k| {
+        for k in self.iter() {
             debug_set.entry(&k);
-        });
+        }
         debug_set.finish()
     }
 }
@@ -416,15 +364,20 @@ where
 ///
 /// [`iter`]: struct.Set.html#method.iter
 /// [`Set`]: struct.Set.html
-#[derive(Clone)]
-pub struct Iter<K> {
-    inner: vec::IntoIter<K>,
+pub struct Iter<K>
+where
+    K: Key<K, ()>,
+{
+    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Iter,
 }
 
-impl<K> Iterator for Iter<K> {
+impl<K> Iterator for Iter<K>
+where
+    K: Key<K, ()>,
+{
     type Item = K;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
+        self.iter.next().map(|(k, _)| k)
     }
 }

@@ -2,7 +2,7 @@ use crate::{key::Key, storage::Storage};
 use std::mem;
 
 /// Storage for `Option<T>`s.
-pub struct OptionStorage<K, V: 'static>
+pub struct OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
@@ -55,10 +55,79 @@ where
 {
 }
 
+pub struct Iter<K, V>
+where
+    K: Key<K, V>,
+{
+    some: <K::Storage as Storage<K, V>>::Iter,
+    none: Option<*const V>,
+}
+
+impl<K, V> Clone for Iter<K, V>
+where
+    K: Key<K, V>,
+{
+    fn clone(&self) -> Iter<K, V> {
+        Iter {
+            some: self.some.clone(),
+            none: self.none.clone(),
+        }
+    }
+}
+
+impl<K, V> Iterator for Iter<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (Option<K>, *const V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.some.next() {
+            return Some((Some(k), v));
+        }
+
+        if let Some(v) = self.none.take() {
+            return Some((None, v));
+        }
+
+        None
+    }
+}
+
+pub struct IterMut<K, V>
+where
+    K: Key<K, V>,
+{
+    some: <K::Storage as Storage<K, V>>::IterMut,
+    none: Option<*mut V>,
+}
+
+impl<K, V> Iterator for IterMut<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (Option<K>, *mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.some.next() {
+            return Some((Some(k), v));
+        }
+
+        if let Some(v) = self.none.take() {
+            return Some((None, v));
+        }
+
+        None
+    }
+}
+
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
+    type Iter = Iter<K, V>;
+    type IterMut = IterMut<K, V>;
+
     #[inline]
     fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
         match key {
@@ -98,24 +167,18 @@ where
     }
 
     #[inline]
-    fn iter<'a>(&'a self, mut f: impl FnMut((Option<K>, &'a V))) {
-        self.some.iter(|(k, v)| {
-            f((Some(k), v));
-        });
-
-        if let Some(v) = self.none.as_ref() {
-            f((None, v));
+    fn iter(&self) -> Self::Iter {
+        Iter {
+            some: self.some.iter(),
+            none: self.none.as_ref().map(|v| v as *const V),
         }
     }
 
     #[inline]
-    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((Option<K>, &'a mut V))) {
-        self.some.iter_mut(|(k, v)| {
-            f((Some(k), v));
-        });
-
-        if let Some(v) = self.none.as_mut() {
-            f((None, v));
+    fn iter_mut(&mut self) -> Self::IterMut {
+        IterMut {
+            some: self.some.iter_mut(),
+            none: self.none.as_mut().map(|v| v as *mut V),
         }
     }
 }

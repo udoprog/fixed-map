@@ -46,10 +46,48 @@ where
 {
 }
 
-impl<K, V: 'static> Storage<K, V> for MapStorage<K, V>
+pub struct Iter<K, V> {
+    iter: std::vec::IntoIter<(K, *const V)>,
+}
+
+impl<K, V> Clone for Iter<K, V>
+where
+    K: Copy,
+{
+    fn clone(&self) -> Iter<K, V> {
+        Iter {
+            iter: self.iter.clone(),
+        }
+    }
+}
+
+impl<K, V> Iterator for Iter<K, V> {
+    type Item = (K, *const V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+pub struct IterMut<K, V> {
+    iter: std::vec::IntoIter<(K, *mut V)>,
+}
+
+impl<K, V> Iterator for IterMut<K, V> {
+    type Item = (K, *mut V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + hash::Hash,
 {
+    type Iter = Iter<K, V>;
+    type IterMut = IterMut<K, V>;
+
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
         self.inner.insert(key, value)
@@ -76,16 +114,26 @@ where
     }
 
     #[inline]
-    fn iter<'a>(&'a self, mut f: impl FnMut((K, &'a V))) {
-        for (key, value) in &self.inner {
-            f((*key, value));
+    fn iter(&self) -> Self::Iter {
+        Iter {
+            iter: self
+                .inner
+                .iter()
+                .map(|(k, v)| (*k, v as *const V))
+                .collect::<Vec<_>>()
+                .into_iter(),
         }
     }
 
     #[inline]
-    fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((K, &'a mut V))) {
-        for (key, value) in &mut self.inner {
-            f((*key, value));
+    fn iter_mut(&mut self) -> Self::IterMut {
+        IterMut {
+            iter: self
+                .inner
+                .iter_mut()
+                .map(|(k, v)| (*k, v as *mut V))
+                .collect::<Vec<_>>()
+                .into_iter(),
         }
     }
 }

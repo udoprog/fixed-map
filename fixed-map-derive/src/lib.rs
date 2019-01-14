@@ -92,11 +92,20 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut remove = Vec::new();
     let mut clear = Vec::new();
 
-    let mut iter_as_ref = Vec::new();
-    let mut iter_as_mut = Vec::new();
+    let mut iter_clone = Vec::new();
 
-    for (i, variant) in en.variants.iter().enumerate() {
-        let field = Ident::new(&format!("f{}", i), Span::call_site());
+    let mut iter_init = Vec::new();
+    let mut iter_fields = Vec::new();
+
+    let mut iter_mut_init = Vec::new();
+    let mut iter_mut_fields = Vec::new();
+
+    let mut iter_next = Vec::new();
+
+    for (index, variant) in en.variants.iter().enumerate() {
+        let field = Ident::new(&format!("f{}", index), Span::call_site());
+
+        iter_clone.push(quote!(#field: self.#field.clone()));
 
         field_inits.push(quote!(#field: Default::default()));
         field_clones.push(quote!(#field: self.#field.clone()));
@@ -128,15 +137,23 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 clear.push(quote!(self.#field = None));
 
-                iter_as_ref.push(quote!{
-                    if let Some(value) = self.#field.as_ref() {
-                        f((#m, value));
-                    }
+                iter_fields.push(quote!(#field: Option<*const V>));
+                iter_init.push(quote!{
+                    #field: self.#field.as_ref().map(|v| v as *const V)
                 });
 
-                iter_as_mut.push(quote!{
-                    if let Some(value) = self.#field.as_mut() {
-                        f((#m, value));
+                iter_mut_fields.push(quote!(#field: Option<*mut V>));
+                iter_mut_init.push(quote!{
+                    #field: self.#field.as_mut().map(|v| v as *mut V)
+                });
+
+                iter_next.push(quote!{
+                    #index => {
+                        self.step += 1;
+
+                        if let Some(v) = self.#field.take() {
+                            return Some((#m, v));
+                        }
                     }
                 });
             },
@@ -146,13 +163,12 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 let element = unnamed.unnamed.first().expect("Expected one element");
+                let storage = quote!(<#element as fixed_map::key::Key<#element, V>>::Storage);
 
                 let var = &variant.ident;
                 let m = quote!(#ident::#var(v));
 
-                fields.push(
-                    quote!(#field: <#element as fixed_map::key::Key<#element, V>>::Storage),
-                );
+                fields.push(quote!(#field: #storage));
 
                 get.push(quote!(#m => return self.#field.get(v)));
                 get_mut.push(quote!(#m => return self.#field.get_mut(v)));
@@ -169,25 +185,33 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 clear.push(quote!(self.#field.clear()));
 
-                iter_as_ref.push(quote!{
-                    self.#field.iter(|(k, v)| {
-                        f((#ident::#var(k), v));
-                    });
-                });
+                let as_storage = quote!(<#storage as fixed_map::storage::Storage<#element, V>>);
 
-                iter_as_mut.push(quote!{
-                    self.#field.iter_mut(|(k, v)| {
-                        f((#ident::#var(k), v));
-                    });
+                iter_fields.push(quote!(#field: #as_storage::Iter));
+                iter_init.push(quote!(#field: self.#field.iter()));
+
+                iter_mut_fields.push(quote!(#field: #as_storage::IterMut));
+                iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
+
+                iter_next.push(quote!{
+                    #index => {
+                        if let Some((k, v)) = self.#field.next() {
+                            return Some((#ident::#var(k), v));
+                        }
+
+                        self.step += 1;
+                    }
                 });
             },
             _ => panic!("Only unit fields are supported in fixed enums"),
         }
     }
 
+    let iter_mut_next = iter_next.clone();
+
     quote! {
         const #const_wrapper: () = {
-            #vis struct Storage<V: 'static> {
+            #vis struct Storage<V> {
                 #(#fields,)*
             }
 
@@ -218,6 +242,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
 
             impl<V> fixed_map::storage::Storage<#ident, V> for Storage<V> {
+                type Iter = Iter<V>;
+                type IterMut = IterMut<V>;
+
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> Option<V> {
                     match key {
@@ -252,18 +279,71 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 #[inline]
-                fn iter<'a>(&'a self, mut f: impl FnMut((#ident, &'a V))) {
-                    #(#iter_as_ref)*
+                fn iter(&self) -> Self::Iter {
+                    Iter {
+                        step: 0,
+                        #(#iter_init,)*
+                    }
                 }
 
                 #[inline]
-                fn iter_mut<'a>(&'a mut self, mut f: impl FnMut((#ident, &'a mut V))) {
-                    #(#iter_as_mut)*
+                fn iter_mut(&mut self) -> Self::IterMut {
+                    IterMut {
+                        step: 0,
+                        #(#iter_mut_init,)*
+                    }
                 }
             }
 
-            impl<V: 'static> fixed_map::key::Key<#ident, V> for #ident {
+            impl<V> fixed_map::key::Key<#ident, V> for #ident {
                 type Storage = Storage<V>;
+            }
+
+            #vis struct Iter<V> {
+                step: usize,
+                #(#iter_fields,)*
+            }
+
+            impl<V> Clone for Iter<V> {
+                fn clone(&self) -> Iter<V> {
+                    Iter {
+                        step: self.step,
+                        #(#iter_clone,)*
+                    }
+                }
+            }
+
+            impl<V> Iterator for Iter<V> {
+                type Item = (#ident, *const V);
+
+                #[inline]
+                fn next(&mut self) -> Option<Self::Item> {
+                    loop {
+                        match self.step {
+                            #(#iter_next,)*
+                            _ => return None,
+                        }
+                    }
+                }
+            }
+
+            #vis struct IterMut<V> {
+                step: usize,
+                #(#iter_mut_fields,)*
+            }
+
+            impl<V> Iterator for IterMut<V> {
+                type Item = (#ident, *mut V);
+
+                #[inline]
+                fn next(&mut self) -> Option<Self::Item> {
+                    loop {
+                        match self.step {
+                            #(#iter_mut_next,)*
+                            _ => return None,
+                        }
+                    }
+                }
             }
         };
     }

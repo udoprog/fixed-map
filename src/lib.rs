@@ -43,6 +43,13 @@
 //! assert_eq!(map.get(Key::Number(2)), None);
 //! assert_eq!(map.get(Key::Singleton(())), Some(&5));
 //! ```
+//!
+//! ## Unsafe Use
+//!
+//! This crate uses unsafe for its iterators.
+//! This is needed because there is no proper way to associate generic lifetimes to associated types.
+//!
+//! Instead, we associate the lifetime to the container (`Map` or `Set`) which wraps a set of unsafe derefs over raw //! pointers.
 
 #![deny(missing_docs)]
 
