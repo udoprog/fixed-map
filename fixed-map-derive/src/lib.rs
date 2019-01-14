@@ -81,8 +81,10 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
     let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
 
-    let mut field_inits = Vec::new();
     let mut fields = Vec::new();
+    let mut field_inits = Vec::new();
+    let mut field_clones = Vec::new();
+    let mut field_partial_eqs = Vec::new();
 
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
@@ -96,13 +98,20 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     for (i, variant) in en.variants.iter().enumerate() {
         let field = Ident::new(&format!("f{}", i), Span::call_site());
 
+        field_inits.push(quote!(#field: Default::default()));
+        field_clones.push(quote!(#field: self.#field.clone()));
+        field_partial_eqs.push(quote! {
+            if self.#field != other.#field {
+                return false;
+            }
+        });
+
         match variant.fields {
             Fields::Unit => {
                 let var = &variant.ident;
                 let m = quote!(#ident::#var);
 
                 fields.push(quote!(#field: Option<V>));
-                field_inits.push(quote!(#field: Default::default()));
 
                 get.push(quote!(#m => return self.#field.as_ref()));
 
@@ -145,8 +154,6 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                     quote!(#field: <#element as fixed_map::key::Key<#element, V>>::Storage),
                 );
 
-                field_inits.push(quote!(#field: Default::default()));
-
                 get.push(quote!(#m => return self.#field.get(v)));
                 get_mut.push(quote!(#m => return self.#field.get_mut(v)));
 
@@ -180,9 +187,26 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
     quote! {
         const #const_wrapper: () = {
-            #[derive(Clone, PartialEq, Eq)]
             #vis struct Storage<V: 'static> {
                 #(#fields,)*
+            }
+
+            impl<V: 'static> Clone for Storage<V> where V: Clone {
+                fn clone(&self) -> Storage<V> {
+                    Storage {
+                        #(#field_clones,)*
+                    }
+                }
+            }
+
+            impl<V: 'static> std::cmp::PartialEq for Storage<V> where V: std::cmp::PartialEq {
+                fn eq(&self, other: &Storage<V>) -> bool {
+                    #(#field_partial_eqs;)*
+                    true
+                }
+            }
+
+            impl<V: 'static> std::cmp::Eq for Storage<V> where V: std::cmp::Eq {
             }
 
             impl<V: 'static> Default for Storage<V> {
