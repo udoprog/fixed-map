@@ -29,6 +29,23 @@ where
     }
 }
 
+impl<K: 'static, V: 'static> PartialEq for MapStorage<K, V>
+where
+    K: Eq + hash::Hash,
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<K: 'static, V: 'static> Eq for MapStorage<K, V>
+where
+    K: Eq + hash::Hash,
+    V: Eq,
+{
+}
+
 impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + hash::Hash,

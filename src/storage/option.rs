@@ -36,6 +36,25 @@ where
     }
 }
 
+impl<K: 'static, V: 'static> PartialEq for OptionStorage<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: PartialEq,
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.none == other.none && self.some == other.some
+    }
+}
+
+impl<K: 'static, V: 'static> Eq for OptionStorage<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Eq,
+    V: Eq,
+{
+}
+
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key<K, V>,

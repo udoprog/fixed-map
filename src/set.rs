@@ -370,6 +370,45 @@ where
     }
 }
 
+impl<K> Default for Set<K>
+where
+    K: Key<K, ()>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K> std::fmt::Debug for Set<K>
+where
+    K: Key<K, ()> + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut debug_set = f.debug_set();
+        self.iter_fn(|k| {
+            debug_set.entry(&k);
+        });
+        debug_set.finish()
+    }
+}
+
+impl<K> PartialEq for Set<K>
+where
+    K: Key<K, ()>,
+    K::Storage: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.storage == other.storage
+    }
+}
+
+impl<K> Eq for Set<K>
+where
+    K: Key<K, ()>,
+    K::Storage: Eq,
+{
+}
+
 /// An iterator over the items of a `Set`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Set`].

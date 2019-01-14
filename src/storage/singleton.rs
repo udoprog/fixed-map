@@ -29,6 +29,17 @@ impl<K: 'static, V: 'static> Default for SingletonStorage<K, V> {
     }
 }
 
+impl<K: 'static, V: 'static> PartialEq for SingletonStorage<K, V>
+where
+    V: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<K: 'static, V: 'static> Eq for SingletonStorage<K, V> where V: Eq {}
+
 impl<K: 'static, V: 'static> Storage<K, V> for SingletonStorage<K, V>
 where
     K: Default,

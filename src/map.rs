@@ -561,6 +561,46 @@ where
     }
 }
 
+impl<K, V> Default for Map<K, V>
+where
+    K: Key<K, V>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K, V> std::fmt::Debug for Map<K, V>
+where
+    K: Key<K, V> + std::fmt::Debug,
+    V: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut debug_map = f.debug_map();
+        self.iter_fn(|(k, v)| {
+            debug_map.entry(&k, v);
+        });
+        debug_map.finish()
+    }
+}
+
+impl<K, V> PartialEq for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.storage == other.storage
+    }
+}
+
+impl<K, V> Eq for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Eq,
+{
+}
+
 /// An iterator over the entries of a `Map`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Map`]. See its
