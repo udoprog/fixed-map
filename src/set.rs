@@ -370,6 +370,15 @@ where
     }
 }
 
+impl<K> Default for Set<K>
+where
+    K: Key<K, ()>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// An iterator over the items of a `Set`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Set`].
