@@ -392,6 +392,23 @@ where
     }
 }
 
+impl<K> PartialEq for Set<K>
+where
+    K: Key<K, ()>,
+    K::Storage: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.storage == other.storage
+    }
+}
+
+impl<K> Eq for Set<K>
+where
+    K: Key<K, ()>,
+    K::Storage: Eq,
+{
+}
+
 /// An iterator over the items of a `Set`.
 ///
 /// This `struct` is created by the [`iter`] method on [`Set`].
