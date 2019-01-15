@@ -81,6 +81,8 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
     let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
 
+    let mut pattern = Vec::new();
+
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
     let mut field_clones = Vec::new();
@@ -103,6 +105,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut iter_next = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
+        let var = &variant.ident;
         let field = Ident::new(&format!("f{}", index), Span::call_site());
 
         iter_clone.push(quote!(#field: self.#field.clone()));
@@ -117,43 +120,27 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
         match variant.fields {
             Fields::Unit => {
-                let var = &variant.ident;
-                let m = quote!(#ident::#var);
-
                 fields.push(quote!(#field: Option<V>));
-
-                get.push(quote!(#m => return self.#field.as_ref()));
-
-                get_mut.push(quote!(#m => return self.#field.as_mut()));
-
-                insert.push(
-                    quote!{#m => {
-                        return ::std::mem::replace(&mut self.#field, Some(value));
-                    }}
-                );
-
-                remove
-                    .push(quote!(#m => return ::std::mem::replace(&mut self.#field, None)));
-
+                pattern.push(quote!(#ident::#var));
                 clear.push(quote!(self.#field = None));
 
-                iter_fields.push(quote!(#field: Option<*const V>));
-                iter_init.push(quote!{
-                    #field: self.#field.as_ref().map(|v| v as *const V)
-                });
+                get.push(quote!(self.#field.as_ref()));
+                get_mut.push(quote!(self.#field.as_mut()));
+                insert.push(quote!(::std::mem::replace(&mut self.#field, Some(value))));
+                remove.push(quote!(::std::mem::replace(&mut self.#field, None)));
 
+                iter_fields.push(quote!(#field: Option<*const V>));
+                iter_init.push(quote!(#field: self.#field.as_ref().map(|v| v as *const V)));
                 iter_mut_fields.push(quote!(#field: Option<*mut V>));
-                iter_mut_init.push(quote!{
-                    #field: self.#field.as_mut().map(|v| v as *mut V)
-                });
+                iter_mut_init.push(quote!(#field: self.#field.as_mut().map(|v| v as *mut V)));
 
                 iter_next.push(quote!{
                     #index => {
-                        self.step += 1;
-
                         if let Some(v) = self.#field.take() {
-                            return Some((#m, v));
+                            return Some((#ident::#var, v));
                         }
+
+                        self.step += 1;
                     }
                 });
             },
@@ -164,32 +151,19 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 let element = unnamed.unnamed.first().expect("Expected one element");
                 let storage = quote!(<#element as fixed_map::key::Key<#element, V>>::Storage);
-
-                let var = &variant.ident;
-                let m = quote!(#ident::#var(v));
+                let as_storage = quote!(<#storage as fixed_map::storage::Storage<#element, V>>);
 
                 fields.push(quote!(#field: #storage));
-
-                get.push(quote!(#m => return self.#field.get(v)));
-                get_mut.push(quote!(#m => return self.#field.get_mut(v)));
-
-                insert.push(
-                    quote!{#m => {
-                        return self.#field.insert(v, value);
-                    }}
-                );
-
-                remove.push(quote!{#m => {
-                    return self.#field.remove(v);
-                }});
-
+                pattern.push(quote!(#ident::#var(v)));
                 clear.push(quote!(self.#field.clear()));
 
-                let as_storage = quote!(<#storage as fixed_map::storage::Storage<#element, V>>);
+                get.push(quote!(self.#field.get(v)));
+                get_mut.push(quote!(self.#field.get_mut(v)));
+                insert.push(quote!(self.#field.insert(v, value)));
+                remove.push(quote!(self.#field.remove(v)));
 
                 iter_fields.push(quote!(#field: #as_storage::Iter));
                 iter_init.push(quote!(#field: self.#field.iter()));
-
                 iter_mut_fields.push(quote!(#field: #as_storage::IterMut));
                 iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
 
@@ -207,7 +181,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
         }
     }
 
-    let iter_mut_next = iter_next.clone();
+    let pattern = &pattern;
+    let iter_next = &iter_next;
+    let iter_mut_next = iter_next;
 
     quote! {
         const #const_wrapper: () = {
@@ -248,28 +224,28 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> Option<V> {
                     match key {
-                        #(#insert,)*
+                        #(#pattern => #insert,)*
                     }
                 }
 
                 #[inline]
                 fn get(&self, value: #ident) -> Option<&V> {
                     match value {
-                        #(#get,)*
+                        #(#pattern => #get,)*
                     }
                 }
 
                 #[inline]
                 fn get_mut(&mut self, value: #ident) -> Option<&mut V> {
                     match value {
-                        #(#get_mut,)*
+                        #(#pattern => #get_mut,)*
                     }
                 }
 
                 #[inline]
                 fn remove(&mut self, value: #ident) -> Option<V> {
                     match value {
-                        #(#remove,)*
+                        #(#pattern => #remove,)*
                     }
                 }
 
