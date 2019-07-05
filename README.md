@@ -61,7 +61,7 @@ You can help by adding more!
 There are many cases where you want associate a value with a small, fixed number of elements
 identified by an enum.
 
-For example, let's say you have a game where each room has something in for directions:
+For example, let's say you have a game where each room has something in four directions:
 
 ```rust
 #[derive(Key)]
@@ -71,19 +71,34 @@ pub enum Dir {
     South,
     West,
 }
+
+pub enum Item {
+    Bow,
+    Sword,
+    Axe,
+}
 ```
 
-Now we can use this map to associate an item with each direction.
+The goal is for the performance of fixed-map to be identical to storing the data linearly in memory
+like you could by using `[Option<Item>; N]`.
+
+This crate provides an ergonomic, map-like API, that doesn't require you to map each enum into an index.
+
+So instead of doing:
+
+```
+let mut map = [None; 4];
+map[Key::North as usize] = Some(Item::Bow);
+```
+
+You can do:
 
 ```rust
 let mut map = fixed_map::Map::new();
 map.insert(Dir::North, Item::Bow);
 ```
 
-## Performance
-
-The goal is for the performance of fixed-map to be identical to storing the data linearly in memory
-like when using `[Option<Key>; N]`.
+## Benchmarks
 
 In the following benchmarks, fixed-map is compared to:
 
