@@ -402,3 +402,43 @@ where
         seq.end()
     }
 }
+
+#[cfg(feature = "serde")]
+impl<'de, K> serde::de::Deserialize<'de> for Set<K>
+where
+    K: Key<K, ()> + serde::de::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        return deserializer.deserialize_seq(SeqVisitor(std::marker::PhantomData));
+
+        struct SeqVisitor<K>(std::marker::PhantomData<K>);
+
+        impl<'de, K> serde::de::Visitor<'de> for SeqVisitor<K>
+        where
+            K: Key<K, ()> + serde::de::Deserialize<'de>,
+        {
+            type Value = Set<K>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a sequence")
+            }
+
+            #[inline]
+            fn visit_seq<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
+            where
+                V: serde::de::SeqAccess<'de>,
+            {
+                let mut set = Set::new();
+
+                while let Some(elem) = visitor.next_element()? {
+                    set.insert(elem);
+                }
+
+                Ok(set)
+            }
+        }
+    }
+}

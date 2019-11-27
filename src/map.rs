@@ -676,3 +676,45 @@ where
         map.end()
     }
 }
+
+#[cfg(feature = "serde")]
+impl<'de, K, V> serde::de::Deserialize<'de> for Map<K, V>
+where
+    K: Key<K, V> + serde::de::Deserialize<'de>,
+    V: serde::Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        return deserializer.deserialize_map(MapVisitor(std::marker::PhantomData));
+
+        struct MapVisitor<K, V>(std::marker::PhantomData<(K, V)>);
+
+        impl<'de, K, V> serde::de::Visitor<'de> for MapVisitor<K, V>
+        where
+            K: Key<K, V> + serde::de::Deserialize<'de>,
+            V: serde::Deserialize<'de>,
+        {
+            type Value = Map<K, V>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a map")
+            }
+
+            #[inline]
+            fn visit_map<T>(self, mut visitor: T) -> Result<Self::Value, T::Error>
+            where
+                T: serde::de::MapAccess<'de>,
+            {
+                let mut map = Map::new();
+
+                while let Some((key, value)) = visitor.next_entry()? {
+                    map.insert(key, value);
+                }
+
+                Ok(map)
+            }
+        }
+    }
+}
