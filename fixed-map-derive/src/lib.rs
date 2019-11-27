@@ -17,7 +17,7 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 ///
 /// Given the following enum:
 ///
-/// ```rust,no_run
+/// ```rust,no_compile,no_run
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -30,7 +30,16 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 ///
 /// It performs the following simplified expansion:
 ///
-/// ```rust,no_run
+/// ```rust,no_compile,no_run
+/// use fixed_map::Key;
+/// 
+/// #[derive(Clone, Copy)]
+/// pub enum Key {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
 /// /// Build a storage struct containing an item for each key:
 /// pub struct KeyStorage<V> {
 ///     /// Storage for `Key::First`.
@@ -44,14 +53,24 @@ use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 /// /// Implement storage for `KeyStorage`.
 /// impl<V> fixed_map::storage::Storage<Key, V> for KeyStorage<V> {
 ///     fn get(&self, key: Key) -> Option<&V> {
-///         match *self {
+///         match key {
 ///             Key::First => self.f1.as_ref(),
 ///             Key::Second => self.f2.as_ref(),
 ///             Key::Third => self.f3.as_ref(),
 ///         }
 ///     }
 ///
-///     /* other methods skipped */
+///     /* skipped */
+/// }
+/// 
+/// impl<V> Default for KeyStorage<V> {
+///     fn default() -> Self {
+///         Self {
+///             f1: None,
+///             f2: None,
+///             f3: None,
+///         }
+///     }
 /// }
 ///
 /// /// Implement the `Key` trait to point out storage.
@@ -134,7 +153,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 iter_mut_fields.push(quote!(#field: Option<*mut V>));
                 iter_mut_init.push(quote!(#field: self.#field.as_mut().map(|v| v as *mut V)));
 
-                iter_next.push(quote!{
+                iter_next.push(quote! {
                     #index => {
                         if let Some(v) = self.#field.take() {
                             return Some((#ident::#var, v));
@@ -143,7 +162,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                         self.step += 1;
                     }
                 });
-            },
+            }
             Fields::Unnamed(ref unnamed) => {
                 if unnamed.unnamed.len() > 1 {
                     panic!("Unnamed variants must have exactly one element");
@@ -167,7 +186,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 iter_mut_fields.push(quote!(#field: #as_storage::IterMut));
                 iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
 
-                iter_next.push(quote!{
+                iter_next.push(quote! {
                     #index => {
                         if let Some((k, v)) = self.#field.next() {
                             return Some((#ident::#var(k), v));
@@ -176,7 +195,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                         self.step += 1;
                     }
                 });
-            },
+            }
             _ => panic!("Only unit fields are supported in fixed enums"),
         }
     }

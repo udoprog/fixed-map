@@ -654,3 +654,25 @@ where
         self.inner.next().map(|(_, v)| v)
     }
 }
+
+#[cfg(feature = "serde")]
+impl<K, V> serde::Serialize for Map<K, V>
+where
+    K: Key<K, V> + serde::Serialize,
+    V: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap as _;
+
+        let mut map = serializer.serialize_map(Some(self.len()))?;
+
+        for (k, v) in self.iter() {
+            map.serialize_entry(&k, v)?;
+        }
+
+        map.end()
+    }
+}

@@ -381,3 +381,24 @@ where
         self.iter.next().map(|(k, _)| k)
     }
 }
+
+#[cfg(feature = "serde")]
+impl<K> serde::Serialize for Set<K>
+where
+    K: Key<K, ()> + serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeSeq as _;
+
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+
+        for v in self.iter() {
+            seq.serialize_element(&v)?;
+        }
+
+        seq.end()
+    }
+}

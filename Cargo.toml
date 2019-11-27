@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
@@ -17,12 +17,13 @@ repository = "https://github.com/udoprog/fixed-map"
 readme = "README.md"
 
 [dependencies]
-fixed-map-derive = {version = "0.6.1", path = "./fixed-map-derive"}
-hashbrown = "0.1"
+fixed-map-derive = {version = "0.7.0", path = "./fixed-map-derive"}
+hashbrown = "0.6.3"
+serde = {version = "1.0.103", optional = true}
 
 [dev-dependencies]
-criterion = { version = "0.2", default-features = false }
-hashbrown = "0.1"
+criterion = { version = "0.3", default-features = false }
+hashbrown = "0.6.3"
 
 [[bench]]
 name = "map_benches"
