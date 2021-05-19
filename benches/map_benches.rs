@@ -1,4 +1,4 @@
-use criterion::{Bencher, Benchmark, Criterion};
+use criterion::{Bencher, BenchmarkId, Criterion};
 use std::mem;
 
 /// Macro to build a benchmark.
@@ -7,182 +7,150 @@ macro_rules! benches {
     $({
         $len:expr, ($($member:ident),*), ($($insert:ident),*), $get:ident
     };)*
-    ) => {fn benches(criterion: &mut Criterion) {
-    $(
-        criterion.bench(
-            "fixed",
-            Benchmark::new(concat!("get", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(Clone, Copy, fixed_map::Key)]
-                pub enum Key {
-                    $($member,)*
-                }
+    ) => {
+    fn benches(criterion: &mut Criterion) {
+        {
+            let mut group = criterion.benchmark_group("get");
 
-                // Assert that size of Key is identical to array.
-                assert_eq!(
-                    mem::size_of::<<Key as fixed_map::key::Key<Key, usize>>::Storage>(),
-                    mem::size_of::<[Option<usize>; $len]>(),
-                );
+            $(
+                group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[derive(Clone, Copy, fixed_map::Key)]
+                    pub enum Key { $($member,)* }
 
-                let mut it = 1u32..;
-                let mut map = fixed_map::Map::new();
-                $(map.insert(Key::$insert, it.next().unwrap());)*
+                    // Assert that size of Key is identical to array.
+                    assert_eq!(
+                        mem::size_of::<<Key as fixed_map::key::Key<Key, usize>>::Storage>(),
+                        mem::size_of::<[Option<usize>; $len]>(),
+                    );
 
-                b.iter(|| map.get(Key::$get))
-            }),
-        );
-    )*
+                    let mut it = 1u32..;
+                    let mut map = fixed_map::Map::new();
+                    $(map.insert(Key::$insert, it.next().unwrap());)*
 
-    $(
-        criterion.bench(
-            "array",
-            Benchmark::new(concat!("get", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[repr(usize)]
-                pub enum Key {
-                    $($member,)*
-                }
+                    b.iter(|| map.get(Key::$get))
+                });
+            )*
 
-                let mut it = 1u32..;
-                let mut map = [None; $len];
-                $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
+            $(
+                group.bench_with_input(BenchmarkId::new("hashbrown", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[derive(PartialEq, Eq, Hash)]
+                    pub enum Key { $($member,)* }
 
-                b.iter(|| map[Key::$get as usize])
-            }),
-        );
-    )*
+                    let mut it = 1u32..;
+                    let mut map = hashbrown::HashMap::with_capacity($len);
+                    $(map.insert(Key::$insert, it.next().unwrap());)*
 
-    $(
-        criterion.bench(
-            "hashbrown",
-            Benchmark::new(concat!("get", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(PartialEq, Eq, Hash)]
-                pub enum Key {
-                    $($member,)*
-                }
+                    b.iter(|| map.get(&Key::$get))
+                });
+            )*
 
-                let mut it = 1u32..;
-                let mut map = hashbrown::HashMap::with_capacity($len);
-                $(map.insert(Key::$insert, it.next().unwrap());)*
+            $(
+                group.bench_with_input(BenchmarkId::new("array", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[repr(usize)]
+                    pub enum Key { $($member,)* }
 
-                b.iter(|| map.get(&Key::$get))
-            }),
-        );
-    )*
-
-    $(
-        criterion.bench(
-            "fixed",
-            Benchmark::new(concat!("insert", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(Clone, Copy, fixed_map::Key)]
-                pub enum Key {
-                    $($member,)*
-                }
-
-                b.iter(|| {
-                    let mut map = fixed_map::Map::<Key, u32>::new();
-                    $(map.insert(Key::$insert, 42u32);)*
-                    ($(map.get(Key::$insert).cloned(),)*)
-                })
-            }),
-        );
-    )*
-
-    $(
-        criterion.bench(
-            "array",
-            Benchmark::new(concat!("insert", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[repr(usize)]
-                pub enum Key {
-                    $($member,)*
-                }
-
-                b.iter(|| {
+                    let mut it = 1u32..;
                     let mut map = [None; $len];
-                    $(map[Key::$insert as usize] = Some(42u32);)*
-                    ($(map[Key::$insert as usize].as_ref().cloned(),)*)
-                })
-            }),
-        );
-    )*
+                    $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
 
-    $(
-        criterion.bench(
-            "hashbrown",
-            Benchmark::new(concat!("insert", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(Clone, PartialEq, Eq, Hash)]
-                pub enum Key {
-                    $($member,)*
-                }
+                    b.iter(|| map[Key::$get as usize])
+                });
+            )*
+        }
 
-                b.iter(|| {
-                    let mut map = hashbrown::HashMap::<_, u32>::with_capacity($len);
-                    $(map.insert(Key::$insert, 42u32);)*
-                    ($(map.get(&Key::$insert).cloned(),)*)
-                })
-            }),
-        );
-    )*
+        {
+            let mut group = criterion.benchmark_group("insert");
 
-    $(
-        criterion.bench(
-            "fixed",
-            Benchmark::new(concat!("iter", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(Clone, Copy, fixed_map::Key)]
-                pub enum Key {
-                    $($member,)*
-                }
+            $(
+                group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[derive(Clone, Copy, fixed_map::Key)]
+                    pub enum Key { $($member,)* }
 
-                let mut it = 1u32..;
-                let mut map = fixed_map::Map::new();
-                $(map.insert(Key::$insert, it.next().unwrap());)*
+                    b.iter(|| {
+                        let mut map = fixed_map::Map::<Key, u32>::new();
+                        $(map.insert(Key::$insert, 42u32);)*
+                        ($(map.get(Key::$insert).cloned(),)*)
+                    })
+                });
+            )*
 
-                b.iter(|| map.values().cloned().sum::<u32>())
-            }),
-        );
-    )*
+            $(
+                group.bench_with_input(BenchmarkId::new("hashbrown", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[derive(Clone, PartialEq, Eq, Hash)]
+                    pub enum Key { $($member,)* }
 
-    $(
-        criterion.bench(
-            "array",
-            Benchmark::new(concat!("iter", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[repr(usize)]
-                pub enum Key {
-                    $($member,)*
-                }
+                    b.iter(|| {
+                        let mut map = hashbrown::HashMap::<_, u32>::with_capacity($len);
+                        $(map.insert(Key::$insert, 42u32);)*
+                        ($(map.get(&Key::$insert).cloned(),)*)
+                    })
+                });
+            )*
 
-                let mut it = 1u32..;
-                let mut map = [None; $len];
-                $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
-                b.iter(|| map.iter().flat_map(|v| v.clone()).sum::<u32>())
-            }),
-        );
-    )*
+            $(
+                group.bench_with_input(BenchmarkId::new("array", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[repr(usize)]
+                    pub enum Key { $($member,)* }
 
-    $(
-        criterion.bench(
-            "hashbrown",
-            Benchmark::new(concat!("iter", stringify!($len)), |b: &mut Bencher| {
-                #[allow(unused)]
-                #[derive(PartialEq, Eq, Hash)]
-                pub enum Key {
-                    $($member,)*
-                }
+                    b.iter(|| {
+                        let mut map = [None; $len];
+                        $(map[Key::$insert as usize] = Some(42u32);)*
+                        ($(map[Key::$insert as usize].as_ref().cloned(),)*)
+                    })
+                });
+            )*
+        }
 
-                let mut it = 1u32..;
-                let mut map = hashbrown::HashMap::with_capacity($len);
-                $(map.insert(Key::$insert, it.next().unwrap());)*
+        {
+            let mut group = criterion.benchmark_group("iter");
 
-                b.iter(|| map.values().cloned().sum::<u32>())
-            }),
-        );
-    )*
+            $(
+                group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[derive(Clone, Copy, fixed_map::Key)]
+                    pub enum Key { $($member,)* }
+
+                    let mut it = 1u32..;
+                    let mut map = fixed_map::Map::new();
+                    $(map.insert(Key::$insert, it.next().unwrap());)*
+
+                    b.iter(|| map.values().cloned().sum::<u32>())
+                });
+            )*
+
+            $(
+                group.bench_with_input(BenchmarkId::new("hashbrown", $len), &$len, |b: &mut Bencher, len| {
+                    #[allow(unused)]
+                    #[derive(PartialEq, Eq, Hash)]
+                    pub enum Key { $($member,)* }
+
+                    let mut it = 1u32..;
+                    let mut map = hashbrown::HashMap::with_capacity(*len);
+                    $(map.insert(Key::$insert, it.next().unwrap());)*
+
+                    b.iter(|| map.values().cloned().sum::<u32>())
+                });
+            )*
+
+            $(
+                group.bench_with_input(BenchmarkId::new("array", $len), &$len, |b: &mut Bencher, _| {
+                    #[allow(unused)]
+                    #[repr(usize)]
+                    pub enum Key { $($member,)* }
+
+                    let mut it = 1u32..;
+                    let mut map = [None; $len];
+                    $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
+                    b.iter(|| map.iter().flat_map(|v| v.clone()).sum::<u32>())
+                });
+            )*
+        }
     }}
 }
 
