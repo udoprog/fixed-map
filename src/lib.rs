@@ -10,7 +10,7 @@
 //! The following features are available:
 //!
 //! * `serde` - Causes [Map] and [Set] to implement [Serialize] and
-//!   [Deserialize] if it's implements by their keys and/or values.
+//!   [Deserialize] if it's implemented by the key and value.
 //!
 //! ## Deriving `Key`
 //!
@@ -224,11 +224,13 @@
 //! ls target/release/examples/
 //! ```
 //!
-//! [Map]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Map.html
-//! [Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
 //! [Copy]: https://doc.rust-lang.org/std/marker/trait.Copy.html
+//! [Deserialize]: https://docs.rs/serde/1/serde/trait.Deserialize.html
 //! [documentation]: https://docs.rs/fixed-map
 //! [Key derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
+//! [Map]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Map.html
+//! [Serialize]: https://docs.rs/serde/1/serde/trait.Serialize.html
+//! [Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
 
 #![deny(missing_docs)]
 
