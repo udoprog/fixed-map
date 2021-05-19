@@ -1,19 +1,21 @@
+[![Build Status](https://github.com/udoprog/fixed-map/workflows/Rust/badge.svg)](https://github.com/udoprog/fixed-map/actions)
+[![crates.io](https://img.shields.io/crates/v/fixed-map.svg)](https://crates.io/crates/fixed-map)
+[![docs.rs](https://docs.rs/fixed-map/badge.svg)](https://docs.rs/fixed-map)
+
 # fixed-map
-[![Build Status](https://travis-ci.org/udoprog/fixed-map.svg?branch=master)](https://travis-ci.org/udoprog/fixed-map)
 
-**Note:** this crate is still in heavy development. Please be careful!
+This crate provides a map implementation that can make use of a fixed-size
+backing storage. It enables the compiler to heavily optimize map lookups by
+translating them into pattern matching over strictly defined enums.
+Potentially allowing for interesting performance characteristics.
 
-This crate provides a map implementation that can make use of a fixed-size backing storage.
+For more information on how to use, see the [documentation].
 
-For more information on how to use `fixed-map`, see the [documentation].
+### Deriving `Key`
 
-[documentation]: https://docs.rs/fixed-map
-
-## The `Key` derive
-
-The `Key` derive is provided to construct optimized storage for a given Key.
-
-For example:
+The [Key derive] is provided to instruct the `fixed-map` containers on how
+to build optimized storage for a given Key. We also require the key to
+implement [Copy] for it to implement `Key`.
 
 ```rust
 use fixed_map::{Key, Map};
@@ -51,20 +53,16 @@ assert_eq!(map.get(Key::Number(2)), None);
 assert_eq!(map.get(Key::Singleton(())), Some(&5));
 ```
 
-## Missing APIs
+### Why does this crate exist?
 
-The API of this project is incomplete since it is experimental.
-You can help by adding more!
+There are many cases where you want associate a value with a small, fixed
+number of elements identified by an enum.
 
-## Why does this crate exist?
-
-There are many cases where you want associate a value with a small, fixed number of elements
-identified by an enum.
-
-For example, let's say you have a game where each room has something in four directions:
+For example, let's say you have a game where each room has something in four
+directions. We can model this relationship between the direction and the
+item using two enums.
 
 ```rust
-#[derive(Key)]
 pub enum Dir {
     North,
     East,
@@ -79,35 +77,86 @@ pub enum Item {
 }
 ```
 
-The goal is for the performance of fixed-map to be identical to storing the data linearly in memory
-like you could by using `[Option<Item>; N]`.
+The goal is for the performance of fixed-map to be identical to storing the
+data linearly in memory like you could by storing the data as an array like
+`[Option<Item>; N]` where each index correspondings to each variant in
+`Dir`.
 
-This crate provides an ergonomic, map-like API, that doesn't require you to map each enum into an index.
-
-So instead of doing:
-
-```
-let mut map = [None; 4];
-map[Key::North as usize] = Some(Item::Bow);
-```
-
-You can do:
+Doing this yourself could look like this:
 
 ```rust
-let mut map = fixed_map::Map::new();
-map.insert(Dir::North, Item::Bow);
+#[repr(usize)]
+pub enum Dir {
+    North,
+    East,
+    South,
+    West,
+}
+
+#[derive(Debug)]
+pub enum Item {
+    Bow,
+    Sword,
+    Axe,
+}
+
+let mut map: [Option<Item>; 4] = [None, None, None, None];
+map[Dir::North as usize] = Some(Item::Bow);
+
+if let Some(item) = &map[Dir::North as usize] {
+    println!("found item: {:?}", item);
+}
 ```
 
-## Benchmarks
+But with `fixed-map` you can do it like this without (hopefully) incurring
+any drop in performance:
+
+```rust
+use fixed_map::{Key, Map};
+
+#[derive(Clone, Copy, Key)]
+pub enum Dir {
+    North,
+    East,
+    South,
+    West,
+}
+
+#[derive(Debug)]
+pub enum Item {
+    Bow,
+    Sword,
+    Axe,
+}
+
+let mut map = Map::new();
+map.insert(Dir::North, Item::Bow);
+
+if let Some(item) = map.get(Dir::North) {
+    println!("found item: {:?}", item);
+}
+```
+
+### Unsafe use
+
+This crate uses unsafe for its iterators. This is needed because there is no
+proper way to associate generic lifetimes to associated types.
+
+Instead, we associate the lifetime to the container (`Map` or `Set`) which
+wraps a set of unsafe derefs over raw pointers.
+
+### Benchmarks
 
 In the following benchmarks, fixed-map is compared to:
 
 * `fixed` - A `fixed_map::Map` with a derived `Key` with `N` variants.
-* [`hashbrown`] - A high performance hash map. This is only included for reference.
+* [`hashbrown`] - A high performance hash map. This is only included for
+  reference.
   - Note: Maps are created with `HashMap::with_capacity(N)`.
 * `array` - A simple `[Option<Key>; N]` array.
 
-Note: for all `insert` benchmarks the underlying map is cloned in each iteration.
+Note: for all `insert` benchmarks the underlying map is cloned in each
+iteration.
 
 ```
 fixed/get4              time:   [253.97 ps 255.78 ps 257.75 ps]
@@ -158,27 +207,22 @@ hashbrown/iter32        time:   [12.868 ns 12.898 ns 12.928 ns]
 
 [`hashbrown`]: https://github.com/Amanieu/hashbrown
 
-## Examples
+### Examples
 
 Most examples are in place to test what kind of assembler they compile to.
 
 To do this, run:
 
-```
+```sh
 RUSTFLAGS="--emit asm" cargo build --release --example <example>
 ```
 
 You should be able to find the assembler generated in the target folder:
 
-```
+```sh
 ls target/release/examples/
 ```
 
-## LICENSE
-
-This project is distributed under the terms of both the MIT license and the Apache License (Version
-2.0).
-
-This project contains code derived from [HashMap] (Rust stdlib).
-
-[HashMap]: https://github.com/rust-lang/rust/blob/2c1a715cbda1d6eba39625aca08f1f2ac7c0dcc8/src/libstd/collections/hash/map.rs
+[Copy]: https://doc.rust-lang.org/std/marker/trait.Copy.html
+[documentation]: https://docs.rs/fixed-map
+[Key derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
