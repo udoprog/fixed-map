@@ -11,6 +11,13 @@ Potentially allowing for interesting performance characteristics.
 
 For more information on how to use, see the [documentation].
 
+### Features
+
+The following features are available:
+
+* `serde` - Causes [Map] and [Set] to implement [Serialize] and
+  [Deserialize] if it's implements by their keys and/or values.
+
 ### Deriving `Key`
 
 The [Key derive] is provided to instruct the `fixed-map` containers on how
@@ -223,6 +230,8 @@ You should be able to find the assembler generated in the target folder:
 ls target/release/examples/
 ```
 
+[Map]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Map.html
+[Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
 [Copy]: https://doc.rust-lang.org/std/marker/trait.Copy.html
 [documentation]: https://docs.rs/fixed-map
 [Key derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
