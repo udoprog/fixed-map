@@ -16,6 +16,9 @@ For more information on how to use, see the [documentation].
 
 The following features are available:
 
+* `map` - Causes [Storage] to be implemented by dynamic types such as
+  `&'static str` or `u32`. These are backed by a `hashbrown` HashMap
+  (default).
 * `serde` - Causes [Map] and [Set] to implement [Serialize] and
   [Deserialize] if it's implemented by the key and value.
 

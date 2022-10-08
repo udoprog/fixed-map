@@ -1,5 +1,6 @@
 //! Contains the fixed `Set` implementation.
-use crate::{key::Key, storage::Storage};
+use crate::key::Key;
+use crate::storage::Storage;
 
 /// A fixed set implemented as a `Map` where the value is `()`.
 ///
@@ -154,6 +155,7 @@ where
     ///
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
+    #[inline]
     pub fn iter(&self) -> Iter<K> {
         Iter {
             iter: self.storage.iter(),
@@ -279,6 +281,7 @@ where
     /// set.insert(Key::One);
     /// assert!(!set.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.storage.iter().next().is_none()
     }
@@ -301,6 +304,7 @@ where
     /// set.insert(Key::One);
     /// assert_eq!(set.len(), 1);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.storage.iter().count()
     }
@@ -311,6 +315,7 @@ where
     K: Key<K, ()>,
     K::Storage: Clone,
 {
+    #[inline]
     fn clone(&self) -> Set<K> {
         Set {
             storage: self.storage.clone(),
@@ -322,6 +327,7 @@ impl<K> Default for Set<K>
 where
     K: Key<K, ()>,
 {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -345,6 +351,7 @@ where
     K: Key<K, ()>,
     K::Storage: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.storage == other.storage
     }
