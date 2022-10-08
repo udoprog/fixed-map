@@ -55,31 +55,33 @@ where
 {
 }
 
-pub struct Iter<K, V>
+pub struct Iter<'a, K, V>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
+    V: 'a,
 {
-    some: <K::Storage as Storage<K, V>>::Iter,
-    none: Option<*const V>,
+    some: <K::Storage as Storage<K, V>>::Iter<'a>,
+    none: Option<&'a V>,
 }
 
-impl<K, V> Clone for Iter<K, V>
+impl<'a, K, V> Clone for Iter<'a, K, V>
 where
     K: Key<K, V>,
 {
-    fn clone(&self) -> Iter<K, V> {
+    #[inline]
+    fn clone(&self) -> Iter<'a, K, V> {
         Iter {
             some: self.some.clone(),
-            none: self.none.clone(),
+            none: self.none,
         }
     }
 }
 
-impl<K, V> Iterator for Iter<K, V>
+impl<'a, K, V> Iterator for Iter<'a, K, V>
 where
     K: Key<K, V>,
 {
-    type Item = (Option<K>, *const V);
+    type Item = (Option<K>, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.some.next() {
@@ -94,19 +96,20 @@ where
     }
 }
 
-pub struct IterMut<K, V>
+pub struct IterMut<'a, K, V>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
+    V: 'a,
 {
-    some: <K::Storage as Storage<K, V>>::IterMut,
-    none: Option<*mut V>,
+    some: <K::Storage as Storage<K, V>>::IterMut<'a>,
+    none: Option<&'a mut V>,
 }
 
-impl<K, V> Iterator for IterMut<K, V>
+impl<'a, K, V> Iterator for IterMut<'a, K, V>
 where
     K: Key<K, V>,
 {
-    type Item = (Option<K>, *mut V);
+    type Item = (Option<K>, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.some.next() {
@@ -125,8 +128,8 @@ impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
-    type Iter = Iter<K, V>;
-    type IterMut = IterMut<K, V>;
+    type Iter<'this> = Iter<'this, K, V> where Self: 'this;
+    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
 
     #[inline]
     fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
@@ -167,18 +170,18 @@ where
     }
 
     #[inline]
-    fn iter(&self) -> Self::Iter {
+    fn iter(&self) -> Self::Iter<'_> {
         Iter {
             some: self.some.iter(),
-            none: self.none.as_ref().map(|v| v as *const V),
+            none: self.none.as_ref(),
         }
     }
 
     #[inline]
-    fn iter_mut(&mut self) -> Self::IterMut {
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
             some: self.some.iter_mut(),
-            none: self.none.as_mut().map(|v| v as *mut V),
+            none: self.none.as_mut(),
         }
     }
 }

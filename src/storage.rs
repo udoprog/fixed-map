@@ -19,11 +19,17 @@ pub use self::singleton::SingletonStorage;
 pub trait Storage<K, V>: Default {
     /// Immutable iterator over storage.
     /// Uses raw pointers (unsafe) since we don't have GATs.
-    type Iter: Clone + Iterator<Item = (K, *const V)>;
+    type Iter<'this>: Clone + Iterator<Item = (K, &'this V)>
+    where
+        Self: 'this,
+        V: 'this;
 
     /// Mutable iterator over storage.
     /// Uses raw pointers (unsafe) since we don't have GATs.
-    type IterMut: Iterator<Item = (K, *mut V)>;
+    type IterMut<'this>: Iterator<Item = (K, &'this mut V)>
+    where
+        Self: 'this,
+        V: 'this;
 
     /// This is the storage abstraction for [`Map::insert`](struct.Map.html#method.insert).
     fn insert(&mut self, key: K, value: V) -> Option<V>;
@@ -41,8 +47,8 @@ pub trait Storage<K, V>: Default {
     fn clear(&mut self);
 
     /// This is the storage abstraction for [`Map::iter`](struct.Map.html#method.iter).
-    fn iter(&self) -> Self::Iter;
+    fn iter(&self) -> Self::Iter<'_>;
 
     /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
-    fn iter_mut(&mut self) -> Self::IterMut;
+    fn iter_mut(&mut self) -> Self::IterMut<'_>;
 }

@@ -1,86 +1,84 @@
 use crate::storage::Storage;
-use std::marker;
 use std::mem;
 
 /// Storage types that can only inhabit a single value (like `()`).
-pub struct SingletonStorage<K, V> {
+pub struct SingletonStorage<V> {
     inner: Option<V>,
-    key: marker::PhantomData<K>,
 }
 
-impl<K, V> Clone for SingletonStorage<K, V>
+impl<V> Clone for SingletonStorage<V>
 where
     V: Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         SingletonStorage {
             inner: self.inner.clone(),
-            key: marker::PhantomData,
         }
     }
 }
 
-impl<K, V> Default for SingletonStorage<K, V> {
+impl<V> Default for SingletonStorage<V> {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: Default::default(),
-            key: marker::PhantomData,
         }
     }
 }
 
-impl<K, V> PartialEq for SingletonStorage<K, V>
+impl<V> PartialEq for SingletonStorage<V>
 where
     V: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<K, V> Eq for SingletonStorage<K, V> where V: Eq {}
+impl<V> Eq for SingletonStorage<V> where V: Eq {}
 
-pub struct Iter<K, V> {
-    value: Option<(K, *const V)>,
+pub struct Iter<'a, K, V> {
+    value: Option<(K, &'a V)>,
 }
 
-impl<K, V> Clone for Iter<K, V>
+impl<'a, K, V> Clone for Iter<'a, K, V>
 where
     K: Copy,
 {
+    #[inline]
     fn clone(&self) -> Self {
-        Iter {
-            value: self.value.clone(),
-        }
+        Iter { value: self.value }
     }
 }
 
-impl<K, V> Iterator for Iter<K, V> {
-    type Item = (K, *const V);
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.value.take()
     }
 }
 
-pub struct IterMut<K, V> {
-    value: Option<(K, *mut V)>,
+pub struct IterMut<'a, K, V> {
+    value: Option<(K, &'a mut V)>,
 }
 
-impl<K, V> Iterator for IterMut<K, V> {
-    type Item = (K, *mut V);
+impl<'a, K, V> Iterator for IterMut<'a, K, V> {
+    type Item = (K, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.value.take()
     }
 }
 
-impl<K, V> Storage<K, V> for SingletonStorage<K, V>
+impl<K, V> Storage<K, V> for SingletonStorage<V>
 where
     K: Copy + Default,
 {
-    type Iter = Iter<K, V>;
-    type IterMut = IterMut<K, V>;
+    type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
 
     #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {
@@ -108,16 +106,16 @@ where
     }
 
     #[inline]
-    fn iter(&self) -> Self::Iter {
+    fn iter(&self) -> Self::Iter<'_> {
         Iter {
-            value: self.inner.as_ref().map(|v| (K::default(), v as *const V)),
+            value: self.inner.as_ref().map(|v| (K::default(), v)),
         }
     }
 
     #[inline]
-    fn iter_mut(&mut self) -> Self::IterMut {
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
-            value: self.inner.as_mut().map(|v| (K::default(), v as *mut V)),
+            value: self.inner.as_mut().map(|v| (K::default(), v)),
         }
     }
 }

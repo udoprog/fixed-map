@@ -46,35 +46,38 @@ where
 {
 }
 
-pub struct Iter<K, V> {
-    iter: std::vec::IntoIter<(K, *const V)>,
+pub struct Iter<'a, K, V>
+where
+    K: 'a,
+{
+    iter: std::vec::IntoIter<(K, &'a V)>,
 }
 
-impl<K, V> Clone for Iter<K, V>
+impl<'a, K, V> Clone for Iter<'a, K, V>
 where
-    K: Copy,
+    K: 'a + Copy,
 {
-    fn clone(&self) -> Iter<K, V> {
+    fn clone(&self) -> Self {
         Iter {
             iter: self.iter.clone(),
         }
     }
 }
 
-impl<K, V> Iterator for Iter<K, V> {
-    type Item = (K, *const V);
+impl<'a, K, V> Iterator for Iter<'a, K, V> {
+    type Item = (K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }
 }
 
-pub struct IterMut<K, V> {
-    iter: std::vec::IntoIter<(K, *mut V)>,
+pub struct IterMut<'a, K, V> {
+    iter: std::vec::IntoIter<(K, &'a mut V)>,
 }
 
-impl<K, V> Iterator for IterMut<K, V> {
-    type Item = (K, *mut V);
+impl<'a, K, V> Iterator for IterMut<'a, K, V> {
+    type Item = (K, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
@@ -85,8 +88,8 @@ impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + hash::Hash,
 {
-    type Iter = Iter<K, V>;
-    type IterMut = IterMut<K, V>;
+    type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
 
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -114,24 +117,24 @@ where
     }
 
     #[inline]
-    fn iter(&self) -> Self::Iter {
+    fn iter(&self) -> Self::Iter<'_> {
         Iter {
             iter: self
                 .inner
                 .iter()
-                .map(|(k, v)| (*k, v as *const V))
+                .map(|(k, v)| (*k, v))
                 .collect::<Vec<_>>()
                 .into_iter(),
         }
     }
 
     #[inline]
-    fn iter_mut(&mut self) -> Self::IterMut {
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
             iter: self
                 .inner
                 .iter_mut()
-                .map(|(k, v)| (*k, v as *mut V))
+                .map(|(k, v)| (*k, v))
                 .collect::<Vec<_>>()
                 .into_iter(),
         }

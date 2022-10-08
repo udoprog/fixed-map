@@ -364,14 +364,14 @@ where
 ///
 /// [`iter`]: struct.Set.html#method.iter
 /// [`Set`]: struct.Set.html
-pub struct Iter<K>
+pub struct Iter<'a, K>
 where
-    K: Key<K, ()>,
+    K: 'a + Key<K, ()>,
 {
-    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Iter,
+    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Iter<'a>,
 }
 
-impl<K> Iterator for Iter<K>
+impl<'a, K> Iterator for Iter<'a, K>
 where
     K: Key<K, ()>,
 {

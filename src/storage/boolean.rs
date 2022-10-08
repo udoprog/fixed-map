@@ -39,22 +39,22 @@ where
 
 impl<V> Eq for BooleanStorage<V> where V: Eq {}
 
-pub struct Iter<V> {
-    t: Option<*const V>,
-    f: Option<*const V>,
+pub struct Iter<'a, V> {
+    t: Option<&'a V>,
+    f: Option<&'a V>,
 }
 
-impl<V> Clone for Iter<V> {
-    fn clone(&self) -> Iter<V> {
+impl<'a, V> Clone for Iter<'a, V> {
+    fn clone(&self) -> Iter<'a, V> {
         Iter {
-            t: self.t.clone(),
-            f: self.f.clone(),
+            t: self.t,
+            f: self.f,
         }
     }
 }
 
-impl<V> Iterator for Iter<V> {
-    type Item = (bool, *const V);
+impl<'a, V> Iterator for Iter<'a, V> {
+    type Item = (bool, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(t) = self.t.take() {
@@ -69,13 +69,13 @@ impl<V> Iterator for Iter<V> {
     }
 }
 
-pub struct IterMut<V> {
-    t: Option<*mut V>,
-    f: Option<*mut V>,
+pub struct IterMut<'a, V> {
+    t: Option<&'a mut V>,
+    f: Option<&'a mut V>,
 }
 
-impl<V> Iterator for IterMut<V> {
-    type Item = (bool, *mut V);
+impl<'a, V> Iterator for IterMut<'a, V> {
+    type Item = (bool, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(t) = self.t.take() {
@@ -91,8 +91,8 @@ impl<V> Iterator for IterMut<V> {
 }
 
 impl<V> Storage<bool, V> for BooleanStorage<V> {
-    type Iter = Iter<V>;
-    type IterMut = IterMut<V>;
+    type Iter<'this> = Iter<'this, V> where Self: 'this;
+    type IterMut<'this> = IterMut<'this, V> where Self: 'this;
 
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
@@ -133,18 +133,18 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
-    fn iter(&self) -> Self::Iter {
+    fn iter(&self) -> Self::Iter<'_> {
         Iter {
-            t: self.t.as_ref().map(|v| v as *const V),
-            f: self.f.as_ref().map(|v| v as *const V),
+            t: self.t.as_ref(),
+            f: self.f.as_ref(),
         }
     }
 
     #[inline]
-    fn iter_mut(&mut self) -> Self::IterMut {
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
-            t: self.t.as_mut().map(|v| v as *mut V),
-            f: self.f.as_mut().map(|v| v as *mut V),
+            t: self.t.as_mut(),
+            f: self.f.as_mut(),
         }
     }
 }

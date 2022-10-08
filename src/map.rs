@@ -1,6 +1,4 @@
 //! Contains the fixed `Map` implementation.
-use std::marker;
-
 use crate::{key::Key, storage::Storage};
 
 /// A fixed map with a predetermined size.
@@ -168,7 +166,7 @@ where
     ///
     /// assert_eq!(map.keys().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
-    pub fn keys<'a>(&'a self) -> Keys<'a, K, V> {
+    pub fn keys(&self) -> Keys<'_, K, V> {
         Keys { inner: self.iter() }
     }
 
@@ -193,7 +191,7 @@ where
     ///
     /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![1, 2]);
     /// ```
-    pub fn values<'a>(&'a self) -> Values<'a, K, V> {
+    pub fn values(&self) -> Values<'_, K, V> {
         Values { inner: self.iter() }
     }
 
@@ -222,7 +220,7 @@ where
     ///
     /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![11, 12]);
     /// ```
-    pub fn values_mut<'a>(&'a mut self) -> ValuesMut<'a, K, V> {
+    pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
         ValuesMut {
             inner: self.iter_mut(),
         }
@@ -249,10 +247,9 @@ where
     ///
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &1), (Key::Two, &2)]);
     /// ```
-    pub fn iter<'a>(&'a self) -> Iter<'a, K, V> {
+    pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.storage.iter(),
-            marker: marker::PhantomData,
         }
     }
 
@@ -283,10 +280,9 @@ where
     ///
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &2), (Key::Two, &4)]);
     /// ```
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             iter: self.storage.iter_mut(),
-            marker: std::marker::PhantomData,
         }
     }
 
@@ -523,10 +519,9 @@ where
 /// [`Map`]: struct.Map.html
 pub struct Iter<'a, K, V: 'a>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
 {
-    iter: <K::Storage as Storage<K, V>>::Iter,
-    marker: marker::PhantomData<&'a ()>,
+    iter: <K::Storage as Storage<K, V>>::Iter<'a>,
 }
 
 impl<'a, K, V: 'a> Clone for Iter<'a, K, V>
@@ -536,7 +531,6 @@ where
     fn clone(&self) -> Iter<'a, K, V> {
         Iter {
             iter: self.iter.clone(),
-            marker: marker::PhantomData,
         }
     }
 }
@@ -548,7 +542,7 @@ where
     type Item = (K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, unsafe { &*v }))
+        self.iter.next().map(|(k, v)| (k, v))
     }
 }
 
@@ -561,20 +555,19 @@ where
 /// [`Map`]: struct.Map.html
 pub struct IterMut<'a, K, V: 'a>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
 {
-    iter: <K::Storage as Storage<K, V>>::IterMut,
-    marker: marker::PhantomData<&'a ()>,
+    iter: <K::Storage as Storage<K, V>>::IterMut<'a>,
 }
 
-impl<'a, K, V: 'a> Iterator for IterMut<'a, K, V>
+impl<'a, K, V> Iterator for IterMut<'a, K, V>
 where
     K: Key<K, V>,
 {
     type Item = (K, &'a mut V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, unsafe { &mut *v }))
+        self.iter.next().map(|(k, v)| (k, v))
     }
 }
 
