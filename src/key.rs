@@ -30,7 +30,7 @@ macro_rules! impl_map_storage {
 macro_rules! impl_singleton_storage {
     ($ty:ty) => {
         impl<V> Key<$ty, V> for $ty {
-            type Storage = SingletonStorage<$ty, V>;
+            type Storage = SingletonStorage<V>;
         }
     };
 }

@@ -6,6 +6,17 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 
+struct Tokens {
+    storage_trait: TokenStream,
+    key_trait: TokenStream,
+}
+
+impl Tokens {
+    fn new(krate: &TokenStream) -> Self {
+        Self { storage_trait: quote!(#krate::storage::Storage), key_trait: quote!(#krate::key::Key) }
+    }
+}
+
 /// Derive to implement the `Key` trait.
 ///
 /// Requires that `fixed_map` is in scope.
@@ -97,6 +108,10 @@ fn impl_storage(ast: &DeriveInput) -> TokenStream {
 fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let vis = &ast.vis;
     let ident = &ast.ident;
+    let tokens = Tokens::new(&quote!(fixed_map));
+
+    let storage_trait = &tokens.storage_trait;
+    let key_trait = &tokens.key_trait;
 
     let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
 
@@ -148,10 +163,10 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 insert.push(quote!(::std::mem::replace(&mut self.#field, Some(value))));
                 remove.push(quote!(::std::mem::replace(&mut self.#field, None)));
 
-                iter_fields.push(quote!(#field: Option<*const V>));
-                iter_init.push(quote!(#field: self.#field.as_ref().map(|v| v as *const V)));
-                iter_mut_fields.push(quote!(#field: Option<*mut V>));
-                iter_mut_init.push(quote!(#field: self.#field.as_mut().map(|v| v as *mut V)));
+                iter_fields.push(quote!(#field: Option<&'a V>));
+                iter_init.push(quote!(#field: self.#field.as_ref()));
+                iter_mut_fields.push(quote!(#field: Option<&'a mut V>));
+                iter_mut_init.push(quote!(#field: self.#field.as_mut()));
 
                 iter_next.push(quote! {
                     #index => {
@@ -169,21 +184,21 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 let element = unnamed.unnamed.first().expect("Expected one element");
-                let storage = quote!(<#element as fixed_map::key::Key<#element, V>>::Storage);
-                let as_storage = quote!(<#storage as fixed_map::storage::Storage<#element, V>>);
+                let storage = quote!(<#element as #key_trait<#element, V>>::Storage);
+                let as_storage = quote!(<#storage as #storage_trait<#element, V>>);
 
                 fields.push(quote!(#field: #storage));
                 pattern.push(quote!(#ident::#var(v)));
-                clear.push(quote!(self.#field.clear()));
+                clear.push(quote!(#as_storage::clear(&mut self.#field)));
 
-                get.push(quote!(self.#field.get(v)));
-                get_mut.push(quote!(self.#field.get_mut(v)));
-                insert.push(quote!(self.#field.insert(v, value)));
-                remove.push(quote!(self.#field.remove(v)));
+                get.push(quote!(#as_storage::get(&self.#field, v)));
+                get_mut.push(quote!(#as_storage::get_mut(&mut self.#field, v)));
+                insert.push(quote!(#as_storage::insert(&mut self.#field, v, value)));
+                remove.push(quote!(#as_storage::remove(&mut self.#field, v)));
 
-                iter_fields.push(quote!(#field: #as_storage::Iter));
+                iter_fields.push(quote!(#field: #as_storage::Iter<'a>));
                 iter_init.push(quote!(#field: self.#field.iter()));
-                iter_mut_fields.push(quote!(#field: #as_storage::IterMut));
+                iter_mut_fields.push(quote!(#field: #as_storage::IterMut<'a>));
                 iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
 
                 iter_next.push(quote! {
@@ -236,9 +251,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V> fixed_map::storage::Storage<#ident, V> for Storage<V> {
-                type Iter = Iter<V>;
-                type IterMut = IterMut<V>;
+            impl<V> #storage_trait<#ident, V> for Storage<V> {
+                type Iter<'this> = Iter<'this, V> where Self: 'this;
+                type IterMut<'this> = IterMut<'this, V> where Self: 'this;
 
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> Option<V> {
@@ -274,7 +289,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 #[inline]
-                fn iter(&self) -> Self::Iter {
+                fn iter(&self) -> Self::Iter<'_> {
                     Iter {
                         step: 0,
                         #(#iter_init,)*
@@ -282,7 +297,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
 
                 #[inline]
-                fn iter_mut(&mut self) -> Self::IterMut {
+                fn iter_mut(&mut self) -> Self::IterMut<'_> {
                     IterMut {
                         step: 0,
                         #(#iter_mut_init,)*
@@ -290,17 +305,18 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V> fixed_map::key::Key<#ident, V> for #ident {
+            impl<V> #key_trait<#ident, V> for #ident {
                 type Storage = Storage<V>;
             }
 
-            #vis struct Iter<V> {
+            #vis struct Iter<'a, V> {
                 step: usize,
                 #(#iter_fields,)*
             }
 
-            impl<V> Clone for Iter<V> {
-                fn clone(&self) -> Iter<V> {
+            impl<'a, V> Clone for Iter<'a, V> {
+                #[inline]
+                fn clone(&self) -> Iter<'a, V> {
                     Iter {
                         step: self.step,
                         #(#iter_clone,)*
@@ -308,8 +324,8 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V> Iterator for Iter<V> {
-                type Item = (#ident, *const V);
+            impl<'a, V> Iterator for Iter<'a, V> {
+                type Item = (#ident, &'a V);
 
                 #[inline]
                 fn next(&mut self) -> Option<Self::Item> {
@@ -322,13 +338,13 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            #vis struct IterMut<V> {
+            #vis struct IterMut<'a, V> {
                 step: usize,
                 #(#iter_mut_fields,)*
             }
 
-            impl<V> Iterator for IterMut<V> {
-                type Item = (#ident, *mut V);
+            impl<'a, V> Iterator for IterMut<'a, V> {
+                type Item = (#ident, &'a mut V);
 
                 #[inline]
                 fn next(&mut self) -> Option<Self::Item> {
