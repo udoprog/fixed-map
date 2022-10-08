@@ -13,7 +13,10 @@ struct Tokens {
 
 impl Tokens {
     fn new(krate: &TokenStream) -> Self {
-        Self { storage_trait: quote!(#krate::storage::Storage), key_trait: quote!(#krate::key::Key) }
+        Self {
+            storage_trait: quote!(#krate::storage::Storage),
+            key_trait: quote!(#krate::key::Key),
+        }
     }
 }
 
@@ -28,7 +31,7 @@ impl Tokens {
 ///
 /// Given the following enum:
 ///
-/// ```rust,no_compile,no_run
+/// ```rust
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -43,7 +46,7 @@ impl Tokens {
 ///
 /// ```rust,no_compile,no_run
 /// use fixed_map::Key;
-/// 
+///
 /// #[derive(Clone, Copy)]
 /// pub enum Key {
 ///     First,
@@ -73,7 +76,7 @@ impl Tokens {
 ///
 ///     /* skipped */
 /// }
-/// 
+///
 /// impl<V> Default for KeyStorage<V> {
 ///     fn default() -> Self {
 ///         Self {
@@ -226,6 +229,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
 
             impl<V> Clone for Storage<V> where V: Clone {
+                #[inline]
                 fn clone(&self) -> Storage<V> {
                     Storage {
                         #(#field_clones,)*
@@ -234,6 +238,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
 
             impl<V> std::cmp::PartialEq for Storage<V> where V: std::cmp::PartialEq {
+                #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #(#field_partial_eqs;)*
                     true
@@ -244,6 +249,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             }
 
             impl<V> Default for Storage<V> {
+                #[inline]
                 fn default() -> Storage<V> {
                     Storage {
                         #(#field_inits,)*

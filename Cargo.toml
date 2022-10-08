@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map"
-version = "0.7.2"
+version = "0.8.0-alpha.1"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 license = "MIT/Apache-2.0"
@@ -24,7 +24,7 @@ default = ["map"]
 map = ["hashbrown"]
 
 [dependencies]
-fixed-map-derive = { version = "0.7.0", path = "./fixed-map-derive" }
+fixed-map-derive = { version = "0.8.0-alpha.1", path = "fixed-map-derive" }
 hashbrown = { version = "0.12.3", optional = true }
 serde = { version = "1.0.145", optional = true }
 
@@ -35,3 +35,6 @@ hashbrown = "0.12.3"
 [[bench]]
 name = "map_benches"
 harness = false
+
+[workspace]
+members = ["fixed-map-derive"]
