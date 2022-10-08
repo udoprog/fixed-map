@@ -166,6 +166,7 @@ where
     ///
     /// assert_eq!(map.keys().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
+    #[inline]
     pub fn keys(&self) -> Keys<'_, K, V> {
         Keys { inner: self.iter() }
     }
@@ -191,6 +192,7 @@ where
     ///
     /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![1, 2]);
     /// ```
+    #[inline]
     pub fn values(&self) -> Values<'_, K, V> {
         Values { inner: self.iter() }
     }
@@ -220,6 +222,7 @@ where
     ///
     /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![11, 12]);
     /// ```
+    #[inline]
     pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
         ValuesMut {
             inner: self.iter_mut(),
@@ -247,6 +250,7 @@ where
     ///
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &1), (Key::Two, &2)]);
     /// ```
+    #[inline]
     pub fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             iter: self.storage.iter(),
@@ -280,6 +284,7 @@ where
     ///
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &2), (Key::Two, &4)]);
     /// ```
+    #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             iter: self.storage.iter_mut(),
@@ -431,6 +436,7 @@ where
     /// map.insert(Key::One, "a");
     /// assert!(!map.is_empty());
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.iter().next().is_none()
     }
@@ -453,6 +459,7 @@ where
     /// map.insert(Key::One, "a");
     /// assert_eq!(map.len(), 1);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.iter().count()
     }
@@ -463,6 +470,7 @@ where
     K: Key<K, V>,
     K::Storage: Clone,
 {
+    #[inline]
     fn clone(&self) -> Map<K, V> {
         Map {
             storage: self.storage.clone(),
@@ -474,6 +482,7 @@ impl<K, V> Default for Map<K, V>
 where
     K: Key<K, V>,
 {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -498,6 +507,7 @@ where
     K: Key<K, V>,
     K::Storage: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.storage == other.storage
     }
@@ -528,6 +538,7 @@ impl<'a, K, V: 'a> Clone for Iter<'a, K, V>
 where
     K: Key<K, V>,
 {
+    #[inline]
     fn clone(&self) -> Iter<'a, K, V> {
         Iter {
             iter: self.iter.clone(),
@@ -541,6 +552,7 @@ where
 {
     type Item = (K, &'a V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, v)| (k, v))
     }
@@ -566,6 +578,7 @@ where
 {
     type Item = (K, &'a mut V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, v)| (k, v))
     }
@@ -592,6 +605,7 @@ where
 {
     type Item = K;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(k, _)| k)
     }
@@ -618,6 +632,7 @@ where
 {
     type Item = &'a V;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(_, v)| v)
     }
@@ -643,6 +658,7 @@ where
 {
     type Item = &'a mut V;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|(_, v)| v)
     }

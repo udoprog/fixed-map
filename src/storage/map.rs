@@ -11,6 +11,7 @@ where
     K: Clone,
     V: Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         MapStorage {
             inner: self.inner.clone(),
@@ -22,6 +23,7 @@ impl<K, V> Default for MapStorage<K, V>
 where
     K: Eq + hash::Hash,
 {
+    #[inline]
     fn default() -> Self {
         Self {
             inner: Default::default(),
@@ -34,6 +36,7 @@ where
     K: Eq + hash::Hash,
     V: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.inner == other.inner
     }
@@ -57,6 +60,7 @@ impl<'a, K, V> Clone for Iter<'a, K, V>
 where
     K: 'a + Copy,
 {
+    #[inline]
     fn clone(&self) -> Self {
         Iter {
             iter: self.iter.clone(),
@@ -67,6 +71,7 @@ where
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (K, &'a V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }
@@ -79,6 +84,7 @@ pub struct IterMut<'a, K, V> {
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (K, &'a mut V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
     }

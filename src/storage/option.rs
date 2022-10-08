@@ -83,6 +83,7 @@ where
 {
     type Item = (Option<K>, &'a V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.some.next() {
             return Some((Some(k), v));
@@ -111,6 +112,7 @@ where
 {
     type Item = (Option<K>, &'a mut V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((k, v)) = self.some.next() {
             return Some((Some(k), v));

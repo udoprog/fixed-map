@@ -9,6 +9,9 @@
 //!
 //! The following features are available:
 //!
+//! * `map` - Causes [Storage] to be implemented by dynamic types such as
+//!   `&'static str` or `u32`. These are backed by a `hashbrown` HashMap
+//!   (default).
 //! * `serde` - Causes [Map] and [Set] to implement [Serialize] and
 //!   [Deserialize] if it's implemented by the key and value.
 //!
@@ -235,10 +238,14 @@
 #![deny(missing_docs)]
 
 pub mod key;
+
 pub mod map;
+pub use self::map::Map;
+
 pub mod set;
+pub use self::set::Set;
+
 pub mod storage;
 
-pub use self::map::Map;
-pub use self::set::Set;
+#[doc(inline)]
 pub use fixed_map_derive::Key;

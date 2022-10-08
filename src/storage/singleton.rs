@@ -56,6 +56,7 @@ where
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
     type Item = (K, &'a V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.value.take()
     }
@@ -68,6 +69,7 @@ pub struct IterMut<'a, K, V> {
 impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     type Item = (K, &'a mut V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.value.take()
     }

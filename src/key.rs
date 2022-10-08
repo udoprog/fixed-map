@@ -1,6 +1,8 @@
 //! Module for the trait to define a `Key`.
 
-use crate::storage::{BooleanStorage, MapStorage, OptionStorage, SingletonStorage, Storage};
+#[cfg(feature = "map")]
+use crate::storage::MapStorage;
+use crate::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
 
 /// The trait for a key that can be used to store values in the maps.
 pub trait Key<K, V>: Copy {
@@ -8,6 +10,7 @@ pub trait Key<K, V>: Copy {
     type Storage: Storage<K, V>;
 }
 
+#[cfg(feature = "map")]
 impl<V> Key<&'static str, V> for &'static str {
     type Storage = MapStorage<Self, V>;
 }
@@ -21,6 +24,7 @@ where
 
 macro_rules! impl_map_storage {
     ($ty:ty) => {
+        #[cfg(feature = "map")]
         impl<V> Key<$ty, V> for $ty {
             type Storage = MapStorage<$ty, V>;
         }

@@ -11,6 +11,7 @@ impl<V> Clone for BooleanStorage<V>
 where
     V: Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         BooleanStorage {
             t: self.t.clone(),
@@ -20,6 +21,7 @@ where
 }
 
 impl<V> Default for BooleanStorage<V> {
+    #[inline]
     fn default() -> Self {
         Self {
             t: Default::default(),
@@ -32,6 +34,7 @@ impl<V> PartialEq for BooleanStorage<V>
 where
     V: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.t == other.t && self.f == other.f
     }
@@ -45,6 +48,7 @@ pub struct Iter<'a, V> {
 }
 
 impl<'a, V> Clone for Iter<'a, V> {
+    #[inline]
     fn clone(&self) -> Iter<'a, V> {
         Iter {
             t: self.t,
@@ -56,6 +60,7 @@ impl<'a, V> Clone for Iter<'a, V> {
 impl<'a, V> Iterator for Iter<'a, V> {
     type Item = (bool, &'a V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(t) = self.t.take() {
             return Some((true, t));
@@ -77,6 +82,7 @@ pub struct IterMut<'a, V> {
 impl<'a, V> Iterator for IterMut<'a, V> {
     type Item = (bool, &'a mut V);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(t) = self.t.take() {
             return Some((true, t));

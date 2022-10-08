@@ -19,9 +19,13 @@ readme = "README.md"
 [package.metadata.docs.rs]
 all-features = true
 
+[features]
+default = ["map"]
+map = ["hashbrown"]
+
 [dependencies]
-fixed-map-derive = {version = "0.7.0", path = "./fixed-map-derive"}
-hashbrown = "0.12.3"
+fixed-map-derive = { version = "0.7.0", path = "./fixed-map-derive" }
+hashbrown = { version = "0.12.3", optional = true }
 serde = { version = "1.0.145", optional = true }
 
 [dev-dependencies]
