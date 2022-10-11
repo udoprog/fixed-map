@@ -138,7 +138,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.some.next().or(self.none.take())
+        self.some.next().or_else(|| self.none.take())
     }
 }
 

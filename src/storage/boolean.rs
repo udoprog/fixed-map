@@ -95,7 +95,7 @@ impl<'a, V> Iterator for Values<'a, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.t.take().or(self.f.take())
+        self.t.take().or_else(|| self.f.take())
     }
 }
 

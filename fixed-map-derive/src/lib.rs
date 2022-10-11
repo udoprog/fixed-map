@@ -128,7 +128,7 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 /// Derive to implement the `Key` trait.
 fn impl_storage(ast: &DeriveInput) -> TokenStream {
     match ast.data {
-        Data::Enum(ref en) => return impl_storage_enum(ast, en),
+        Data::Enum(ref en) => impl_storage_enum(ast, en),
         _ => panic!("`Key` attribute is only supported on enums"),
     }
 }
@@ -147,7 +147,7 @@ fn is_all_unit_variants(en: &DataEnum) -> bool {
 fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let tokens = Tokens::new(&quote!(fixed_map));
 
-    if is_all_unit_variants(&en) {
+    if is_all_unit_variants(en) {
         handle_units(&tokens, ast, en)
     } else {
         handle_mixed(&tokens, ast, en)
