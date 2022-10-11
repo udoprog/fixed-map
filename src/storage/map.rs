@@ -1,6 +1,6 @@
-use crate::storage::Storage;
-
 use core::hash;
+
+use crate::storage::Storage;
 
 /// Storage for static types that must be stored in a map.
 #[repr(transparent)]
@@ -28,7 +28,7 @@ where
     #[inline]
     fn default() -> Self {
         Self {
-            inner: Default::default(),
+            inner: ::hashbrown::HashMap::default(),
         }
     }
 }
@@ -51,10 +51,7 @@ where
 {
 }
 
-pub struct Iter<'a, K, V>
-where
-    K: 'a,
-{
+pub struct Iter<'a, K, V> {
     iter: hashbrown::hash_map::Iter<'a, K, V>,
 }
 
@@ -70,7 +67,10 @@ where
     }
 }
 
-impl<'a, K: Copy, V> Iterator for Iter<'a, K, V> {
+impl<'a, K, V> Iterator for Iter<'a, K, V>
+where
+    K: Copy,
+{
     type Item = (K, &'a V);
 
     #[inline]
@@ -83,7 +83,10 @@ pub struct IterMut<'a, K, V> {
     iter: hashbrown::hash_map::IterMut<'a, K, V>,
 }
 
-impl<'a, K: Copy, V> Iterator for IterMut<'a, K, V> {
+impl<'a, K, V> Iterator for IterMut<'a, K, V>
+where
+    K: Copy,
+{
     type Item = (K, &'a mut V);
 
     #[inline]

@@ -4,29 +4,16 @@ use crate::storage::Storage;
 
 /// Storage types that can only inhabit a single value (like `()`).
 #[repr(transparent)]
+#[derive(Clone, Copy)]
 pub struct SingletonStorage<V> {
     inner: Option<V>,
 }
-
-impl<V> Clone for SingletonStorage<V>
-where
-    V: Clone,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        SingletonStorage {
-            inner: self.inner.clone(),
-        }
-    }
-}
-
-impl<V> Copy for SingletonStorage<V> where V: Copy {}
 
 impl<V> Default for SingletonStorage<V> {
     #[inline]
     fn default() -> Self {
         Self {
-            inner: Default::default(),
+            inner: Option::default(),
         }
     }
 }
@@ -47,7 +34,7 @@ pub struct Iter<'a, K, V> {
     value: Option<(K, &'a V)>,
 }
 
-impl<'a, K, V> Clone for Iter<'a, K, V>
+impl<K, V> Clone for Iter<'_, K, V>
 where
     K: Copy,
 {

@@ -5,11 +5,15 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: --cfg ci
     steps:
     - uses: actions/checkout@v1
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: beta
         override: true
+        profile: minimal
+    - run: cargo build --all-features
     - run: cargo build --no-default-features
     - run: cargo test --all-features

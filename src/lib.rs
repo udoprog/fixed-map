@@ -14,9 +14,11 @@
 //!
 //! The following features are available:
 //!
+//! * `std` - Disabling this feature enables causes this crate to be no-std.
+//!   This means that dynamic types cannot be used in keys, like ones enabled by
+//!   the `map` feature (default).
 //! * `map` - Causes [Storage] to be implemented by dynamic types such as
-//!   `&'static str` or `u32`. These are backed by a `hashbrown` HashMap
-//!   (default).
+//!   `&'static str` or `u32`. These are backed by a `hashbrown` (default).
 //! * `serde` - Causes [Map] and [Set] to implement [Serialize] and
 //!   [Deserialize] if it's implemented by the key and value.
 //!
@@ -243,6 +245,41 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
+#![deny(unsafe_code)]
+// Pedantic CI settings that might not be future proof or solely involves
+// clippy.
+#![cfg_attr(ci, deny(clippy::all))]
+#![cfg_attr(ci, deny(warnings))]
+#![cfg_attr(ci, warn(clippy::pedantic))]
+// style choice
+#![allow(clippy::module_name_repetitions)]
+// false positive
+#![allow(clippy::type_repetition_in_bounds)]
+// false positive
+#![allow(clippy::expl_impl_clone_on_copy)]
+// Enable more useful rustc lints
+#![cfg_attr(ci, deny(absolute_paths_not_starting_with_crate))]
+#![cfg_attr(ci, deny(elided_lifetimes_in_paths))]
+#![cfg_attr(ci, deny(explicit_outlives_requirements))]
+#![cfg_attr(ci, deny(keyword_idents))]
+#![cfg_attr(ci, deny(macro_use_extern_crate))]
+#![cfg_attr(ci, deny(meta_variable_misuse))]
+#![cfg_attr(ci, deny(missing_copy_implementations))]
+#![cfg_attr(ci, deny(missing_docs))]
+#![cfg_attr(ci, deny(non_ascii_idents))]
+#![cfg_attr(ci, deny(noop_method_call))]
+#![cfg_attr(ci, deny(pointer_structural_match))]
+#![cfg_attr(ci, deny(single_use_lifetimes))]
+#![cfg_attr(ci, deny(trivial_casts))]
+#![cfg_attr(ci, deny(trivial_numeric_casts))]
+#![cfg_attr(ci, deny(unreachable_pub))]
+#![cfg_attr(ci, deny(unused_extern_crates))]
+#![cfg_attr(ci, deny(unused_import_braces))]
+#![cfg_attr(ci, deny(unused_lifetimes))]
+#![cfg_attr(ci, deny(unused_macro_rules))]
+#![cfg_attr(ci, deny(unused_qualifications))]
+#![cfg_attr(ci, deny(unused_tuple_struct_fields))]
+#![cfg_attr(ci, deny(variant_size_differences))]
 
 pub mod key;
 

@@ -148,14 +148,6 @@ if let Some(item) = map.get(Dir::North) {
 }
 ```
 
-### Unsafe use
-
-This crate uses unsafe for its iterators. This is needed because there is no
-proper way to associate generic lifetimes to associated types.
-
-Instead, we associate the lifetime to the container (`Map` or `Set`) which
-wraps a set of unsafe derefs over raw pointers.
-
 ### Benchmarks
 
 In the following benchmarks, fixed-map is compared to:
