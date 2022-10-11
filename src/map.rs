@@ -1,7 +1,6 @@
 //! Contains the fixed `Map` implementation.
 
 use core::fmt;
-use core::iter;
 
 use crate::{key::Key, storage::Storage};
 
@@ -144,6 +143,7 @@ where
     /// let mut map: Map<Key, i32> = Map::new();
     /// ```
     #[inline]
+    #[must_use]
     pub fn new() -> Map<K, V> {
         Map {
             storage: K::Storage::default(),
@@ -422,7 +422,7 @@ where
     /// ```
     #[inline]
     pub fn clear(&mut self) {
-        self.storage.clear()
+        self.storage.clear();
     }
 
     /// Returns true if the map contains no elements.
@@ -507,11 +507,13 @@ where
     K: Key<K, V> + fmt::Debug,
     V: fmt::Debug,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug_map = f.debug_map();
+
         for (k, v) in self.iter() {
             debug_map.entry(&k, v);
         }
+
         debug_map.finish()
     }
 }
@@ -698,7 +700,7 @@ where
 /// [`keys`]: struct.Map.html#method.keys
 /// [`Map`]: struct.Map.html
 #[derive(Clone)]
-pub struct Keys<'a, K, V: 'a>
+pub struct Keys<'a, K, V>
 where
     K: Key<K, V>,
 {
@@ -752,7 +754,7 @@ where
 ///
 /// [`values_mut`]: struct.Map.html#method.values_mut
 /// [`Map`]: struct.Map.html
-pub struct ValuesMut<'a, K, V: 'a>
+pub struct ValuesMut<'a, K, V>
 where
     K: Key<K, V>,
 {
@@ -771,7 +773,7 @@ where
     }
 }
 
-impl<K, V> iter::FromIterator<(K, V)> for Map<K, V>
+impl<K, V> FromIterator<(K, V)> for Map<K, V>
 where
     K: Key<K, V>,
 {

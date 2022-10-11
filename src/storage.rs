@@ -20,21 +20,18 @@ pub use self::singleton::SingletonStorage;
 /// - `V` is the value being stored.
 pub trait Storage<K, V>: Default {
     /// Immutable iterator over storage.
-    /// Uses raw pointers (unsafe) since we don't have GATs.
     type Iter<'this>: Clone + Iterator<Item = (K, &'this V)>
     where
         Self: 'this,
         V: 'this;
 
     /// Immutable iterator over storage.
-    /// Uses raw pointers (unsafe) since we don't have GATs.
     type Values<'this>: Clone + Iterator<Item = &'this V>
     where
         Self: 'this,
         V: 'this;
 
     /// Mutable iterator over storage.
-    /// Uses raw pointers (unsafe) since we don't have GATs.
     type IterMut<'this>: Iterator<Item = (K, &'this mut V)>
     where
         Self: 'this,

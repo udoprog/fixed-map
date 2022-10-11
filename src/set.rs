@@ -1,7 +1,6 @@
 //! Contains the fixed `Set` implementation.
 
 use core::fmt;
-use core::iter;
 
 use crate::key::Key;
 use crate::storage::Storage;
@@ -125,6 +124,7 @@ where
     /// let set: Set<Key> = Set::new();
     /// ```
     #[inline]
+    #[must_use]
     pub fn new() -> Set<K> {
         Set {
             storage: K::Storage::default(),
@@ -153,7 +153,7 @@ where
     /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
-    pub fn iter(&self) -> Iter<K> {
+    pub fn iter(&self) -> Iter<'_, K> {
         Iter {
             iter: self.storage.iter(),
         }
@@ -257,7 +257,7 @@ where
     /// ```
     #[inline]
     pub fn clear(&mut self) {
-        self.storage.clear()
+        self.storage.clear();
     }
 
     /// Returns true if the set contains no elements.
@@ -320,6 +320,13 @@ where
     }
 }
 
+impl<K> Copy for Set<K>
+where
+    K: Key<K, ()>,
+    K::Storage: Copy,
+{
+}
+
 impl<K> Default for Set<K>
 where
     K: Key<K, ()>,
@@ -334,7 +341,7 @@ impl<K> fmt::Debug for Set<K>
 where
     K: Key<K, ()> + fmt::Debug,
 {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug_set = f.debug_set();
         for k in self.iter() {
             debug_set.entry(&k);
@@ -375,7 +382,7 @@ where
     iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Iter<'a>,
 }
 
-impl<'a, K> Iterator for Iter<'a, K>
+impl<K> Iterator for Iter<'_, K>
 where
     K: Key<K, ()>,
 {
@@ -459,7 +466,7 @@ where
     }
 }
 
-impl<K> iter::FromIterator<K> for Set<K>
+impl<K> FromIterator<K> for Set<K>
 where
     K: Key<K, ()>,
 {

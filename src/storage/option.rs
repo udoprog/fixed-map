@@ -17,9 +17,8 @@ where
     K::Storage: Clone,
     V: Clone,
 {
-    #[inline]
     fn clone(&self) -> Self {
-        OptionStorage {
+        Self {
             some: self.some.clone(),
             none: self.none.clone(),
         }
@@ -41,8 +40,8 @@ where
     #[inline]
     fn default() -> Self {
         Self {
-            some: Default::default(),
-            none: Default::default(),
+            some: K::Storage::default(),
+            none: Option::default(),
         }
     }
 }
@@ -69,7 +68,6 @@ where
 pub struct Iter<'a, K, V>
 where
     K: 'a + Key<K, V>,
-    V: 'a,
 {
     some: <K::Storage as Storage<K, V>>::Iter<'a>,
     none: Option<&'a V>,
@@ -111,7 +109,6 @@ where
 pub struct Values<'a, K, V>
 where
     K: 'a + Key<K, V>,
-    V: 'a,
 {
     some: <K::Storage as Storage<K, V>>::Values<'a>,
     none: Option<&'a V>,
@@ -145,7 +142,6 @@ where
 pub struct IterMut<'a, K, V>
 where
     K: 'a + Key<K, V>,
-    V: 'a,
 {
     some: <K::Storage as Storage<K, V>>::IterMut<'a>,
     none: Option<&'a mut V>,

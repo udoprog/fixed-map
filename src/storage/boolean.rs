@@ -3,45 +3,21 @@ use core::mem;
 use crate::storage::Storage;
 
 /// Storage for `bool`s.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BooleanStorage<V> {
     t: Option<V>,
     f: Option<V>,
-}
-
-impl<V> Clone for BooleanStorage<V>
-where
-    V: Clone,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        BooleanStorage {
-            t: self.t.clone(),
-            f: self.f.clone(),
-        }
-    }
 }
 
 impl<V> Default for BooleanStorage<V> {
     #[inline]
     fn default() -> Self {
         Self {
-            t: Default::default(),
-            f: Default::default(),
+            t: Option::default(),
+            f: Option::default(),
         }
     }
 }
-
-impl<V> PartialEq for BooleanStorage<V>
-where
-    V: PartialEq,
-{
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.t == other.t && self.f == other.f
-    }
-}
-
-impl<V> Eq for BooleanStorage<V> where V: Eq {}
 
 pub struct Iter<'a, V> {
     t: Option<&'a V>,
@@ -67,11 +43,7 @@ impl<'a, V> Iterator for Iter<'a, V> {
             return Some((true, t));
         }
 
-        if let Some(f) = self.f.take() {
-            return Some((false, f));
-        }
-
-        None
+        Some((false, self.f.take()?))
     }
 }
 
@@ -151,33 +123,37 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
 
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
-        match key {
-            true => mem::replace(&mut self.t, Some(value)),
-            false => mem::replace(&mut self.f, Some(value)),
+        if key {
+            mem::replace(&mut self.t, Some(value))
+        } else {
+            mem::replace(&mut self.f, Some(value))
         }
     }
 
     #[inline]
     fn get(&self, key: bool) -> Option<&V> {
-        match key {
-            true => self.t.as_ref(),
-            false => self.f.as_ref(),
+        if key {
+            self.t.as_ref()
+        } else {
+            self.f.as_ref()
         }
     }
 
     #[inline]
     fn get_mut(&mut self, key: bool) -> Option<&mut V> {
-        match key {
-            true => self.t.as_mut(),
-            false => self.f.as_mut(),
+        if key {
+            self.t.as_mut()
+        } else {
+            self.f.as_mut()
         }
     }
 
     #[inline]
     fn remove(&mut self, key: bool) -> Option<V> {
-        match key {
-            true => mem::replace(&mut self.t, None),
-            false => mem::replace(&mut self.f, None),
+        if key {
+            mem::replace(&mut self.t, None)
+        } else {
+            mem::replace(&mut self.f, None)
         }
     }
 
