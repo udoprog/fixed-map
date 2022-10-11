@@ -26,6 +26,13 @@ pub trait Storage<K, V>: Default {
         Self: 'this,
         V: 'this;
 
+    /// Immutable iterator over storage.
+    /// Uses raw pointers (unsafe) since we don't have GATs.
+    type Values<'this>: Clone + Iterator<Item = &'this V>
+    where
+        Self: 'this,
+        V: 'this;
+
     /// Mutable iterator over storage.
     /// Uses raw pointers (unsafe) since we don't have GATs.
     type IterMut<'this>: Iterator<Item = (K, &'this mut V)>
@@ -53,6 +60,9 @@ pub trait Storage<K, V>: Default {
 
     /// This is the storage abstraction for [`Map::iter`](struct.Map.html#method.iter).
     fn iter(&self) -> Self::Iter<'_>;
+
+    /// This is the storage abstraction for [`Map::values`](struct.Map.html#method.values).
+    fn values(&self) -> Self::Values<'_>;
 
     /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
     fn iter_mut(&mut self) -> Self::IterMut<'_>;

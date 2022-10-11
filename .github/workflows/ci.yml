@@ -11,4 +11,5 @@ jobs:
       with:
         toolchain: beta
         override: true
+    - run: cargo build --no-default-features
     - run: cargo test --all-features

@@ -1,4 +1,8 @@
 //! Contains the fixed `Map` implementation.
+
+use core::fmt;
+use core::iter;
+
 use crate::{key::Key, storage::Storage};
 
 /// A fixed map with a predetermined size.
@@ -69,6 +73,7 @@ use crate::{key::Key, storage::Storage};
 ///
 /// assert_eq!(map.values().cloned().collect::<Vec<_>>(), vec![&42u32]);
 /// ```
+#[repr(transparent)]
 pub struct Map<K, V>
 where
     K: Key<K, V>,
@@ -194,7 +199,9 @@ where
     /// ```
     #[inline]
     pub fn values(&self) -> Values<'_, K, V> {
-        Values { inner: self.iter() }
+        Values {
+            iter: self.storage.values(),
+        }
     }
 
     /// An iterator visiting all values mutably in arbitrary order.
@@ -478,6 +485,13 @@ where
     }
 }
 
+impl<K, V> Copy for Map<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Copy,
+{
+}
+
 impl<K, V> Default for Map<K, V>
 where
     K: Key<K, V>,
@@ -488,12 +502,12 @@ where
     }
 }
 
-impl<K, V> std::fmt::Debug for Map<K, V>
+impl<K, V> fmt::Debug for Map<K, V>
 where
-    K: Key<K, V> + std::fmt::Debug,
-    V: std::fmt::Debug,
+    K: Key<K, V> + fmt::Debug,
+    V: fmt::Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
         for (k, v) in self.iter() {
             debug_map.entry(&k, v);
@@ -527,6 +541,7 @@ where
 ///
 /// [`iter`]: struct.Map.html#method.iter
 /// [`Map`]: struct.Map.html
+#[repr(transparent)]
 pub struct Iter<'a, K, V: 'a>
 where
     K: 'a + Key<K, V>,
@@ -565,6 +580,7 @@ where
     type Item = (K, &'a V);
     type IntoIter = Iter<'a, K, V>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
@@ -603,6 +619,7 @@ where
     type Item = (K, &'a mut V);
     type IntoIter = IterMut<'a, K, V>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
     }
@@ -708,11 +725,12 @@ where
 /// [`values`]: struct.Map.html#method.values
 /// [`Map`]: struct.Map.html
 #[derive(Clone)]
+#[repr(transparent)]
 pub struct Values<'a, K, V: 'a>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
 {
-    inner: Iter<'a, K, V>,
+    iter: <K::Storage as Storage<K, V>>::Values<'a>,
 }
 
 impl<'a, K: 'a, V: 'a> Iterator for Values<'a, K, V>
@@ -723,7 +741,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(_, v)| v)
+        self.iter.next()
     }
 }
 
@@ -753,12 +771,15 @@ where
     }
 }
 
-impl<K, V> std::iter::FromIterator<(K, V)> for Map<K, V>
+impl<K, V> iter::FromIterator<(K, V)> for Map<K, V>
 where
     K: Key<K, V>,
 {
     #[inline]
-    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (K, V)>,
+    {
         let mut map = Self::new();
         for (k, v) in iter {
             map.insert(k, v);
@@ -799,9 +820,9 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        return deserializer.deserialize_map(MapVisitor(std::marker::PhantomData));
+        return deserializer.deserialize_map(MapVisitor(core::marker::PhantomData));
 
-        struct MapVisitor<K, V>(std::marker::PhantomData<(K, V)>);
+        struct MapVisitor<K, V>(core::marker::PhantomData<(K, V)>);
 
         impl<'de, K, V> serde::de::Visitor<'de> for MapVisitor<K, V>
         where
@@ -810,7 +831,7 @@ where
         {
             type Value = Map<K, V>;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("a map")
             }
 

@@ -1,9 +1,11 @@
 use crate::storage::Storage;
-use std::hash;
+
+use core::hash;
 
 /// Storage for static types that must be stored in a map.
+#[repr(transparent)]
 pub struct MapStorage<K, V> {
-    inner: hashbrown::HashMap<K, V>,
+    inner: ::hashbrown::HashMap<K, V>,
 }
 
 impl<K, V> Clone for MapStorage<K, V>
@@ -95,6 +97,7 @@ where
     K: Copy + Eq + hash::Hash,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Values<'this> = ::hashbrown::hash_map::Values<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
     type IntoIter = hashbrown::hash_map::IntoIter<K, V>;
 
@@ -128,6 +131,11 @@ where
         Iter {
             iter: self.inner.iter(),
         }
+    }
+
+    #[inline]
+    fn values(&self) -> Self::Values<'_> {
+        self.inner.values()
     }
 
     #[inline]

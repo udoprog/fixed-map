@@ -7,15 +7,41 @@ use quote::quote;
 use syn::{Data, DataEnum, DeriveInput, Fields, Ident};
 
 struct Tokens {
-    storage_trait: TokenStream,
+    array_into_iter: TokenStream,
+    clone: TokenStream,
+    copy: TokenStream,
+    default: TokenStream,
+    eq: TokenStream,
+    into_iter: TokenStream,
+    iterator: TokenStream,
     key_trait: TokenStream,
+    mem: TokenStream,
+    option_as_mut: TokenStream,
+    option_as_ref: TokenStream,
+    option: TokenStream,
+    partial_eq: TokenStream,
+    slice_iter: TokenStream,
+    storage_trait: TokenStream,
 }
 
 impl Tokens {
     fn new(krate: &TokenStream) -> Self {
         Self {
-            storage_trait: quote!(#krate::storage::Storage),
+            array_into_iter: quote!(::core::array::IntoIter),
+            clone: quote!(::core::clone::Clone),
+            copy: quote!(::core::marker::Copy),
+            default: quote!(::core::default::Default),
+            eq: quote!(::core::cmp::Eq),
+            into_iter: quote!(::core::iter::IntoIterator::into_iter),
+            iterator: quote!(::core::iter::Iterator),
             key_trait: quote!(#krate::key::Key),
+            mem: quote!(::core::mem),
+            option_as_mut: quote!(::core::option::Option::as_mut),
+            option_as_ref: quote!(::core::option::Option::as_ref),
+            option: quote!(::core::option::Option),
+            partial_eq: quote!(::core::cmp::PartialEq),
+            slice_iter: quote!(::core::slice::Iter),
+            storage_trait: quote!(#krate::storage::Storage),
         }
     }
 }
@@ -107,14 +133,317 @@ fn impl_storage(ast: &DeriveInput) -> TokenStream {
     }
 }
 
+fn is_all_unit_variants(en: &DataEnum) -> bool {
+    for v in &en.variants {
+        if !matches!(&v.fields, Fields::Unit) {
+            return false;
+        }
+    }
+
+    true
+}
+
 /// Implement `Key` for enums.
 fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
-    let vis = &ast.vis;
-    let ident = &ast.ident;
     let tokens = Tokens::new(&quote!(fixed_map));
 
-    let storage_trait = &tokens.storage_trait;
+    if is_all_unit_variants(&en) {
+        handle_units(&tokens, ast, en)
+    } else {
+        handle_mixed(&tokens, ast, en)
+    }
+}
+
+/// Every variant is a unit variant.
+fn handle_units(tokens: &Tokens, ast: &DeriveInput, en: &DataEnum) -> TokenStream {
+    let vis = &ast.vis;
+    let ident = &ast.ident;
+
+    let array_into_iter = &tokens.array_into_iter;
+    let clone = &tokens.clone;
+    let copy = &tokens.copy;
+    let default = &tokens.default;
+    let eq = &tokens.eq;
+    let into_iter = &tokens.into_iter;
+    let iterator = &tokens.iterator;
     let key_trait = &tokens.key_trait;
+    let mem = &tokens.mem;
+    let option = &tokens.option;
+    let option_as_mut = &tokens.option_as_mut;
+    let option_as_ref = &tokens.option_as_ref;
+    let partial_eq = &tokens.partial_eq;
+    let slice_iter = &tokens.slice_iter;
+    let storage_trait = &tokens.storage_trait;
+
+    let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
+
+    let mut pattern = Vec::new();
+
+    let mut names = Vec::new();
+
+    let mut fields = Vec::new();
+    let mut field_inits = Vec::new();
+
+    let mut get = Vec::new();
+    let mut get_mut = Vec::new();
+    let mut insert = Vec::new();
+    let mut remove = Vec::new();
+
+    let mut iter_init = Vec::new();
+
+    for (index, variant) in en.variants.iter().enumerate() {
+        let var = &variant.ident;
+        let field = Ident::new(&format!("f{}", index), Span::call_site());
+
+        names.push(field.clone());
+
+        field_inits.push(quote!(#option::None));
+
+        fields.push(quote!(#option<V>));
+        pattern.push(quote!(#ident::#var));
+
+        get.push(quote!(#option_as_ref(#field)));
+        get_mut.push(quote!(#option_as_mut(#field)));
+        insert.push(quote!(#mem::replace(#field, #option::Some(value))));
+        remove.push(quote!(#mem::replace(#field, #option::None)));
+
+        iter_init.push(quote!((#ident::#var, #field)));
+    }
+
+    let count = en.variants.len();
+
+    quote! {
+        const #const_wrapper: () = {
+            #[repr(transparent)]
+            #vis struct Storage<V> {
+                data: [#option<V>; #count],
+            }
+
+            impl<V> #clone for Storage<V> where V: #clone {
+                #[inline]
+                fn clone(&self) -> Storage<V> {
+                    Storage {
+                        data: #clone::clone(&self.data),
+                    }
+                }
+            }
+
+            impl<V> #copy for Storage<V> where V: #copy {
+            }
+
+            impl<V> #partial_eq for Storage<V> where V: #partial_eq {
+                #[inline]
+                fn eq(&self, other: &Storage<V>) -> bool {
+                    self.data == self.data
+                }
+            }
+
+            impl<V> #eq for Storage<V> where V: #eq {}
+
+            impl<V> #default for Storage<V> {
+                #[inline]
+                fn default() -> Storage<V> {
+                    Storage {
+                        data: [#(#field_inits),*],
+                    }
+                }
+            }
+
+            impl<V> #storage_trait<#ident, V> for Storage<V> {
+                type Iter<'this> = Iter<'this, V> where Self: 'this;
+                type Values<'this> = Values<'this, V> where Self: 'this;
+                type IterMut<'this> = IterMut<'this, V> where Self: 'this;
+                type IntoIter = IntoIter<V>;
+
+                #[inline]
+                fn insert(&mut self, key: #ident, value: V) -> #option<V> {
+                    let [#(#names),*] = &mut self.data;
+
+                    match key {
+                        #(#pattern => #insert,)*
+                    }
+                }
+
+                #[inline]
+                fn get(&self, value: #ident) -> #option<&V> {
+                    let [#(#names),*] = &self.data;
+
+                    match value {
+                        #(#pattern => #get,)*
+                    }
+                }
+
+                #[inline]
+                fn get_mut(&mut self, value: #ident) -> #option<&mut V> {
+                    let [#(#names),*] = &mut self.data;
+
+                    match value {
+                        #(#pattern => #get_mut,)*
+                    }
+                }
+
+                #[inline]
+                fn remove(&mut self, value: #ident) -> #option<V> {
+                    let [#(#names),*] = &mut self.data;
+
+                    match value {
+                        #(#pattern => #remove,)*
+                    }
+                }
+
+                #[inline]
+                fn clear(&mut self) {
+                    self.data = [#(#field_inits),*];
+                }
+
+                #[inline]
+                fn iter(&self) -> Self::Iter<'_> {
+                    let [#(#names),*] = &self.data;
+
+                    Iter {
+                        iter: #into_iter([#(#iter_init),*]),
+                    }
+                }
+
+                #[inline]
+                fn values(&self) -> Self::Values<'_> {
+                    Values {
+                        iter: #into_iter(&self.data),
+                    }
+                }
+
+                #[inline]
+                fn iter_mut(&mut self) -> Self::IterMut<'_> {
+                    let [#(#names),*] = &mut self.data;
+
+                    IterMut {
+                        iter: #into_iter([#(#iter_init),*]),
+                    }
+                }
+
+                #[inline]
+                fn into_iter(self) -> Self::IntoIter {
+                    let [#(#names),*] = self.data;
+
+                    IntoIter {
+                        iter: #into_iter([#(#iter_init),*]),
+                    }
+                }
+            }
+
+            impl<V> #key_trait<#ident, V> for #ident {
+                type Storage = Storage<V>;
+            }
+
+            #[repr(transparent)]
+            #vis struct Iter<'a, V> {
+                iter: #array_into_iter<(#ident, &'a #option<V>), #count>,
+            }
+
+            impl<'a, V> #clone for Iter<'a, V> {
+                #[inline]
+                fn clone(&self) -> Iter<'a, V> {
+                    Iter {
+                        iter: #clone::clone(&self.iter),
+                    }
+                }
+            }
+
+            impl<'a, V> #iterator for Iter<'a, V> {
+                type Item = (#ident, &'a V);
+
+                #[inline]
+                fn next(&mut self) -> #option<Self::Item> {
+                    loop {
+                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
+                            return #option::Some((key, value));
+                        }
+                    }
+                }
+            }
+
+            #[repr(transparent)]
+            #vis struct Values<'a, V> {
+                iter: #slice_iter<'a, #option<V>>,
+            }
+
+            impl<'a, V> #clone for Values<'a, V> {
+                #[inline]
+                fn clone(&self) -> Self {
+                    Values {
+                        iter: #clone::clone(&self.iter),
+                    }
+                }
+            }
+
+            impl<'a, V> #iterator for Values<'a, V> {
+                type Item = &'a V;
+
+                #[inline]
+                fn next(&mut self) -> #option<Self::Item> {
+                    loop {
+                        if let #option::Some(value) = #iterator::next(&mut self.iter)? {
+                            return #option::Some(value);
+                        }
+                    }
+                }
+            }
+
+            #[repr(transparent)]
+            #vis struct IterMut<'a, V> {
+                iter: #array_into_iter<(#ident, &'a mut #option<V>), #count>,
+            }
+
+            impl<'a, V> #iterator for IterMut<'a, V> {
+                type Item = (#ident, &'a mut V);
+
+                #[inline]
+                fn next(&mut self) -> #option<Self::Item> {
+                    loop {
+                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
+                            return #option::Some((key, value));
+                        }
+                    }
+                }
+            }
+
+            #[repr(transparent)]
+            #vis struct IntoIter<V> {
+                iter: #array_into_iter<(#ident, #option<V>), #count>,
+            }
+
+            impl<V> #iterator for IntoIter<V> {
+                type Item = (#ident, V);
+
+                #[inline]
+                fn next(&mut self) -> #option<Self::Item> {
+                    loop {
+                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
+                            return #option::Some((key, value));
+                        }
+                    }
+                }
+            }
+        };
+    }
+}
+
+fn handle_mixed(tokens: &Tokens, ast: &DeriveInput, en: &DataEnum) -> TokenStream {
+    let vis = &ast.vis;
+    let ident = &ast.ident;
+
+    let clone = &tokens.clone;
+    let copy = &tokens.copy;
+    let default = &tokens.default;
+    let eq = &tokens.eq;
+    let iterator = &tokens.iterator;
+    let key_trait = &tokens.key_trait;
+    let mem = &tokens.mem;
+    let option = &tokens.option;
+    let option_as_mut = &tokens.option_as_mut;
+    let option_as_ref = &tokens.option_as_ref;
+    let partial_eq = &tokens.partial_eq;
+    let storage_trait = &tokens.storage_trait;
 
     let const_wrapper = Ident::new(&format!("__IMPL_KEY_FOR_{}", ast.ident), Span::call_site());
 
@@ -134,7 +463,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut iter_clone = Vec::new();
 
     let mut iter_init = Vec::new();
+    let mut values_iter_init = Vec::new();
     let mut iter_fields = Vec::new();
+    let mut values_iter_fields = Vec::new();
 
     let mut iter_mut_init = Vec::new();
     let mut iter_mut_fields = Vec::new();
@@ -143,15 +474,17 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut into_iter_fields = Vec::new();
 
     let mut iter_next = Vec::new();
+    let mut values_iter_next = Vec::new();
+    let mut copy_bounds = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
         let field = Ident::new(&format!("f{}", index), Span::call_site());
 
-        iter_clone.push(quote!(#field: self.#field.clone()));
+        iter_clone.push(quote!(#field: #clone::clone(&self.#field)));
 
-        field_inits.push(quote!(#field: Default::default()));
-        field_clones.push(quote!(#field: self.#field.clone()));
+        field_inits.push(quote!(#field: #default::default()));
+        field_clones.push(quote!(#field: #clone::clone(&self.#field)));
         field_partial_eqs.push(quote! {
             if self.#field != other.#field {
                 return false;
@@ -160,28 +493,39 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
         match variant.fields {
             Fields::Unit => {
-                fields.push(quote!(#field: Option<V>));
+                fields.push(quote!(#field: #option<V>));
                 pattern.push(quote!(#ident::#var));
-                clear.push(quote!(self.#field = None));
+                clear.push(quote!(self.#field = #option::None));
 
-                get.push(quote!(self.#field.as_ref()));
-                get_mut.push(quote!(self.#field.as_mut()));
-                insert.push(quote!(::std::mem::replace(&mut self.#field, Some(value))));
-                remove.push(quote!(::std::mem::replace(&mut self.#field, None)));
+                get.push(quote!(#option_as_ref(&self.#field)));
+                get_mut.push(quote!(#option_as_mut(&mut self.#field)));
+                insert.push(quote!(#mem::replace(&mut self.#field, #option::Some(value))));
+                remove.push(quote!(#mem::replace(&mut self.#field, #option::None)));
 
-                iter_fields.push(quote!(#field: Option<&'a V>));
-                iter_init.push(quote!(#field: self.#field.as_ref()));
+                iter_fields.push(quote!(#field: #option<&'a V>));
+                values_iter_fields.push(quote!(#field: #option<&'a V>));
+                iter_init.push(quote!(#field: #option_as_ref(&self.#field)));
+                values_iter_init.push(quote!(#field: #option_as_ref(&self.#field)));
+                iter_mut_fields.push(quote!(#field: #option<&'a mut V>));
+                iter_mut_init.push(quote!(#field: #option_as_mut(&mut self.#field)));
 
-                iter_mut_fields.push(quote!(#field: Option<&'a mut V>));
-                iter_mut_init.push(quote!(#field: self.#field.as_mut()));
-
-                into_iter_fields.push(quote!(#field: Option<V>));
+                into_iter_fields.push(quote!(#field: #option<V>));
                 into_iter_init.push(quote!(#field: self.#field));
 
                 iter_next.push(quote! {
                     #index => {
-                        if let Some(v) = self.#field.take() {
-                            return Some((#ident::#var, v));
+                        if let #option::Some(v) = self.#field.take() {
+                            return #option::Some((#ident::#var, v));
+                        }
+
+                        self.step += 1;
+                    }
+                });
+
+                values_iter_next.push(quote! {
+                    #index => {
+                        if let #option::Some(v) = self.#field.take() {
+                            return #option::Some(v);
                         }
 
                         self.step += 1;
@@ -207,23 +551,36 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 remove.push(quote!(#as_storage::remove(&mut self.#field, v)));
 
                 iter_fields.push(quote!(#field: #as_storage::Iter<'a>));
-                iter_init.push(quote!(#field: self.#field.iter()));
-
+                values_iter_fields.push(quote!(#field: #as_storage::Values<'a>));
+                iter_init.push(quote!(#field: #as_storage::iter(&self.#field)));
+                values_iter_init.push(quote!(#field: #as_storage::values(&self.#field)));
                 iter_mut_fields.push(quote!(#field: #as_storage::IterMut<'a>));
-                iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
+                iter_mut_init.push(quote!(#field: #as_storage::iter_mut(&mut self.#field)));
 
                 into_iter_fields.push(quote!(#field: #as_storage::IntoIter));
-                into_iter_init.push(quote!(#field: self.#field.into_iter()));
+                into_iter_init.push(quote!(#field: #storage::into_iter(self.#field)));
 
                 iter_next.push(quote! {
                     #index => {
-                        if let Some((k, v)) = self.#field.next() {
-                            return Some((#ident::#var(k), v));
+                        if let #option::Some((k, v)) = #iterator::next(&mut self.#field) {
+                            return #option::Some((#ident::#var(k), v));
                         }
 
                         self.step += 1;
                     }
                 });
+
+                values_iter_next.push(quote! {
+                    #index => {
+                        if let #option::Some(v) = #iterator::next(&mut self.#field) {
+                            return #option::Some(v);
+                        }
+
+                        self.step += 1;
+                    }
+                });
+
+                copy_bounds.push(quote!(#storage: #copy));
             }
             _ => panic!("Only unit fields are supported in fixed enums"),
         }
@@ -240,7 +597,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #(#fields,)*
             }
 
-            impl<V> Clone for Storage<V> where V: Clone {
+            impl<V> #clone for Storage<V> where V: #clone {
                 #[inline]
                 fn clone(&self) -> Storage<V> {
                     Storage {
@@ -249,7 +606,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V> std::cmp::PartialEq for Storage<V> where V: std::cmp::PartialEq {
+            impl<V> #copy for Storage<V> where V: #copy, #(#copy_bounds,)* {}
+
+            impl<V> #partial_eq for Storage<V> where V: #partial_eq {
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #(#field_partial_eqs;)*
@@ -257,10 +616,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<V> std::cmp::Eq for Storage<V> where V: std::cmp::Eq {
-            }
+            impl<V> #eq for Storage<V> where V: #eq {}
 
-            impl<V> Default for Storage<V> {
+            impl<V> #default for Storage<V> {
                 #[inline]
                 fn default() -> Storage<V> {
                     Storage {
@@ -271,32 +629,33 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
             impl<V> #storage_trait<#ident, V> for Storage<V> {
                 type Iter<'this> = Iter<'this, V> where Self: 'this;
+                type Values<'this> = Values<'this, V> where Self: 'this;
                 type IterMut<'this> = IterMut<'this, V> where Self: 'this;
                 type IntoIter = IntoIter<V>;
 
                 #[inline]
-                fn insert(&mut self, key: #ident, value: V) -> Option<V> {
+                fn insert(&mut self, key: #ident, value: V) -> #option<V> {
                     match key {
                         #(#pattern => #insert,)*
                     }
                 }
 
                 #[inline]
-                fn get(&self, value: #ident) -> Option<&V> {
+                fn get(&self, value: #ident) -> #option<&V> {
                     match value {
                         #(#pattern => #get,)*
                     }
                 }
 
                 #[inline]
-                fn get_mut(&mut self, value: #ident) -> Option<&mut V> {
+                fn get_mut(&mut self, value: #ident) -> #option<&mut V> {
                     match value {
                         #(#pattern => #get_mut,)*
                     }
                 }
 
                 #[inline]
-                fn remove(&mut self, value: #ident) -> Option<V> {
+                fn remove(&mut self, value: #ident) -> #option<V> {
                     match value {
                         #(#pattern => #remove,)*
                     }
@@ -312,6 +671,14 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                     Iter {
                         step: 0,
                         #(#iter_init,)*
+                    }
+                }
+
+                #[inline]
+                fn values(&self) -> Self::Values<'_> {
+                    Values {
+                        step: 0,
+                        #(#values_iter_init,)*
                     }
                 }
 
@@ -341,7 +708,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #(#iter_fields,)*
             }
 
-            impl<'a, V> Clone for Iter<'a, V> {
+            impl<'a, V> #clone for Iter<'a, V> {
                 #[inline]
                 fn clone(&self) -> Iter<'a, V> {
                     Iter {
@@ -351,15 +718,44 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 }
             }
 
-            impl<'a, V> Iterator for Iter<'a, V> {
+            impl<'a, V> #iterator for Iter<'a, V> {
                 type Item = (#ident, &'a V);
 
                 #[inline]
-                fn next(&mut self) -> Option<Self::Item> {
+                fn next(&mut self) -> #option<Self::Item> {
                     loop {
                         match self.step {
                             #(#iter_next,)*
-                            _ => return None,
+                            _ => return #option::None,
+                        }
+                    }
+                }
+            }
+
+            #vis struct Values<'a, V> {
+                step: usize,
+                #(#values_iter_fields,)*
+            }
+
+            impl<'a, V> #clone for Values<'a, V> {
+                #[inline]
+                fn clone(&self) -> Values<'a, V> {
+                    Values {
+                        step: self.step,
+                        #(#iter_clone,)*
+                    }
+                }
+            }
+
+            impl<'a, V> #iterator for Values<'a, V> {
+                type Item = &'a V;
+
+                #[inline]
+                fn next(&mut self) -> #option<Self::Item> {
+                    loop {
+                        match self.step {
+                            #(#values_iter_next,)*
+                            _ => return #option::None,
                         }
                     }
                 }
@@ -370,15 +766,15 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                 #(#iter_mut_fields,)*
             }
 
-            impl<'a, V> Iterator for IterMut<'a, V> {
+            impl<'a, V> #iterator for IterMut<'a, V> {
                 type Item = (#ident, &'a mut V);
 
                 #[inline]
-                fn next(&mut self) -> Option<Self::Item> {
+                fn next(&mut self) -> #option<Self::Item> {
                     loop {
                         match self.step {
                             #(#iter_mut_next,)*
-                            _ => return None,
+                            _ => return #option::None,
                         }
                     }
                 }
