@@ -241,5 +241,6 @@ ls target/release/examples/
 [Map]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Map.html
 [Serialize]: https://docs.rs/serde/1/serde/trait.Serialize.html
 [Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
+[Storage]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
 
 License: MIT/Apache-2.0
