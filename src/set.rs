@@ -1,4 +1,8 @@
 //! Contains the fixed `Set` implementation.
+
+use core::fmt;
+use core::iter;
+
 use crate::key::Key;
 use crate::storage::Storage;
 
@@ -326,11 +330,11 @@ where
     }
 }
 
-impl<K> std::fmt::Debug for Set<K>
+impl<K> fmt::Debug for Set<K>
 where
-    K: Key<K, ()> + std::fmt::Debug,
+    K: Key<K, ()> + fmt::Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_set = f.debug_set();
         for k in self.iter() {
             debug_set.entry(&k);
@@ -455,12 +459,15 @@ where
     }
 }
 
-impl<K> std::iter::FromIterator<K> for Set<K>
+impl<K> iter::FromIterator<K> for Set<K>
 where
     K: Key<K, ()>,
 {
     #[inline]
-    fn from_iter<T: IntoIterator<Item = K>>(iter: T) -> Self {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = K>,
+    {
         let mut set = Self::new();
         for k in iter {
             set.insert(k);
@@ -499,9 +506,9 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        return deserializer.deserialize_seq(SeqVisitor(std::marker::PhantomData));
+        return deserializer.deserialize_seq(SeqVisitor(core::marker::PhantomData));
 
-        struct SeqVisitor<K>(std::marker::PhantomData<K>);
+        struct SeqVisitor<K>(core::marker::PhantomData<K>);
 
         impl<'de, K> serde::de::Visitor<'de> for SeqVisitor<K>
         where
@@ -509,7 +516,7 @@ where
         {
             type Value = Set<K>;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("a sequence")
             }
 

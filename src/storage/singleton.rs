@@ -1,7 +1,9 @@
+use core::mem;
+
 use crate::storage::Storage;
-use std::mem;
 
 /// Storage types that can only inhabit a single value (like `()`).
+#[repr(transparent)]
 pub struct SingletonStorage<V> {
     inner: Option<V>,
 }
@@ -17,6 +19,8 @@ where
         }
     }
 }
+
+impl<V> Copy for SingletonStorage<V> where V: Copy {}
 
 impl<V> Default for SingletonStorage<V> {
     #[inline]
@@ -93,6 +97,7 @@ where
     K: Copy + Default,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Values<'this> = ::core::option::Iter<'this, V> where Self: 'this, V: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
 
@@ -126,6 +131,11 @@ where
         Iter {
             value: self.inner.as_ref().map(|v| (K::default(), v)),
         }
+    }
+
+    #[inline]
+    fn values(&self) -> Self::Values<'_> {
+        self.inner.iter()
     }
 
     #[inline]

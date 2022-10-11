@@ -1,3 +1,5 @@
+#![cfg(no_std)]
+
 use fixed_map::Key;
 
 #[derive(Debug, Clone, Copy, Key)]

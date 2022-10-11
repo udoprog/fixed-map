@@ -1,5 +1,6 @@
+use core::mem;
+
 use crate::{key::Key, storage::Storage};
-use std::mem;
 
 /// Storage for `Option<T>`s.
 pub struct OptionStorage<K, V>
@@ -16,6 +17,7 @@ where
     K::Storage: Clone,
     V: Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         OptionStorage {
             some: self.some.clone(),
@@ -24,10 +26,19 @@ where
     }
 }
 
+impl<K, V> Copy for OptionStorage<K, V>
+where
+    K: Key<K, V>,
+    K::Storage: Copy,
+    V: Copy,
+{
+}
+
 impl<K, V> Default for OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
+    #[inline]
     fn default() -> Self {
         Self {
             some: Default::default(),
@@ -97,6 +108,40 @@ where
     }
 }
 
+pub struct Values<'a, K, V>
+where
+    K: 'a + Key<K, V>,
+    V: 'a,
+{
+    some: <K::Storage as Storage<K, V>>::Values<'a>,
+    none: Option<&'a V>,
+}
+
+impl<'a, K, V> Clone for Values<'a, K, V>
+where
+    K: Key<K, V>,
+{
+    #[inline]
+    fn clone(&self) -> Values<'a, K, V> {
+        Values {
+            some: self.some.clone(),
+            none: self.none,
+        }
+    }
+}
+
+impl<'a, K, V> Iterator for Values<'a, K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = &'a V;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.some.next().or(self.none.take())
+    }
+}
+
 pub struct IterMut<'a, K, V>
 where
     K: 'a + Key<K, V>,
@@ -159,6 +204,7 @@ where
     K: Key<K, V>,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this;
+    type Values<'this> = Values<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
     type IntoIter = IntoIter<K, V>;
 
@@ -204,6 +250,14 @@ where
     fn iter(&self) -> Self::Iter<'_> {
         Iter {
             some: self.some.iter(),
+            none: self.none.as_ref(),
+        }
+    }
+
+    #[inline]
+    fn values(&self) -> Self::Values<'_> {
+        Values {
+            some: self.some.values(),
             none: self.none.as_ref(),
         }
     }
