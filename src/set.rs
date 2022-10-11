@@ -455,6 +455,20 @@ where
     }
 }
 
+impl<K> std::iter::FromIterator<K> for Set<K>
+where
+    K: Key<K, ()>,
+{
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = K>>(iter: T) -> Self {
+        let mut set = Self::new();
+        for k in iter {
+            set.insert(k);
+        }
+        set
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<K> serde::Serialize for Set<K>
 where

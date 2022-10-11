@@ -753,6 +753,20 @@ where
     }
 }
 
+impl<K, V> std::iter::FromIterator<(K, V)> for Map<K, V>
+where
+    K: Key<K, V>,
+{
+    #[inline]
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        let mut map = Self::new();
+        for (k, v) in iter {
+            map.insert(k, v);
+        }
+        map
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<K, V> serde::Serialize for Map<K, V>
 where
