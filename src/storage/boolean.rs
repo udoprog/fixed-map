@@ -96,9 +96,32 @@ impl<'a, V> Iterator for IterMut<'a, V> {
     }
 }
 
+pub struct IntoIter<V> {
+    t: Option<V>,
+    f: Option<V>,
+}
+
+impl<V> Iterator for IntoIter<V> {
+    type Item = (bool, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(t) = self.t.take() {
+            return Some((true, t));
+        }
+
+        if let Some(f) = self.f.take() {
+            return Some((false, f));
+        }
+
+        None
+    }
+}
+
 impl<V> Storage<bool, V> for BooleanStorage<V> {
     type Iter<'this> = Iter<'this, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, V> where Self: 'this;
+    type IntoIter = IntoIter<V>;
 
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
@@ -151,6 +174,14 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
         IterMut {
             t: self.t.as_mut(),
             f: self.f.as_mut(),
+        }
+    }
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            t: self.t,
+            f: self.f,
         }
     }
 }

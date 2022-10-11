@@ -139,6 +139,9 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let mut iter_mut_init = Vec::new();
     let mut iter_mut_fields = Vec::new();
 
+    let mut into_iter_init = Vec::new();
+    let mut into_iter_fields = Vec::new();
+
     let mut iter_next = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
@@ -168,8 +171,12 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 iter_fields.push(quote!(#field: Option<&'a V>));
                 iter_init.push(quote!(#field: self.#field.as_ref()));
+
                 iter_mut_fields.push(quote!(#field: Option<&'a mut V>));
                 iter_mut_init.push(quote!(#field: self.#field.as_mut()));
+
+                into_iter_fields.push(quote!(#field: Option<V>));
+                into_iter_init.push(quote!(#field: self.#field));
 
                 iter_next.push(quote! {
                     #index => {
@@ -201,8 +208,12 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
 
                 iter_fields.push(quote!(#field: #as_storage::Iter<'a>));
                 iter_init.push(quote!(#field: self.#field.iter()));
+
                 iter_mut_fields.push(quote!(#field: #as_storage::IterMut<'a>));
                 iter_mut_init.push(quote!(#field: self.#field.iter_mut()));
+
+                into_iter_fields.push(quote!(#field: #as_storage::IntoIter));
+                into_iter_init.push(quote!(#field: self.#field.into_iter()));
 
                 iter_next.push(quote! {
                     #index => {
@@ -221,6 +232,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
     let pattern = &pattern;
     let iter_next = &iter_next;
     let iter_mut_next = iter_next;
+    let into_iter_next = iter_next;
 
     quote! {
         const #const_wrapper: () = {
@@ -260,6 +272,7 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
             impl<V> #storage_trait<#ident, V> for Storage<V> {
                 type Iter<'this> = Iter<'this, V> where Self: 'this;
                 type IterMut<'this> = IterMut<'this, V> where Self: 'this;
+                type IntoIter = IntoIter<V>;
 
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> Option<V> {
@@ -307,6 +320,14 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                     IterMut {
                         step: 0,
                         #(#iter_mut_init,)*
+                    }
+                }
+
+                #[inline]
+                fn into_iter(self) -> Self::IntoIter {
+                    IntoIter {
+                        step: 0,
+                        #(#into_iter_init,)*
                     }
                 }
             }
@@ -357,6 +378,25 @@ fn impl_storage_enum(ast: &DeriveInput, en: &DataEnum) -> TokenStream {
                     loop {
                         match self.step {
                             #(#iter_mut_next,)*
+                            _ => return None,
+                        }
+                    }
+                }
+            }
+
+            #vis struct IntoIter<V> {
+                step: usize,
+                #(#into_iter_fields,)*
+            }
+
+            impl<V> Iterator for IntoIter<V> {
+                type Item = (#ident, V);
+
+                #[inline]
+                fn next(&mut self) -> Option<Self::Item> {
+                    loop {
+                        match self.step {
+                            #(#into_iter_next,)*
                             _ => return None,
                         }
                     }

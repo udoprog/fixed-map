@@ -41,3 +41,17 @@ fn test_debug() {
 
     assert_eq!("{First: 42}", format!("{:?}", a))
 }
+
+#[test]
+fn test_fromiter() {
+    use fixed_map::Map;
+
+    let v = vec![(Key::First, 1), (Key::Second, 2), (Key::First, 3)];
+    let m: Map<_, u8> = v.into_iter().collect();
+
+    let mut n = Map::new();
+    n.insert(Key::Second, 2);
+    n.insert(Key::First, 3);
+
+    assert_eq!(m, n);
+}
