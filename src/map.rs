@@ -558,6 +558,18 @@ where
     }
 }
 
+impl<'a, K, V> IntoIterator for &'a Map<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 /// A mutable iterator over the entries of a `Map`.
 ///
 /// This `struct` is created by the [`iter_mut`] method on [`Map`]. See its
@@ -581,6 +593,83 @@ where
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, v)| (k, v))
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a mut Map<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (K, &'a mut V);
+    type IntoIter = IterMut<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+/// An owning iterator over the entries of a `Map`.
+///
+/// This `struct` is created by the [`into_iter`] method on [`Map`]. See its
+/// documentation for more.
+///
+/// [`into_iter`]: struct.Map.html#method.into_iter
+/// [`Map`]: struct.Map.html
+pub struct IntoIter<K, V>
+where
+    K: Key<K, V>,
+{
+    iter: <K::Storage as Storage<K, V>>::IntoIter,
+}
+
+impl<K, V> Iterator for IntoIter<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (K, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+impl<K, V> IntoIterator for Map<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (K, V);
+    type IntoIter = IntoIter<K, V>;
+
+    /// An owning iterator visiting all key-value pairs in arbitrary order.
+    /// The iterator element type is `(K, V)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::One, 1);
+    /// map.insert(Key::Two, 2);
+    ///
+    /// // Convert to a Vec
+    /// let v: Vec<_> = map.into_iter().collect();
+    ///
+    /// assert_eq!(v, vec![(Key::One, 1), (Key::Two, 2)]);
+    /// ```
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            iter: self.storage.into_iter(),
+        }
     }
 }
 

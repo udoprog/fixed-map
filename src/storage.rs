@@ -33,6 +33,9 @@ pub trait Storage<K, V>: Default {
         Self: 'this,
         V: 'this;
 
+    /// Consuming iterator.
+    type IntoIter: Iterator<Item = (K, V)>;
+
     /// This is the storage abstraction for [`Map::insert`](struct.Map.html#method.insert).
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
@@ -53,4 +56,7 @@ pub trait Storage<K, V>: Default {
 
     /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
     fn iter_mut(&mut self) -> Self::IterMut<'_>;
+
+    /// This is the storage abstraction for [`Map::into_iter`](struct.Map.html#method.into_iter)
+    fn into_iter(self) -> Self::IntoIter;
 }

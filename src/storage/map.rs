@@ -53,7 +53,7 @@ pub struct Iter<'a, K, V>
 where
     K: 'a,
 {
-    iter: std::vec::IntoIter<(K, &'a V)>,
+    iter: hashbrown::hash_map::Iter<'a, K, V>,
 }
 
 impl<'a, K, V> Clone for Iter<'a, K, V>
@@ -68,25 +68,25 @@ where
     }
 }
 
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
+impl<'a, K: Copy, V> Iterator for Iter<'a, K, V> {
     type Item = (K, &'a V);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter.next().map(|(k, v)| (*k, v))
     }
 }
 
 pub struct IterMut<'a, K, V> {
-    iter: std::vec::IntoIter<(K, &'a mut V)>,
+    iter: hashbrown::hash_map::IterMut<'a, K, V>,
 }
 
-impl<'a, K, V> Iterator for IterMut<'a, K, V> {
+impl<'a, K: Copy, V> Iterator for IterMut<'a, K, V> {
     type Item = (K, &'a mut V);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
+        self.iter.next().map(|(k, v)| (*k, v))
     }
 }
 
@@ -96,6 +96,7 @@ where
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type IntoIter = hashbrown::hash_map::IntoIter<K, V>;
 
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -125,24 +126,19 @@ where
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
         Iter {
-            iter: self
-                .inner
-                .iter()
-                .map(|(k, v)| (*k, v))
-                .collect::<Vec<_>>()
-                .into_iter(),
+            iter: self.inner.iter(),
         }
     }
 
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
-            iter: self
-                .inner
-                .iter_mut()
-                .map(|(k, v)| (*k, v))
-                .collect::<Vec<_>>()
-                .into_iter(),
+            iter: self.inner.iter_mut(),
         }
+    }
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
     }
 }

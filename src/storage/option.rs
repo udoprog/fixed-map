@@ -126,12 +126,41 @@ where
     }
 }
 
+pub struct IntoIter<K, V>
+where
+    K: Key<K, V>,
+{
+    some: <K::Storage as Storage<K, V>>::IntoIter,
+    none: Option<V>,
+}
+
+impl<K, V> Iterator for IntoIter<K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = (Option<K>, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((k, v)) = self.some.next() {
+            return Some((Some(k), v));
+        }
+
+        if let Some(v) = self.none.take() {
+            return Some((None, v));
+        }
+
+        None
+    }
+}
+
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key<K, V>,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
+    type IntoIter = IntoIter<K, V>;
 
     #[inline]
     fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
@@ -184,6 +213,14 @@ where
         IterMut {
             some: self.some.iter_mut(),
             none: self.none.as_mut(),
+        }
+    }
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            some: self.some.into_iter(),
+            none: self.none,
         }
     }
 }

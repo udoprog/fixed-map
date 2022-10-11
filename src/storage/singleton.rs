@@ -75,12 +75,26 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     }
 }
 
+pub struct IntoIter<K, V> {
+    value: Option<(K, V)>,
+}
+
+impl<K, V> Iterator for IntoIter<K, V> {
+    type Item = (K, V);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
 impl<K, V> Storage<K, V> for SingletonStorage<V>
 where
     K: Copy + Default,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type IntoIter = IntoIter<K, V>;
 
     #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {
@@ -118,6 +132,13 @@ where
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
             value: self.inner.as_mut().map(|v| (K::default(), v)),
+        }
+    }
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            value: self.inner.map(|v| (K::default(), v)),
         }
     }
 }

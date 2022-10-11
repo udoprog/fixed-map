@@ -130,13 +130,6 @@ where
     /// An iterator visiting all values in arbitrary order.
     /// The iterator element type is `K`.
     ///
-    /// Because of limitations in how Rust can express lifetimes through traits, this method will
-    /// first pre-allocate a vector to store all references.
-    ///
-    /// For a zero-cost version of this function, see [`Set::iter_fn`].
-    ///
-    /// [`Set::iter_fn`]: struct.Set.html#method.iter_fn
-    ///
     /// # Examples
     ///
     /// ```
@@ -386,6 +379,79 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|(k, _)| k)
+    }
+}
+
+impl<'a, K> IntoIterator for &'a Set<K>
+where
+    K: Key<K, ()>,
+{
+    type Item = K;
+    type IntoIter = Iter<'a, K>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+/// An owning iterator over the items of a `Set`.
+///
+/// This `struct` is created by the [`into_iter`] method on [`Set`].
+/// See its documentation for more.
+///
+/// [`into_iter`]: struct.Set.html#method.iter
+/// [`Set`]: struct.Set.html
+pub struct IntoIter<K>
+where
+    K: Key<K, ()>,
+{
+    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::IntoIter,
+}
+
+impl<K> Iterator for IntoIter<K>
+where
+    K: Key<K, ()>,
+{
+    type Item = K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(k, _)| k)
+    }
+}
+
+impl<K> IntoIterator for Set<K>
+where
+    K: Key<K, ()>,
+{
+    type Item = K;
+    type IntoIter = IntoIter<K>;
+
+    /// An iterator visiting all values in arbitrary order.
+    /// The iterator element type is `K`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let mut map = Set::new();
+    /// map.insert(Key::One);
+    /// map.insert(Key::Two);
+    ///
+    /// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// ```
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            iter: self.storage.into_iter(),
+        }
     }
 }
 
