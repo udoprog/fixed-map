@@ -1,10 +1,10 @@
-//! Contains the fixed `Map` implementation.
+//! Contains the fixed [`Map`] implementation.
 
 use core::fmt;
 
 use crate::{key::Key, storage::Storage};
 
-/// A fixed map with a predetermined size.
+/// A fixed map.
 ///
 /// # Examples
 ///
@@ -472,6 +472,32 @@ where
     }
 }
 
+/// [`Clone`] implementation for a [`Map`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(&'static str),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First("Hello"), 1);
+/// let mut b = a.clone();
+/// b.insert(Key::Second, 2);
+///
+/// assert_ne!(a, b);
+///
+/// assert_eq!(a.get(Key::First("Hello")), Some(&1));
+/// assert_eq!(a.get(Key::Second), None);
+///
+/// assert_eq!(b.get(Key::First("Hello")), Some(&1));
+/// assert_eq!(b.get(Key::Second), Some(&2));
+/// ```
 impl<K, V> Clone for Map<K, V>
 where
     K: Key<K, V>,
@@ -485,6 +511,34 @@ where
     }
 }
 
+/// The [`Copy`] implementation for a [`Map`] depends on its [`Key`]. If the
+/// derived key only consists of unit variants the corresponding [`Map`] will be
+/// [`Copy`] as well.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 1);
+/// let mut b = a;
+/// b.insert(Key::Second, 2);
+///
+/// assert_ne!(a, b);
+///
+/// assert_eq!(a.get(Key::First), Some(&1));
+/// assert_eq!(a.get(Key::Second), None);
+///
+/// assert_eq!(b.get(Key::First), Some(&1));
+/// assert_eq!(b.get(Key::Second), Some(&2));
+/// ```
 impl<K, V> Copy for Map<K, V>
 where
     K: Key<K, V>,
@@ -492,6 +546,24 @@ where
 {
 }
 
+/// The [`Default`] implementation for a [`Map`] produces an empty map.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let a = Map::<Key, u32>::default();
+/// let b = Map::<Key, u32>::new();
+///
+/// assert_eq!(a, b);
+/// ```
 impl<K, V> Default for Map<K, V>
 where
     K: Key<K, V>,
@@ -502,6 +574,24 @@ where
     }
 }
 
+/// The [`Debug`][fmt::Debug] implementation for a [`Map`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 42);
+///
+/// assert_eq!("{First: 42}", format!("{:?}", a));
+/// ```
 impl<K, V> fmt::Debug for Map<K, V>
 where
     K: Key<K, V> + fmt::Debug,
@@ -518,6 +608,50 @@ where
     }
 }
 
+/// [`PartialEq`] implementation for a [`Map`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 42);
+/// // Note: `a` is Copy since it's using a simple key.
+/// let mut b = a;
+///
+/// assert_eq!(a, b);
+///
+/// b.insert(Key::Second, 42);
+/// assert_ne!(a, b);
+/// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(&'static str),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First("Hello"), 42);
+/// let mut b = a.clone();
+///
+/// assert_eq!(a, b);
+///
+/// b.insert(Key::Second, 42);
+/// assert_ne!(a, b);
+/// ```
 impl<K, V> PartialEq for Map<K, V>
 where
     K: Key<K, V>,
@@ -536,13 +670,10 @@ where
 {
 }
 
-/// An iterator over the entries of a `Map`.
+/// An iterator over the entries of a [`Map`].
 ///
-/// This `struct` is created by the [`iter`] method on [`Map`]. See its
+/// This type is created by the [`iter`][Map::iter] method. See its
 /// documentation for more.
-///
-/// [`iter`]: struct.Map.html#method.iter
-/// [`Map`]: struct.Map.html
 #[repr(transparent)]
 pub struct Iter<'a, K, V: 'a>
 where
@@ -588,13 +719,10 @@ where
     }
 }
 
-/// A mutable iterator over the entries of a `Map`.
+/// A mutable iterator over the entries of a [`Map`].
 ///
-/// This `struct` is created by the [`iter_mut`] method on [`Map`]. See its
-/// documentation for more.
-///
-/// [`iter_mut`]: struct.Map.html#method.iter_mut
-/// [`Map`]: struct.Map.html
+/// This type is created by the [`iter_mut`][Map::iter_mut] method.
+/// See its documentation for more.
 pub struct IterMut<'a, K, V: 'a>
 where
     K: 'a + Key<K, V>,
@@ -602,6 +730,8 @@ where
     iter: <K::Storage as Storage<K, V>>::IterMut<'a>,
 }
 
+/// [`IntoIterator`] implementation which uses [`Map::into_iter`]. See its
+/// documentation for more.
 impl<'a, K, V> Iterator for IterMut<'a, K, V>
 where
     K: Key<K, V>,
@@ -614,6 +744,8 @@ where
     }
 }
 
+/// [`IntoIterator`] implementation which uses [`Map::iter_mut`]. See its
+/// documentation for more.
 impl<'a, K, V> IntoIterator for &'a mut Map<K, V>
 where
     K: Key<K, V>,
@@ -627,13 +759,10 @@ where
     }
 }
 
-/// An owning iterator over the entries of a `Map`.
+/// An owning iterator over the entries of a [`Map`].
 ///
-/// This `struct` is created by the [`into_iter`] method on [`Map`]. See its
+/// This type is created by the [`into_iter`][Map::into_iter] method. See its
 /// documentation for more.
-///
-/// [`into_iter`]: struct.Map.html#method.into_iter
-/// [`Map`]: struct.Map.html
 pub struct IntoIter<K, V>
 where
     K: Key<K, V>,
@@ -660,8 +789,8 @@ where
     type Item = (K, V);
     type IntoIter = IntoIter<K, V>;
 
-    /// An owning iterator visiting all key-value pairs in arbitrary order.
-    /// The iterator element type is `(K, V)`.
+    /// An owning iterator visiting all key-value pairs in arbitrary order. The
+    /// iterator element type is `(K, V)`.
     ///
     /// # Examples
     ///
@@ -692,13 +821,10 @@ where
     }
 }
 
-/// An iterator over the keys of a `Map`.
+/// An iterator over the keys of a [`Map`].
 ///
-/// This `struct` is created by the [`keys`] method on [`Map`]. See its
+/// This type is created by the [`keys`][Map::keys] method. See its
 /// documentation for more.
-///
-/// [`keys`]: struct.Map.html#method.keys
-/// [`Map`]: struct.Map.html
 #[derive(Clone)]
 pub struct Keys<'a, K, V>
 where
@@ -719,13 +845,10 @@ where
     }
 }
 
-/// An iterator over the values of a `Map`.
+/// An iterator over the values of a [`Map`].
 ///
-/// This `struct` is created by the [`values`] method on [`Map`]. See its
+/// This type is created by the [`values`][Map::values] method. See its
 /// documentation for more.
-///
-/// [`values`]: struct.Map.html#method.values
-/// [`Map`]: struct.Map.html
 #[derive(Clone)]
 #[repr(transparent)]
 pub struct Values<'a, K, V: 'a>
@@ -747,13 +870,10 @@ where
     }
 }
 
-/// A mutable iterator over the values of a `Map`.
+/// A mutable iterator over the values of a [`Map`].
 ///
-/// This `struct` is created by the [`values_mut`] method on [`Map`]. See its
+/// This type is created by the [`values_mut`][Map::values_mut] method. See its
 /// documentation for more.
-///
-/// [`values_mut`]: struct.Map.html#method.values_mut
-/// [`Map`]: struct.Map.html
 pub struct ValuesMut<'a, K, V>
 where
     K: Key<K, V>,
@@ -773,6 +893,28 @@ where
     }
 }
 
+/// A simple [`FromIterator`] implementation for [`Map`].
+///
+/// # Example
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let v = vec![(Key::First, 1), (Key::Second, 2), (Key::First, 3)];
+/// let m: Map<_, u8> = v.into_iter().collect();
+///
+/// let mut n = Map::new();
+/// n.insert(Key::Second, 2);
+/// n.insert(Key::First, 3);
+///
+/// assert_eq!(m, n);
+/// ```
 impl<K, V> FromIterator<(K, V)> for Map<K, V>
 where
     K: Key<K, V>,

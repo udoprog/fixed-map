@@ -232,10 +232,10 @@ fn handle_units(tokens: &Tokens, ast: &DeriveInput, en: &DataEnum) -> TokenStrea
             impl<V> #copy for Storage<V> where V: #copy {
             }
 
-            impl<V> #partial_eq for Storage<V> where V: #partial_eq {
+            impl<V> #partial_eq for Storage<V> where V: #partial_eq{
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
-                    self.data == self.data
+                    self.data == other.data
                 }
             }
 

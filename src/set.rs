@@ -1,11 +1,11 @@
-//! Contains the fixed `Set` implementation.
+//! Contains the fixed [`Set`] implementation.
 
 use core::fmt;
 
 use crate::key::Key;
 use crate::storage::Storage;
 
-/// A fixed set implemented as a `Map` where the value is `()`.
+/// A fixed set.
 ///
 /// # Examples
 ///
@@ -108,7 +108,7 @@ impl<K> Set<K>
 where
     K: Key<K, ()>,
 {
-    /// Creates an empty `Set`.
+    /// Creates an empty [`Set`].
     ///
     /// # Examples
     ///
@@ -307,6 +307,32 @@ where
     }
 }
 
+/// [`Clone`] implementation for a [`Set`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(&'static str),
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First("Hello"));
+/// let mut b = a.clone();
+/// b.insert(Key::Second);
+///
+/// assert_ne!(a, b);
+///
+/// assert!(a.contains(Key::First("Hello")));
+/// assert!(!a.contains(Key::Second));
+///
+/// assert!(b.contains(Key::First("Hello")));
+/// assert!(b.contains(Key::Second));
+/// ```
 impl<K> Clone for Set<K>
 where
     K: Key<K, ()>,
@@ -320,6 +346,34 @@ where
     }
 }
 
+/// The [`Copy`] implementation for a [`Set`] depends on its [`Key`]. If the
+/// derived key only consists of unit variants the corresponding [`Set`] will be
+/// [`Copy`] as well.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First);
+/// let mut b = a;
+/// b.insert(Key::Second);
+///
+/// assert_ne!(a, b);
+///
+/// assert!(a.contains(Key::First));
+/// assert!(!a.contains(Key::Second));
+///
+/// assert!(b.contains(Key::First));
+/// assert!(b.contains(Key::Second));
+/// ```
 impl<K> Copy for Set<K>
 where
     K: Key<K, ()>,
@@ -327,6 +381,24 @@ where
 {
 }
 
+/// The [`Default`] implementation for a [`Set`] produces an empty set.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let a = Set::<Key>::default();
+/// let b = Set::<Key>::new();
+///
+/// assert_eq!(a, b);
+/// ```
 impl<K> Default for Set<K>
 where
     K: Key<K, ()>,
@@ -337,6 +409,24 @@ where
     }
 }
 
+/// The [`Debug`][fmt::Debug] implementation for a [`Set`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First);
+///
+/// assert_eq!("{First}", format!("{:?}", a));
+/// ```
 impl<K> fmt::Debug for Set<K>
 where
     K: Key<K, ()> + fmt::Debug,
@@ -350,6 +440,50 @@ where
     }
 }
 
+/// [`PartialEq`] implementation for a [`Set`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First);
+/// // Note: `a` is Copy since it's using a simple key.
+/// let mut b = a;
+///
+/// assert_eq!(a, b);
+///
+/// b.insert(Key::Second);
+/// assert_ne!(a, b);
+/// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(&'static str),
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First("Hello"));
+/// let mut b = a.clone();
+///
+/// assert_eq!(a, b);
+///
+/// b.insert(Key::Second);
+/// assert_ne!(a, b);
+/// ```
 impl<K> PartialEq for Set<K>
 where
     K: Key<K, ()>,
@@ -368,13 +502,10 @@ where
 {
 }
 
-/// An iterator over the items of a `Set`.
+/// An iterator over the items of a [`Set`].
 ///
-/// This `struct` is created by the [`iter`] method on [`Set`].
+/// This `struct` is created by the [`iter`][Set::iter] method on [`Set`].
 /// See its documentation for more.
-///
-/// [`iter`]: struct.Set.html#method.iter
-/// [`Set`]: struct.Set.html
 pub struct Iter<'a, K>
 where
     K: 'a + Key<K, ()>,
@@ -405,13 +536,10 @@ where
     }
 }
 
-/// An owning iterator over the items of a `Set`.
+/// An owning iterator over the items of a [`Set`].
 ///
-/// This `struct` is created by the [`into_iter`] method on [`Set`].
-/// See its documentation for more.
-///
-/// [`into_iter`]: struct.Set.html#method.iter
-/// [`Set`]: struct.Set.html
+/// This `struct` is created by the [`into_iter`][Set::into_iter] method on
+/// [`Set`]. See its documentation for more.
 pub struct IntoIter<K>
 where
     K: Key<K, ()>,
