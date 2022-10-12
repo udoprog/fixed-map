@@ -188,9 +188,9 @@ benches! {
 }
 
 criterion::criterion_group! {
-    name = map_group;
+    name = complex;
     config = Criterion::default();
     targets = benches
 }
 
-criterion::criterion_main!(map_group);
+criterion::criterion_main!(complex);
