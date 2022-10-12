@@ -280,7 +280,7 @@ where
     /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.storage.iter().next().is_none()
+        self.storage.is_empty()
     }
 
     /// Returns the number of elements in the set.
@@ -292,18 +292,18 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut set = Set::new();
     /// assert_eq!(set.len(), 0);
-    /// set.insert(Key::One);
+    /// set.insert(Key::First);
     /// assert_eq!(set.len(), 1);
     /// ```
     #[inline]
     pub fn len(&self) -> usize {
-        self.storage.iter().count()
+        self.storage.len()
     }
 }
 

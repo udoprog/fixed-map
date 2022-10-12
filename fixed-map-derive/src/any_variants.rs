@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{DataEnum, Fields, Ident};
 
@@ -24,46 +24,44 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         Span::call_site(),
     );
 
+    let mut len = Vec::new();
+    let mut is_empty = Vec::new();
     let mut pattern = Vec::new();
-
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
     let mut field_clones = Vec::new();
     let mut field_partial_eqs = Vec::new();
-
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
     let mut clear = Vec::new();
-
     let mut copy_bounds = Vec::new();
-
     let mut field_specs = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
-        let field = Ident::new(&format!("f{}", index), Span::call_site());
+        let name = Ident::new(&format!("f{}", index), Span::call_site());
 
-        field_inits.push(quote!(#field: #default::default()));
-        field_clones.push(quote!(#field: #clone::clone(&self.#field)));
+        field_inits.push(quote!(#name: #default::default()));
+        field_clones.push(quote!(#name: #clone::clone(&self.#name)));
         field_partial_eqs.push(quote! {
-            if self.#field != other.#field {
+            if self.#name != other.#name {
                 return false;
             }
         });
 
         let kind = match &variant.fields {
             Fields::Unit => {
-                fields.push(quote!(#field: #option<V>));
+                len.push(quote!(usize::from(#option::is_some(&self.#name))));
+                is_empty.push(quote!(#option::is_none(&self.#name)));
+                fields.push(quote!(#name: #option<V>));
                 pattern.push(quote!(#ident::#var));
-                clear.push(quote!(self.#field = #option::None));
-
-                get.push(quote!(#option::as_ref(&self.#field)));
-                get_mut.push(quote!(#option::as_mut(&mut self.#field)));
-                insert.push(quote!(#mem::replace(&mut self.#field, #option::Some(value))));
-                remove.push(quote!(#mem::replace(&mut self.#field, #option::None)));
-
+                clear.push(quote!(self.#name = #option::None));
+                get.push(quote!(#option::as_ref(&self.#name)));
+                get_mut.push(quote!(#option::as_mut(&mut self.#name)));
+                insert.push(quote!(#mem::replace(&mut self.#name, #option::Some(value))));
+                remove.push(quote!(#mem::replace(&mut self.#name, #option::None)));
                 FieldKind::Simple
             }
             Fields::Unnamed(unnamed) => {
@@ -79,14 +77,17 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 let storage = quote!(<#element as #key_trait<#element, V>>::Storage);
                 let as_storage = quote!(<#storage as #storage_trait<#element, V>>);
 
-                fields.push(quote!(#field: #storage));
-                pattern.push(quote!(#ident::#var(v)));
-                clear.push(quote!(#as_storage::clear(&mut self.#field)));
+                len.push(quote!(#as_storage::len(&self.#name)));
+                is_empty.push(quote!(#as_storage::is_empty(&self.#name)));
 
-                get.push(quote!(#as_storage::get(&self.#field, v)));
-                get_mut.push(quote!(#as_storage::get_mut(&mut self.#field, v)));
-                insert.push(quote!(#as_storage::insert(&mut self.#field, v, value)));
-                remove.push(quote!(#as_storage::remove(&mut self.#field, v)));
+                fields.push(quote!(#name: #storage));
+                pattern.push(quote!(#ident::#var(v)));
+                clear.push(quote!(#as_storage::clear(&mut self.#name)));
+
+                get.push(quote!(#as_storage::get(&self.#name, v)));
+                get_mut.push(quote!(#as_storage::get_mut(&mut self.#name, v)));
+                insert.push(quote!(#as_storage::insert(&mut self.#name, v, value)));
+                remove.push(quote!(#as_storage::remove(&mut self.#name, v)));
 
                 copy_bounds.push(quote!(#storage: #copy));
 
@@ -104,7 +105,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         field_specs.push(FieldSpec {
             span: variant.span(),
             index,
-            name: field,
+            name,
             var,
             kind,
         });
@@ -156,8 +157,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
 
             impl<V> #default for Storage<V> {
                 #[inline]
-                fn default() -> Storage<V> {
-                    Storage {
+                fn default() -> Self {
+                    Self {
                         #(#field_inits,)*
                     }
                 }
@@ -170,6 +171,16 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 type IterMut<'this> = IterMut<'this, V> where Self: 'this;
                 type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
                 type IntoIter = IntoIter<V>;
+
+                #[inline]
+                fn len(&self) -> usize {
+                    #(#len)+*
+                }
+
+                #[inline]
+                fn is_empty(&self) -> bool {
+                    #(#is_empty)&&*
+                }
 
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> #option<V> {
@@ -273,36 +284,19 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     })
 }
 
-#[derive(Default)]
-struct IteratorSpec {
-    next: Vec<TokenStream>,
-    where_clause: Option<syn::WhereClause>,
-}
-
-impl IteratorSpec {
-    /// Initializes an empty `where`-clause if there is not one present already.
-    pub fn make_where_clause(&mut self) -> &mut syn::WhereClause {
-        self.where_clause.get_or_insert_with(|| syn::WhereClause {
-            where_token: <syn::Token![where]>::default(),
-            predicates: syn::punctuated::Punctuated::new(),
-        })
-    }
-}
-
 /// Build iterator next.
 fn build_iter_next(
     cx: &Ctxt,
+    step_forward: &mut IteratorNext,
+    step_backward: &mut IteratorNextBack,
     field_specs: &[FieldSpec<'_>],
     assoc_type: &syn::Ident,
     lt: Option<&syn::Lifetime>,
-) -> Result<(IteratorSpec, IteratorSpec), ()> {
+) -> Result<(), ()> {
     let option = &cx.toks.option;
     let iterator_t = &cx.toks.iterator_t;
     let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
     let ident = &cx.ast.ident;
-
-    let mut iterator = IteratorSpec::default();
-    let mut double_ended = IteratorSpec::default();
 
     for FieldSpec {
         span,
@@ -315,7 +309,7 @@ fn build_iter_next(
     {
         match kind {
             FieldKind::Simple => {
-                iterator.next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = self.#name.take() {
                             return #option::Some((#ident::#var, value));
@@ -323,7 +317,7 @@ fn build_iter_next(
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = self.#name.take() {
                             return #option::Some((#ident::#var, value));
@@ -332,7 +326,7 @@ fn build_iter_next(
                 });
             }
             FieldKind::Complex { as_storage, .. } => {
-                iterator.next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some((key, value)) = #iterator_t::next(&mut self.#name) {
                             return #option::Some((#ident::#var(key), value));
@@ -340,7 +334,7 @@ fn build_iter_next(
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if let #option::Some((key, value)) = #double_ended_iterator_t::next_back(&mut self.#name) {
                             return #option::Some((#ident::#var(key), value));
@@ -350,7 +344,7 @@ fn build_iter_next(
 
                 // NB: The `Item = ..` component of the bound is technically
                 // superflous but currently necessary to satisfy rustc.
-                let where_clause = double_ended.make_where_clause();
+                let where_clause = step_backward.make_where_clause();
 
                 let assoc_type = if let Some(lt) = lt {
                     quote!(#as_storage::#assoc_type<#lt>)
@@ -365,7 +359,7 @@ fn build_iter_next(
         }
     }
 
-    Ok((iterator, double_ended))
+    Ok(())
 }
 
 /// Construct an iterator implementation.
@@ -383,22 +377,22 @@ fn build_iter_impl(
     let clone = &cx.toks.clone;
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
-    let (step_forward, step_backward, next_backward) = build_steps();
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut iter_clone = Vec::new();
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let (iterator, double_ended) = build_iter_next(cx, field_specs, &type_name, Some(cx.lt))?;
-
-    let IteratorSpec {
-        next: iter_next, ..
-    } = iterator;
-
-    let IteratorSpec {
-        next: double_ended_next,
-        where_clause: double_ended_where,
-    } = double_ended;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        Some(cx.lt),
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         iter_clone.push(quote!(#name: #clone::clone(&self.#name)));
@@ -414,6 +408,8 @@ fn build_iter_impl(
             }
         }
     }
+
+    let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
         #vis struct #type_name<#lt, V> {
@@ -438,33 +434,15 @@ fn build_iter_impl(
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => break,
-                    }
-
-                    #step_forward
-                }
-
+                #step_forward
                 #option::None
             }
         }
 
-        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where {
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    let next = #next_backward;
-
-                    match next {
-                        #(#double_ended_next,)*
-                        _ => break,
-                    }
-
-                    #step_backward
-                }
-
+                #step_backward
                 #option::None
             }
         }
@@ -490,15 +468,13 @@ fn build_keys_impl(
     let mem = &cx.toks.mem;
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
-    let (step_forward, step_backward, next_backward) = build_steps();
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut iter_clone = Vec::new();
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
-
-    let mut iter_next = Vec::new();
-
-    let mut double_ended = IteratorSpec::default();
 
     for FieldSpec {
         span,
@@ -516,17 +492,15 @@ fn build_keys_impl(
                 field_decls.push(quote!(#name: #bool_type));
                 init.push(quote!(#name: #option::is_some(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if #mem::take(&mut self.#name) {
                             return #option::Some(#ident::#var);
                         }
-
-                        self.start = self.start.wrapping_add(1);
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if #mem::take(&mut self.#name) {
                             return #option::Some(#ident::#var);
@@ -538,7 +512,7 @@ fn build_keys_impl(
                 field_decls.push(quote!(#name: #as_storage::Keys<#lt>));
                 init.push(quote!(#name: #as_storage::keys(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(key) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(#ident::#var(key));
@@ -546,7 +520,7 @@ fn build_keys_impl(
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if let #option::Some(key) = #double_ended_iterator_t::next_back(&mut self.#name) {
                             return #option::Some(#ident::#var(key));
@@ -554,7 +528,7 @@ fn build_keys_impl(
                     }
                 });
 
-                let where_clause = double_ended.make_where_clause();
+                let where_clause = step_backward.make_where_clause();
 
                 let assoc_type = quote!(#as_storage::#type_name<#lt>);
 
@@ -565,10 +539,7 @@ fn build_keys_impl(
         }
     }
 
-    let IteratorSpec {
-        next: double_ended_next_back,
-        where_clause: double_ended_where_clause,
-    } = double_ended;
+    let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
         #vis struct #type_name<#lt, V> where V: #lt {
@@ -593,15 +564,7 @@ fn build_keys_impl(
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => break,
-                    }
-
-                    #step_forward
-                }
-
+                #step_forward
                 #option::None
             }
         }
@@ -609,17 +572,7 @@ fn build_keys_impl(
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    let next = #next_backward;
-
-                    match next {
-                        #(#double_ended_next_back,)*
-                        _ => break,
-                    }
-
-                    #step_backward
-                }
-
+                #step_backward
                 #option::None
             }
         }
@@ -642,15 +595,13 @@ fn build_values_impl(
     let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
     let clone = &cx.toks.clone;
     let vis = &cx.ast.vis;
-    let (step_forward, step_backward, next_backward) = build_steps();
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut iter_clone = Vec::new();
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
-
-    let mut iter_next = Vec::new();
-
-    let mut double_ended = IteratorSpec::default();
 
     for FieldSpec {
         span,
@@ -667,7 +618,7 @@ fn build_values_impl(
                 field_decls.push(quote!(#name: #option<&#lt V>));
                 init.push(quote!(#name: #option::as_ref(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = self.#name.take() {
                             return #option::Some(value);
@@ -675,7 +626,7 @@ fn build_values_impl(
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = self.#name.take() {
                             return #option::Some(value);
@@ -687,7 +638,7 @@ fn build_values_impl(
                 field_decls.push(quote!(#name: #as_storage::Values<#lt>));
                 init.push(quote!(#name: #as_storage::values(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(value);
@@ -695,7 +646,7 @@ fn build_values_impl(
                     }
                 });
 
-                double_ended.next.push(quote! {
+                step_backward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = #double_ended_iterator_t::next_back(&mut self.#name) {
                             return #option::Some(value);
@@ -703,7 +654,7 @@ fn build_values_impl(
                     }
                 });
 
-                let where_clause = double_ended.make_where_clause();
+                let where_clause = step_backward.make_where_clause();
 
                 let assoc_type = quote!(#as_storage::#type_name<#lt>);
 
@@ -714,10 +665,7 @@ fn build_values_impl(
         }
     }
 
-    let IteratorSpec {
-        next: double_ended_next_back,
-        where_clause: double_ended_where_clause,
-    } = double_ended;
+    let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
         #vis struct #type_name<#lt, V> {
@@ -742,15 +690,7 @@ fn build_values_impl(
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => break,
-                    }
-
-                    #step_forward
-                }
-
+                #step_forward
                 #option::None
             }
         }
@@ -758,17 +698,7 @@ fn build_values_impl(
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    let next = #next_backward;
-
-                    match next {
-                        #(#double_ended_next_back,)*
-                        _ => break,
-                    }
-
-                    #step_backward
-                }
-
+                #step_backward
                 #option::None
             }
         }
@@ -791,21 +721,21 @@ fn build_iter_mut_impl(
     let iterator_t = &cx.toks.iterator_t;
     let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
     let option = &cx.toks.option;
-    let (step_forward, step_backward, next_backward) = build_steps();
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let (iterator, double_ended) = build_iter_next(cx, field_specs, &type_name, Some(cx.lt))?;
-
-    let IteratorSpec {
-        next: iter_next, ..
-    } = iterator;
-
-    let IteratorSpec {
-        next: double_ended_next,
-        where_clause: double_ended_where,
-    } = double_ended;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        Some(cx.lt),
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         match kind {
@@ -823,6 +753,8 @@ fn build_iter_mut_impl(
         }
     }
 
+    let double_ended_where = &step_backward.where_clause;
+
     let iter_impl = quote! {
         #vis struct #type_name<#lt, V> {
             start: usize,
@@ -835,15 +767,7 @@ fn build_iter_mut_impl(
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => break,
-                    }
-
-                    #step_forward
-                }
-
+                #step_forward
                 #option::None
             }
         }
@@ -851,17 +775,7 @@ fn build_iter_mut_impl(
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    let next = #next_backward;
-
-                    match next {
-                        #(#double_ended_next,)*
-                        _ => break,
-                    }
-
-                    #step_backward
-                }
-
+                #step_backward
                 #option::None
             }
         }
@@ -883,15 +797,21 @@ fn build_values_mut_impl(
     let iterator_t = &cx.toks.iterator_t;
     let clone = &cx.toks.clone;
     let vis = &cx.ast.vis;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut iter_clone = Vec::new();
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let mut iter_next = Vec::new();
-
     for FieldSpec {
-        index, name, kind, ..
+        span,
+        index,
+        name,
+        kind,
+        ..
     } in field_specs
     {
         iter_clone.push(quote!(#name: #clone::clone(&self.#name)));
@@ -901,13 +821,19 @@ fn build_values_mut_impl(
                 field_decls.push(quote!(#name: #option<&#lt mut V>));
                 init.push(quote!(#name: #option::as_mut(&mut self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(v) = self.#name.take() {
                             return #option::Some(v);
                         }
+                    }
+                });
 
-                        self.start += 1;
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(v) = self.#name.take() {
+                            return #option::Some(v);
+                        }
                     }
                 });
             }
@@ -915,18 +841,34 @@ fn build_values_mut_impl(
                 field_decls.push(quote!(#name: #as_storage::ValuesMut<#lt>));
                 init.push(quote!(#name: #as_storage::values_mut(&mut self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(value);
                         }
-
-                        self.start += 1;
                     }
                 });
+
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(value) = #double_ended_iterator_t::next_back(&mut self.#name) {
+                            return #option::Some(value);
+                        }
+                    }
+                });
+
+                let where_clause = step_backward.make_where_clause();
+
+                let assoc_type = quote!(#as_storage::#type_name<#lt>);
+
+                where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
+                    *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
+                }))?);
             }
         }
     }
+
+    let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
         #vis struct #type_name<#lt, V> {
@@ -940,15 +882,18 @@ fn build_values_mut_impl(
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
             }
         }
 
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
+            }
+        }
     };
 
     Ok((iter_impl, init))
@@ -968,23 +913,23 @@ fn build_into_iter_impl(
     let clone = &cx.toks.clone;
     let iterator_t = &cx.toks.iterator_t;
     let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
-    let (step_forward, step_backward, next_backward) = build_steps();
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
     let mut field_clone = Vec::new();
     let mut clone_bounds = Vec::new();
 
-    let (iterator, double_ended) = build_iter_next(cx, field_specs, &type_name, None)?;
-
-    let IteratorSpec {
-        next: iter_next, ..
-    } = iterator;
-
-    let IteratorSpec {
-        next: double_ended_next,
-        where_clause: double_ended_where,
-    } = double_ended;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        None,
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         field_clone.push(quote!(#name: #clone::clone(&self.#name)));
@@ -1004,6 +949,8 @@ fn build_into_iter_impl(
             }
         }
     }
+
+    let double_ended_where = &step_backward.where_clause;
 
     let iter_impl = quote! {
         #vis struct #type_name<V> {
@@ -1028,15 +975,7 @@ fn build_into_iter_impl(
 
             #[inline]
             fn next(&mut self) -> Option<Self::Item> {
-                while self.start < self.end {
-                    match self.start {
-                        #(#iter_next,)*
-                        _ => break,
-                    }
-
-                    #step_forward
-                }
-
+                #step_forward
                 #option::None
             }
         }
@@ -1044,17 +983,7 @@ fn build_into_iter_impl(
         impl<V> #double_ended_iterator_t for #type_name<V> #double_ended_where {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
-                while self.start < self.end {
-                    let next = #next_backward;
-
-                    match next {
-                        #(#double_ended_next,)*
-                        _ => break,
-                    }
-
-                    #step_backward
-                }
-
+                #step_backward
                 #option::None
             }
         }
@@ -1063,10 +992,59 @@ fn build_into_iter_impl(
     Ok((iter_impl, init))
 }
 
-/// Build a forward step operation.
-fn build_steps() -> (TokenStream, TokenStream, TokenStream) {
-    let step_forward = quote!(self.start = usize::min(self.start.wrapping_add(1), self.end));
-    let step_backward = quote!(self.end = usize::max(next, self.start));
-    let next_backward = quote!(self.end.wrapping_sub(1));
-    (step_forward, step_backward, next_backward)
+#[derive(Default)]
+struct IteratorNext {
+    next: Vec<TokenStream>,
+}
+
+impl ToTokens for IteratorNext {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let iter_next = &self.next;
+
+        tokens.extend(quote! {
+            while self.start < self.end {
+                match self.start {
+                    #(#iter_next,)*
+                    _ => break,
+                }
+
+                self.start = usize::min(self.start.wrapping_add(1), self.end);
+            }
+        });
+    }
+}
+
+#[derive(Default)]
+struct IteratorNextBack {
+    next: Vec<TokenStream>,
+    where_clause: Option<syn::WhereClause>,
+}
+
+impl IteratorNextBack {
+    /// Initializes an empty `where`-clause if there is not one present already.
+    pub fn make_where_clause(&mut self) -> &mut syn::WhereClause {
+        self.where_clause.get_or_insert_with(|| syn::WhereClause {
+            where_token: <syn::Token![where]>::default(),
+            predicates: syn::punctuated::Punctuated::new(),
+        })
+    }
+}
+
+impl ToTokens for IteratorNextBack {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let iter_next = &self.next;
+
+        tokens.extend(quote! {
+            while self.start < self.end {
+                let next = self.end.wrapping_sub(1);
+
+                match next {
+                    #(#iter_next,)*
+                    _ => break,
+                }
+
+                self.end = usize::max(next, self.start);
+            }
+        });
+    }
 }

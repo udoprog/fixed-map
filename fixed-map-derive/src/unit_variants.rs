@@ -32,39 +32,35 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         Span::call_site(),
     );
 
+    let mut len = Vec::new();
+    let mut is_empty = Vec::new();
     let mut pattern = Vec::new();
-
     let mut names = Vec::new();
-
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
-
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
-
     let mut keys_iter_init = Vec::new();
     let mut iter_init = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
-        let field = Ident::new(&format!("f{}", index), Span::call_site());
+        let name = Ident::new(&format!("f{}", index), Span::call_site());
 
-        names.push(field.clone());
-
+        len.push(quote!(usize::from(#option::is_some(#name))));
+        is_empty.push(quote!(#option::is_none(#name)));
         field_inits.push(quote!(#option::None));
-
         fields.push(quote!(#option<V>));
         pattern.push(quote!(#ident::#var));
-
-        get.push(quote!(#option::as_ref(#field)));
-        get_mut.push(quote!(#option::as_mut(#field)));
-        insert.push(quote!(#mem::replace(#field, #option::Some(value))));
-        remove.push(quote!(#mem::take(#field)));
-
-        keys_iter_init.push(quote!(if #field.is_some() { Some(#ident::#var) } else { None }));
-        iter_init.push(quote!((#ident::#var, #field)));
+        get.push(quote!(#option::as_ref(#name)));
+        get_mut.push(quote!(#option::as_mut(#name)));
+        insert.push(quote!(#mem::replace(#name, #option::Some(value))));
+        remove.push(quote!(#mem::take(#name)));
+        keys_iter_init.push(quote!(if #name.is_some() { Some(#ident::#var) } else { None }));
+        iter_init.push(quote!((#ident::#var, #name)));
+        names.push(name.clone());
     }
 
     let count = en.variants.len();
@@ -404,6 +400,18 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 type IterMut<'this> = IterMut<'this, V> where Self: 'this;
                 type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
                 type IntoIter = IntoIter<V>;
+
+                #[inline]
+                fn len(&self) -> usize {
+                    let [#(#names),*] = &self.data;
+                    #(#len)+*
+                }
+
+                #[inline]
+                fn is_empty(&self) -> bool {
+                    let [#(#names),*] = &self.data;
+                    #(#is_empty)&&*
+                }
 
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> #option<V> {

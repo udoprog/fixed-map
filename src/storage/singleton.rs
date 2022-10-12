@@ -105,6 +105,16 @@ where
     type IntoIter = IntoIter<K, V>;
 
     #[inline]
+    fn len(&self) -> usize {
+        usize::from(self.inner.is_some())
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.inner.is_none()
+    }
+
+    #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {
         mem::replace(&mut self.inner, Some(value))
     }

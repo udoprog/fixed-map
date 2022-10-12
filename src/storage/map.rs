@@ -108,6 +108,16 @@ where
     type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
 
     #[inline]
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {
         self.inner.insert(key, value)
     }

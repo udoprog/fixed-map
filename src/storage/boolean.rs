@@ -4,8 +4,8 @@ use core::mem;
 
 use crate::storage::Storage;
 
-const TRUE_BIT: u8 = 1;
-const FALSE_BIT: u8 = 2;
+const TRUE_BIT: u8 = 0b10;
+const FALSE_BIT: u8 = 0b01;
 
 /// Storage for [`bool`] types.
 ///
@@ -87,11 +87,15 @@ impl<'a, V> Iterator for Iter<'a, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(t) = self.t.take() {
-            return Some((true, t));
+        if let Some(value) = self.t.take() {
+            return Some((true, value));
         }
 
-        Some((false, self.f.take()?))
+        if let Some(value) = self.f.take() {
+            return Some((false, value));
+        }
+
+        None
     }
 }
 
@@ -102,7 +106,11 @@ impl<V> DoubleEndedIterator for Iter<'_, V> {
             return Some((false, value));
         }
 
-        Some((true, self.t.take()?))
+        if let Some(value) = self.t.take() {
+            return Some((true, value));
+        }
+
+        None
     }
 }
 
@@ -144,6 +152,23 @@ impl Iterator for Keys {
     }
 }
 
+impl DoubleEndedIterator for Keys {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.bits & FALSE_BIT != 0 {
+            self.bits &= !FALSE_BIT;
+            return Some(false);
+        }
+
+        if self.bits & TRUE_BIT != 0 {
+            self.bits &= !TRUE_BIT;
+            return Some(true);
+        }
+
+        None
+    }
+}
+
 /// See [`BooleanStorage::values`].
 pub struct Values<'a, V> {
     t: Option<&'a V>,
@@ -165,7 +190,30 @@ impl<'a, V> Iterator for Values<'a, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.t.take().or_else(|| self.f.take())
+        if let Some(value) = self.t.take() {
+            return Some(value);
+        }
+
+        if let Some(value) = self.f.take() {
+            return Some(value);
+        }
+
+        None
+    }
+}
+
+impl<V> DoubleEndedIterator for Values<'_, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.f.take() {
+            return Some(value);
+        }
+
+        if let Some(value) = self.t.take() {
+            return Some(value);
+        }
+
+        None
     }
 }
 
@@ -202,7 +250,30 @@ impl<'a, V> Iterator for ValuesMut<'a, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.t.take().or_else(|| self.f.take())
+        if let Some(value) = self.t.take() {
+            return Some(value);
+        }
+
+        if let Some(value) = self.f.take() {
+            return Some(value);
+        }
+
+        None
+    }
+}
+
+impl<V> DoubleEndedIterator for ValuesMut<'_, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.f.take() {
+            return Some(value);
+        }
+
+        if let Some(value) = self.t.take() {
+            return Some(value);
+        }
+
+        None
     }
 }
 
@@ -250,6 +321,16 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     type IterMut<'this> = IterMut<'this, V> where Self: 'this;
     type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
     type IntoIter = IntoIter<V>;
+
+    #[inline]
+    fn len(&self) -> usize {
+        usize::from(self.t.is_some()).saturating_add(usize::from(self.f.is_some()))
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.t.is_none() && self.f.is_none()
+    }
 
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
