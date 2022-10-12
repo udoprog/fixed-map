@@ -155,7 +155,7 @@ where
     #[inline]
     pub fn iter(&self) -> Iter<'_, K> {
         Iter {
-            iter: self.storage.iter(),
+            iter: self.storage.keys(),
         }
     }
 
@@ -510,7 +510,7 @@ pub struct Iter<'a, K>
 where
     K: 'a + Key<K, ()>,
 {
-    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Iter<'a>,
+    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Keys<'a>,
 }
 
 impl<K> Iterator for Iter<'_, K>
@@ -520,7 +520,7 @@ where
     type Item = K;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, _)| k)
+        self.iter.next()
     }
 }
 

@@ -1,4 +1,4 @@
-//! Module for the trait to define `Storage`.
+//! Module for the trait to define [`Storage`].
 
 mod boolean;
 #[cfg(feature = "map")]
@@ -20,13 +20,18 @@ pub use self::singleton::SingletonStorage;
 /// - `V` is the value being stored.
 pub trait Storage<K, V>: Default {
     /// Immutable iterator over storage.
-    type Iter<'this>: Clone + Iterator<Item = (K, &'this V)>
+    type Iter<'this>: Iterator<Item = (K, &'this V)>
     where
         Self: 'this,
         V: 'this;
 
-    /// Immutable iterator over storage.
-    type Values<'this>: Clone + Iterator<Item = &'this V>
+    /// Immutable iterator over keys in storage.
+    type Keys<'this>: Iterator<Item = K>
+    where
+        Self: 'this;
+
+    /// Immutable iterator over values in storage.
+    type Values<'this>: Iterator<Item = &'this V>
     where
         Self: 'this,
         V: 'this;
@@ -37,33 +42,45 @@ pub trait Storage<K, V>: Default {
         Self: 'this,
         V: 'this;
 
+    /// Mutable iterator over values in storage.
+    type ValuesMut<'this>: Iterator<Item = &'this mut V>
+    where
+        Self: 'this,
+        V: 'this;
+
     /// Consuming iterator.
     type IntoIter: Iterator<Item = (K, V)>;
 
-    /// This is the storage abstraction for [`Map::insert`](struct.Map.html#method.insert).
+    /// This is the storage abstraction for [`Map::insert`][crate::Map::insert].
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
-    /// This is the storage abstraction for [`Map::get`](struct.Map.html#method.get).
+    /// This is the storage abstraction for [`Map::get`][crate::Map::get].
     fn get(&self, key: K) -> Option<&V>;
 
-    /// This is the storage abstraction for [`Map::get_mut`](struct.Map.html#method.get_mut).
+    /// This is the storage abstraction for [`Map::get_mut`][crate::Map::get_mut].
     fn get_mut(&mut self, key: K) -> Option<&mut V>;
 
-    /// This is the storage abstraction for [`Map::remove`](struct.Map.html#method.remove).
+    /// This is the storage abstraction for [`Map::remove`][crate::Map::remove].
     fn remove(&mut self, key: K) -> Option<V>;
 
-    /// This is the storage abstraction for [`Map::clear`](struct.Map.html#method.clear).
+    /// This is the storage abstraction for [`Map::clear`][crate::Map::clear].
     fn clear(&mut self);
 
-    /// This is the storage abstraction for [`Map::iter`](struct.Map.html#method.iter).
+    /// This is the storage abstraction for [`Map::iter`][crate::Map::iter].
     fn iter(&self) -> Self::Iter<'_>;
 
-    /// This is the storage abstraction for [`Map::values`](struct.Map.html#method.values).
+    /// This is the storage abstraction for [`Map::keys`][crate::Map::keys].
+    fn keys(&self) -> Self::Keys<'_>;
+
+    /// This is the storage abstraction for [`Map::values`][crate::Map::values].
     fn values(&self) -> Self::Values<'_>;
 
-    /// This is the storage abstraction for [`Map::iter_mut`](struct.Map.html#method.iter_mut).
+    /// This is the storage abstraction for [`Map::iter_mut`][crate::Map::iter_mut].
     fn iter_mut(&mut self) -> Self::IterMut<'_>;
 
-    /// This is the storage abstraction for [`Map::into_iter`](struct.Map.html#method.into_iter)
+    /// This is the storage abstraction for [`Map::values_mut`][crate::Map::values_mut].
+    fn values_mut(&mut self) -> Self::ValuesMut<'_>;
+
+    /// This is the storage abstraction for [`Map::into_iter`][crate::Map::into_iter])
     fn into_iter(self) -> Self::IntoIter;
 }
