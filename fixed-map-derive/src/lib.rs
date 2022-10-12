@@ -1,5 +1,5 @@
 #![recursion_limit = "256"]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 extern crate proc_macro;
 
@@ -206,7 +206,7 @@ fn handle_units(tokens: &Tokens, ast: &DeriveInput, en: &DataEnum) -> TokenStrea
         get.push(quote!(#option_as_ref(#field)));
         get_mut.push(quote!(#option_as_mut(#field)));
         insert.push(quote!(#mem::replace(#field, #option::Some(value))));
-        remove.push(quote!(#mem::replace(#field, #option::None)));
+        remove.push(quote!(#mem::take(#field)));
 
         iter_init.push(quote!((#ident::#var, #field)));
     }

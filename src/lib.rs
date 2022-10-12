@@ -243,43 +243,51 @@
 //! [Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
 //! [Storage]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
 
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
+#![forbid(unsafe_code)]
 #![deny(missing_docs)]
-#![deny(unsafe_code)]
-// Pedantic CI settings that might not be future proof or solely involves
-// clippy.
-#![cfg_attr(ci, deny(clippy::all))]
-#![cfg_attr(ci, deny(warnings))]
-#![cfg_attr(ci, warn(clippy::pedantic))]
-// style choice
-#![allow(clippy::module_name_repetitions)]
-// false positive
-#![allow(clippy::type_repetition_in_bounds)]
-// false positive
-#![allow(clippy::expl_impl_clone_on_copy)]
-// Enable more useful rustc lints
-#![cfg_attr(ci, deny(absolute_paths_not_starting_with_crate))]
-#![cfg_attr(ci, deny(elided_lifetimes_in_paths))]
-#![cfg_attr(ci, deny(explicit_outlives_requirements))]
-#![cfg_attr(ci, deny(keyword_idents))]
-#![cfg_attr(ci, deny(macro_use_extern_crate))]
-#![cfg_attr(ci, deny(meta_variable_misuse))]
-#![cfg_attr(ci, deny(missing_copy_implementations))]
-#![cfg_attr(ci, deny(missing_docs))]
-#![cfg_attr(ci, deny(non_ascii_idents))]
-#![cfg_attr(ci, deny(noop_method_call))]
-#![cfg_attr(ci, deny(pointer_structural_match))]
-#![cfg_attr(ci, deny(single_use_lifetimes))]
-#![cfg_attr(ci, deny(trivial_casts))]
-#![cfg_attr(ci, deny(trivial_numeric_casts))]
-#![cfg_attr(ci, deny(unreachable_pub))]
-#![cfg_attr(ci, deny(unused_extern_crates))]
-#![cfg_attr(ci, deny(unused_import_braces))]
-#![cfg_attr(ci, deny(unused_lifetimes))]
-#![cfg_attr(ci, deny(unused_macro_rules))]
-#![cfg_attr(ci, deny(unused_qualifications))]
-#![cfg_attr(ci, deny(unused_tuple_struct_fields))]
-#![cfg_attr(ci, deny(variant_size_differences))]
+// Enable pedantic lints as warnings so we don't break builds when
+// lints are modified or new lints are added to clippy.
+#![warn(
+    // Enable more useful rustc lints
+    absolute_paths_not_starting_with_crate,
+    elided_lifetimes_in_paths,
+    explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    meta_variable_misuse,
+    missing_copy_implementations,
+    missing_docs,
+    non_ascii_idents,
+    noop_method_call,
+    pointer_structural_match,
+    single_use_lifetimes,
+    trivial_casts,
+    trivial_numeric_casts,
+    unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    unused_macro_rules,
+    unused_qualifications,
+    unused_tuple_struct_fields,
+    variant_size_differences,
+    // Enable pedantic clippy lints
+    clippy::pedantic,
+    // Useful clippy lints for no_std support
+    clippy::std_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::alloc_instead_of_core
+)]
+// `clippy::pedantic` exceptions
+#![allow(
+    // style choice
+    clippy::module_name_repetitions,
+    // false positive
+    clippy::type_repetition_in_bounds,
+    // false positive
+    clippy::expl_impl_clone_on_copy
+)]
 
 pub mod key;
 
