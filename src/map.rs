@@ -150,6 +150,34 @@ where
         }
     }
 
+    /// An iterator visiting all key-value pairs in arbitrary order.
+    /// The iterator element type is `(K, &'a V)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::One, 1);
+    /// map.insert(Key::Two, 2);
+    ///
+    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &1), (Key::Two, &2)]);
+    /// ```
+    #[inline]
+    pub fn iter(&self) -> Iter<'_, K, V> {
+        Iter {
+            iter: self.storage.iter(),
+        }
+    }
+
     /// An iterator visiting all keys in arbitrary order.
     /// The iterator element type is `K`.
     ///
@@ -173,7 +201,9 @@ where
     /// ```
     #[inline]
     pub fn keys(&self) -> Keys<'_, K, V> {
-        Keys { inner: self.iter() }
+        Keys {
+            iter: self.storage.keys(),
+        }
     }
 
     /// An iterator visiting all values in arbitrary order.
@@ -204,66 +234,6 @@ where
         }
     }
 
-    /// An iterator visiting all values mutably in arbitrary order.
-    /// The iterator element type is `&'a mut V`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use fixed_map::{Key, Map};
-    ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-    /// pub enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
-    /// }
-    ///
-    /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
-    ///
-    /// for val in map.values_mut() {
-    ///     *val += 10;
-    /// }
-    ///
-    /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![11, 12]);
-    /// ```
-    #[inline]
-    pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
-        ValuesMut {
-            inner: self.iter_mut(),
-        }
-    }
-
-    /// An iterator visiting all key-value pairs in arbitrary order.
-    /// The iterator element type is `(K, &'a V)`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use fixed_map::{Key, Map};
-    ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-    /// enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
-    /// }
-    ///
-    /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
-    ///
-    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &1), (Key::Two, &2)]);
-    /// ```
-    #[inline]
-    pub fn iter(&self) -> Iter<'_, K, V> {
-        Iter {
-            iter: self.storage.iter(),
-        }
-    }
-
     /// An iterator visiting all key-value pairs in arbitrary order,
     /// with mutable references to the values.
     /// The iterator element type is `(K, &'a mut V)`.
@@ -275,26 +245,101 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Second, 2);
     ///
     /// // Update all values
     /// for (_, val) in map.iter_mut() {
     ///     *val *= 2;
     /// }
     ///
-    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![(Key::One, &2), (Key::Two, &4)]);
+    /// assert!(map.iter().eq([(Key::First, &2), (Key::Second, &4)]));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     First(&'static str),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First("Hello"), 1);
+    /// map.insert(Key::Second, 2);
+    ///
+    /// // Update all values
+    /// for (_, val) in map.iter_mut() {
+    ///     *val *= 2;
+    /// }
+    ///
+    /// assert!(map.iter().eq([(Key::First("Hello"), &2), (Key::Second, &4)]));
     /// ```
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         IterMut {
             iter: self.storage.iter_mut(),
+        }
+    }
+
+    /// An iterator visiting all values mutably in arbitrary order.
+    /// The iterator element type is `&'a mut V`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// pub enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Second, 2);
+    ///
+    /// for val in map.values_mut() {
+    ///     *val *= 3;
+    /// }
+    ///
+    /// assert!(map.values().copied().eq([3, 6]));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// pub enum Key {
+    ///     First(&'static str),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First("hello"), 1);
+    /// map.insert(Key::Second, 2);
+    ///
+    /// for val in map.values_mut() {
+    ///     *val *= 3;
+    /// }
+    ///
+    /// assert!(map.values().copied().eq([3, 6]));
+    /// ```
+    #[inline]
+    pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
+        ValuesMut {
+            iter: self.storage.values_mut(),
         }
     }
 
@@ -307,14 +352,31 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, "a");
-    /// assert_eq!(map.get(Key::One), Some(&"a"));
-    /// assert_eq!(map.get(Key::Two), None);
+    /// map.insert(Key::First, "a");
+    /// assert_eq!(map.get(Key::First).copied(), Some("a"));
+    /// assert_eq!(map.get(Key::Second), None);
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(&'static str),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First("Hello"), "a");
+    /// assert_eq!(map.get(Key::First("Hello")).copied(), Some("a"));
+    /// assert_eq!(map.get(Key::Second), None);
     /// ```
     #[inline]
     pub fn get(&self, key: K) -> Option<&V> {
@@ -330,16 +392,40 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, "a");
-    /// if let Some(x) = map.get_mut(Key::One) {
+    /// map.insert(Key::First, "a");
+    ///
+    /// if let Some(x) = map.get_mut(Key::First) {
     ///     *x = "b";
     /// }
-    /// assert_eq!(map.get(Key::One), Some(&"b"));
+    ///
+    /// assert_eq!(map.get(Key::First).copied(), Some("b"));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(&'static str),
+    ///     Second(u32),
+    ///     Third,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First("Hello"), "a");
+    ///
+    /// if let Some(x) = map.get_mut(Key::First("Hello")) {
+    ///     *x = "b";
+    /// }
+    ///
+    /// assert_eq!(map.get(Key::First("Hello")).copied(), Some("b"));
     /// ```
     #[inline]
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
@@ -675,16 +761,18 @@ where
 /// This type is created by the [`iter`][Map::iter] method. See its
 /// documentation for more.
 #[repr(transparent)]
-pub struct Iter<'a, K, V: 'a>
+pub struct Iter<'a, K, V>
 where
     K: 'a + Key<K, V>,
+    V: 'a,
 {
     iter: <K::Storage as Storage<K, V>>::Iter<'a>,
 }
 
-impl<'a, K, V: 'a> Clone for Iter<'a, K, V>
+impl<'a, K, V> Clone for Iter<'a, K, V>
 where
     K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Iter<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Iter<'a, K, V> {
@@ -825,12 +913,25 @@ where
 ///
 /// This type is created by the [`keys`][Map::keys] method. See its
 /// documentation for more.
-#[derive(Clone)]
 pub struct Keys<'a, K, V>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
+    V: 'a,
 {
-    inner: Iter<'a, K, V>,
+    iter: <K::Storage as Storage<K, V>>::Keys<'a>,
+}
+
+impl<'a, K, V> Clone for Keys<'a, K, V>
+where
+    K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Keys<'a>: Clone,
+{
+    #[inline]
+    fn clone(&self) -> Self {
+        Self {
+            iter: self.iter.clone(),
+        }
+    }
 }
 
 impl<'a, K: 'a, V: 'a> Iterator for Keys<'a, K, V>
@@ -841,7 +942,7 @@ where
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(k, _)| k)
+        self.iter.next()
     }
 }
 
@@ -849,11 +950,11 @@ where
 ///
 /// This type is created by the [`values`][Map::values] method. See its
 /// documentation for more.
-#[derive(Clone)]
 #[repr(transparent)]
-pub struct Values<'a, K, V: 'a>
+pub struct Values<'a, K, V>
 where
     K: 'a + Key<K, V>,
+    V: 'a,
 {
     iter: <K::Storage as Storage<K, V>>::Values<'a>,
 }
@@ -861,6 +962,7 @@ where
 impl<'a, K: 'a, V: 'a> Iterator for Values<'a, K, V>
 where
     K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Values<'a>: Clone,
 {
     type Item = &'a V;
 
@@ -876,20 +978,22 @@ where
 /// documentation for more.
 pub struct ValuesMut<'a, K, V>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
+    V: 'a,
 {
-    inner: IterMut<'a, K, V>,
+    iter: <K::Storage as Storage<K, V>>::ValuesMut<'a>,
 }
 
-impl<'a, K: 'a, V: 'a> Iterator for ValuesMut<'a, K, V>
+impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
 where
-    K: Key<K, V>,
+    K: 'a + Key<K, V>,
+    V: 'a,
 {
     type Item = &'a mut V;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(_, v)| v)
+        self.iter.next()
     }
 }
 

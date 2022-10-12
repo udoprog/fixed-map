@@ -1,4 +1,5 @@
 use core::hash;
+use core::iter;
 
 use crate::storage::Storage;
 
@@ -100,8 +101,10 @@ where
     K: Copy + Eq + hash::Hash,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Keys<'this> = iter::Copied<::hashbrown::hash_map::Keys<'this, K, V>> where Self: 'this;
     type Values<'this> = ::hashbrown::hash_map::Values<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type ValuesMut<'this> = ::hashbrown::hash_map::ValuesMut<'this, K, V> where Self: 'this;
     type IntoIter = hashbrown::hash_map::IntoIter<K, V>;
 
     #[inline]
@@ -137,6 +140,11 @@ where
     }
 
     #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        self.inner.keys().copied()
+    }
+
+    #[inline]
     fn values(&self) -> Self::Values<'_> {
         self.inner.values()
     }
@@ -146,6 +154,11 @@ where
         IterMut {
             iter: self.inner.iter_mut(),
         }
+    }
+
+    #[inline]
+    fn values_mut(&mut self) -> Self::ValuesMut<'_> {
+        self.inner.values_mut()
     }
 
     #[inline]

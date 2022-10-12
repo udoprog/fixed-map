@@ -84,8 +84,10 @@ where
     K: Copy + Default,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Keys<'this> = ::core::option::IntoIter<K> where Self: 'this;
     type Values<'this> = ::core::option::Iter<'this, V> where Self: 'this, V: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type ValuesMut<'this> = ::core::option::IterMut<'this, V> where Self: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
 
     #[inline]
@@ -121,6 +123,11 @@ where
     }
 
     #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        Some(K::default()).into_iter()
+    }
+
+    #[inline]
     fn values(&self) -> Self::Values<'_> {
         self.inner.iter()
     }
@@ -130,6 +137,11 @@ where
         IterMut {
             value: self.inner.as_mut().map(|v| (K::default(), v)),
         }
+    }
+
+    #[inline]
+    fn values_mut(&mut self) -> Self::ValuesMut<'_> {
+        self.inner.iter_mut()
     }
 
     #[inline]

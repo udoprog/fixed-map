@@ -1,8 +1,36 @@
+#![allow(missing_copy_implementations)] // Iterators are confusing if they impl `Copy`.
+
 use core::mem;
 
 use crate::storage::Storage;
 
-/// Storage for `bool`s.
+const TRUE_BIT: u8 = 1;
+const FALSE_BIT: u8 = 2;
+
+/// Storage for [`bool`] types.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First(false), 1);
+///
+/// assert_eq!(a.get(Key::First(true)), None);
+/// assert_eq!(a.get(Key::First(false)), Some(&1));
+/// assert_eq!(a.get(Key::Second), None);
+///
+/// assert!(a.iter().eq([(Key::First(false), &1)]));
+/// assert!(a.values().copied().eq([1]));
+/// assert!(a.keys().eq([Key::First(false)]));
+/// ```
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BooleanStorage<V> {
     t: Option<V>,
@@ -47,6 +75,38 @@ impl<'a, V> Iterator for Iter<'a, V> {
     }
 }
 
+/// See [`BooleanStorage::keys`].
+pub struct Keys {
+    bits: u8,
+}
+
+impl Clone for Keys {
+    #[inline]
+    fn clone(&self) -> Keys {
+        Keys { bits: self.bits }
+    }
+}
+
+impl Iterator for Keys {
+    type Item = bool;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.bits & TRUE_BIT != 0 {
+            self.bits &= !TRUE_BIT;
+            return Some(true);
+        }
+
+        if self.bits & FALSE_BIT != 0 {
+            self.bits &= !FALSE_BIT;
+            return Some(false);
+        }
+
+        None
+    }
+}
+
+/// See [`BooleanStorage::values`].
 pub struct Values<'a, V> {
     t: Option<&'a V>,
     f: Option<&'a V>,
@@ -93,6 +153,21 @@ impl<'a, V> Iterator for IterMut<'a, V> {
     }
 }
 
+/// See [`BooleanStorage::values`].
+pub struct ValuesMut<'a, V> {
+    t: Option<&'a mut V>,
+    f: Option<&'a mut V>,
+}
+
+impl<'a, V> Iterator for ValuesMut<'a, V> {
+    type Item = &'a mut V;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.t.take().or_else(|| self.f.take())
+    }
+}
+
 pub struct IntoIter<V> {
     t: Option<V>,
     f: Option<V>,
@@ -117,8 +192,10 @@ impl<V> Iterator for IntoIter<V> {
 
 impl<V> Storage<bool, V> for BooleanStorage<V> {
     type Iter<'this> = Iter<'this, V> where Self: 'this;
+    type Keys<'this> = Keys where Self: 'this;
     type Values<'this> = Values<'this, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, V> where Self: 'this;
+    type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
     type IntoIter = IntoIter<V>;
 
     #[inline]
@@ -172,6 +249,14 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        Keys {
+            bits: if self.t.is_some() { TRUE_BIT } else { 0 }
+                | if self.f.is_some() { FALSE_BIT } else { 0 },
+        }
+    }
+
+    #[inline]
     fn values(&self) -> Self::Values<'_> {
         Values {
             t: self.t.as_ref(),
@@ -182,6 +267,14 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
+            t: self.t.as_mut(),
+            f: self.f.as_mut(),
+        }
+    }
+
+    #[inline]
+    fn values_mut(&mut self) -> Self::ValuesMut<'_> {
+        ValuesMut {
             t: self.t.as_mut(),
             f: self.f.as_mut(),
         }

@@ -108,7 +108,7 @@ macro_rules! benches {
         }
 
         {
-            let mut group = criterion.benchmark_group("iter");
+            let mut group = criterion.benchmark_group("values_iter");
 
             $(
                 group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {

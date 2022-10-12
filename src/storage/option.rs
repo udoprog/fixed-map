@@ -2,7 +2,38 @@ use core::mem;
 
 use crate::{key::Key, storage::Storage};
 
-/// Storage for `Option<T>`s.
+/// Storage for [`Option`] types.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Key)]
+/// enum Part {
+///     A,
+///     B,
+/// }
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Key)]
+/// enum Key {
+///     First(Option<Part>),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First(None), 1);
+/// a.insert(Key::First(Some(Part::A)), 2);
+///
+/// assert_eq!(a.get(Key::First(Some(Part::A))), Some(&2));
+/// assert_eq!(a.get(Key::First(Some(Part::B))), None);
+/// assert_eq!(a.get(Key::First(None)), Some(&1));
+/// assert_eq!(a.get(Key::Second), None);
+///
+/// assert!(a.iter().eq([(Key::First(Some(Part::A)), &2), (Key::First(None), &1)]));
+/// assert!(a.values().copied().eq([2, 1]));
+/// assert!(a.keys().eq([Key::First(Some(Part::A)), Key::First(None)]));
+/// ```
 pub struct OptionStorage<K, V>
 where
     K: Key<K, V>,
@@ -76,6 +107,7 @@ where
 impl<'a, K, V> Clone for Iter<'a, K, V>
 where
     K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Iter<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Iter<'a, K, V> {
@@ -106,6 +138,51 @@ where
     }
 }
 
+/// See [`OptionStorage::keys`].
+pub struct Keys<'a, K, V>
+where
+    K: Key<K, V>,
+    K::Storage: 'a,
+{
+    some: <K::Storage as Storage<K, V>>::Keys<'a>,
+    none: bool,
+}
+
+impl<'a, K, V> Clone for Keys<'a, K, V>
+where
+    K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Keys<'a>: Clone,
+{
+    #[inline]
+    fn clone(&self) -> Keys<'a, K, V> {
+        Keys {
+            some: self.some.clone(),
+            none: self.none,
+        }
+    }
+}
+
+impl<K, V> Iterator for Keys<'_, K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = Option<K>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(key) = self.some.next() {
+            return Some(Some(key));
+        }
+
+        if ::core::mem::take(&mut self.none) {
+            return Some(None);
+        }
+
+        None
+    }
+}
+
+/// See [`OptionStorage::values`].
 pub struct Values<'a, K, V>
 where
     K: 'a + Key<K, V>,
@@ -117,6 +194,7 @@ where
 impl<'a, K, V> Clone for Values<'a, K, V>
 where
     K: Key<K, V>,
+    <K::Storage as Storage<K, V>>::Values<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Values<'a, K, V> {
@@ -167,6 +245,27 @@ where
     }
 }
 
+/// See [`OptionStorage::values`].
+pub struct ValuesMut<'a, K, V>
+where
+    K: 'a + Key<K, V>,
+{
+    some: <K::Storage as Storage<K, V>>::ValuesMut<'a>,
+    none: Option<&'a mut V>,
+}
+
+impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
+where
+    K: Key<K, V>,
+{
+    type Item = &'a mut V;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.some.next().or_else(|| self.none.take())
+    }
+}
+
 pub struct IntoIter<K, V>
 where
     K: Key<K, V>,
@@ -200,8 +299,10 @@ where
     K: Key<K, V>,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this;
+    type Keys<'this> = Keys<'this, K, V> where Self: 'this;
     type Values<'this> = Values<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
+    type ValuesMut<'this> = ValuesMut<'this, K, V> where Self: 'this;
     type IntoIter = IntoIter<K, V>;
 
     #[inline]
@@ -251,6 +352,14 @@ where
     }
 
     #[inline]
+    fn keys(&self) -> Self::Keys<'_> {
+        Keys {
+            some: self.some.keys(),
+            none: true,
+        }
+    }
+
+    #[inline]
     fn values(&self) -> Self::Values<'_> {
         Values {
             some: self.some.values(),
@@ -262,6 +371,14 @@ where
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
         IterMut {
             some: self.some.iter_mut(),
+            none: self.none.as_mut(),
+        }
+    }
+
+    #[inline]
+    fn values_mut(&mut self) -> Self::ValuesMut<'_> {
+        ValuesMut {
+            some: self.some.values_mut(),
             none: self.none.as_mut(),
         }
     }
