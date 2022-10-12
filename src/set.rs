@@ -432,11 +432,7 @@ where
     K: Key<K, ()> + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug_set = f.debug_set();
-        for k in self.iter() {
-            debug_set.entry(&k);
-        }
-        debug_set.finish()
+        f.debug_set().entries(self.iter()).finish()
     }
 }
 
@@ -513,16 +509,7 @@ where
     iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Keys<'a>,
 }
 
-impl<K> Iterator for Iter<'_, K>
-where
-    K: Key<K, ()>,
-{
-    type Item = K;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {Iter, Keys}, {'a}, [K], K, () => K);
 
 impl<'a, K> IntoIterator for &'a Set<K>
 where
@@ -531,6 +518,7 @@ where
     type Item = K;
     type IntoIter = Iter<'a, K>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
@@ -547,16 +535,7 @@ where
     iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::IntoIter,
 }
 
-impl<K> Iterator for IntoIter<K>
-where
-    K: Key<K, ()>,
-{
-    type Item = K;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, _)| k)
-    }
-}
+iterator!(@first, {IntoIter, IntoIter}, {}, [K], K, () => K);
 
 impl<K> IntoIterator for Set<K>
 where

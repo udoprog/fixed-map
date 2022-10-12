@@ -86,8 +86,9 @@ mod unit_variants;
 pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
 
+    let lt = syn::Lifetime::new("'a", ast.span());
     let tokens = context::Toks::new(&quote!(fixed_map));
-    let cx = context::Ctxt::new(&tokens, &ast);
+    let cx = context::Ctxt::new(&tokens, &ast, &lt);
 
     let result = impl_storage(&cx);
 

@@ -105,7 +105,7 @@ where
     type Values<'this> = ::hashbrown::hash_map::Values<'this, K, V> where Self: 'this;
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
     type ValuesMut<'this> = ::hashbrown::hash_map::ValuesMut<'this, K, V> where Self: 'this;
-    type IntoIter = hashbrown::hash_map::IntoIter<K, V>;
+    type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
 
     #[inline]
     fn insert(&mut self, key: K, value: V) -> Option<V> {

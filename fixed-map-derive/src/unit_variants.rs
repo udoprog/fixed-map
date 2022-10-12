@@ -1,5 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
+use syn::spanned::Spanned;
 use syn::{DataEnum, Ident};
 
 use crate::context::Ctxt;
@@ -9,20 +10,22 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
-    let array_into_iter = &cx.tokens.array_into_iter;
-    let clone = &cx.tokens.clone;
-    let copy = &cx.tokens.copy;
-    let default = &cx.tokens.default;
-    let eq = &cx.tokens.eq;
-    let into_iter = &cx.tokens.into_iter;
-    let iterator = &cx.tokens.iterator;
-    let key_trait = &cx.tokens.key_trait;
-    let mem = &cx.tokens.mem;
-    let option = &cx.tokens.option;
-    let partial_eq = &cx.tokens.partial_eq;
-    let slice_iter = &cx.tokens.slice_iter;
-    let slice_iter_mut = &cx.tokens.slice_iter_mut;
-    let storage_trait = &cx.tokens.storage_trait;
+    let lt = cx.lt;
+    let array_into_iter = &cx.toks.array_into_iter;
+    let clone = &cx.toks.clone;
+    let copy = &cx.toks.copy;
+    let default = &cx.toks.default;
+    let eq = &cx.toks.eq;
+    let into_iter = &cx.toks.into_iter;
+    let iterator = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+    let key_trait = &cx.toks.key_trait;
+    let mem = &cx.toks.mem;
+    let option = &cx.toks.option;
+    let partial_eq = &cx.toks.partial_eq;
+    let slice_iter = &cx.toks.slice_iter;
+    let slice_iter_mut = &cx.toks.slice_iter_mut;
+    let storage_trait = &cx.toks.storage_trait;
 
     let const_wrapper = Ident::new(
         &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
@@ -65,6 +68,297 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     }
 
     let count = en.variants.len();
+    let next = syn::Ident::new("next", cx.ast.span());
+    let nth = syn::Ident::new("nth", cx.ast.span());
+    let next_back = syn::Ident::new("next_back", cx.ast.span());
+    let nth_back = syn::Ident::new("nth_back", cx.ast.span());
+
+    let mut iterators = Vec::new();
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct Iter<#lt, V> {
+                iter: #array_into_iter<(#ident, &#lt #option<V>), #count>,
+            }
+
+            impl<#lt, V> #clone for Iter<#lt, V> {
+                #[inline]
+                fn clone(&self) -> Iter<#lt, V> {
+                    Iter {
+                        iter: #clone::clone(&self.iter),
+                    }
+                }
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl<#lt, V> #t for Iter<#lt, V> {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#next(&mut self.iter)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = (#ident, &#lt V);)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct Keys {
+                iter: #array_into_iter<#option<#ident>, #count>,
+            }
+
+            impl #clone for Keys {
+                #[inline]
+                fn clone(&self) -> Self {
+                    Self {
+                        iter: #clone::clone(&self.iter),
+                    }
+                }
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl #t for Keys {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(key) = #t::#next(&mut self.iter)? {
+                                return #option::Some(key);
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(key) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some(key);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = #ident;)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct Values<#lt, V> {
+                iter: #slice_iter<#lt, #option<V>>,
+            }
+
+            impl<#lt, V> #clone for Values<#lt, V> {
+                #[inline]
+                fn clone(&self) -> Self {
+                    Self {
+                        iter: #clone::clone(&self.iter),
+                    }
+                }
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl<#lt, V> #t for Values<#lt, V> {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(value) = #t::#next(&mut self.iter)? {
+                                return #option::Some(value);
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(value) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some(value);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = &#lt V;)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct IterMut<#lt, V> {
+                iter: #array_into_iter<(#ident, &#lt mut #option<V>), #count>,
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl<#lt, V> #t for IterMut<#lt, V> {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#next(&mut self.iter)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = (#ident, &#lt mut V);)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct ValuesMut<#lt, V> {
+                iter: #slice_iter_mut<#lt, #option<V>>,
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl<#lt, V> #t for ValuesMut<#lt, V> {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(value) = #t::#next(&mut self.iter)? {
+                                return #option::Some(value);
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let #option::Some(value) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some(value);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = &#lt mut V;)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
+
+    {
+        iterators.push(quote! {
+            #[repr(transparent)]
+            #vis struct IntoIter<V> {
+                iter: #array_into_iter<(#ident, #option<V>), #count>,
+            }
+        });
+
+        let build = |t, item, next, nth| {
+            quote! {
+                impl<V> #t for IntoIter<V> {
+                    #item
+
+                    #[inline]
+                    fn #next(&mut self) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#next(&mut self.iter)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+
+                    #[inline]
+                    fn #nth(&mut self, n: usize) -> #option<Self::Item> {
+                        loop {
+                            if let (key, #option::Some(value)) = #t::#nth(&mut self.iter, n)? {
+                                return #option::Some((key, value));
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        iterators.push(build(
+            iterator,
+            Some(quote!(type Item = (#ident, V);)),
+            &next,
+            &nth,
+        ));
+        iterators.push(build(double_ended_iterator_t, None, &next_back, &nth_back));
+    }
 
     Ok(quote! {
         const #const_wrapper: () = {
@@ -207,140 +501,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 type Storage = Storage<V>;
             }
 
-            #[repr(transparent)]
-            #vis struct Iter<'a, V> {
-                iter: #array_into_iter<(#ident, &'a #option<V>), #count>,
-            }
-
-            impl<'a, V> #clone for Iter<'a, V> {
-                #[inline]
-                fn clone(&self) -> Iter<'a, V> {
-                    Iter {
-                        iter: #clone::clone(&self.iter),
-                    }
-                }
-            }
-
-            impl<'a, V> #iterator for Iter<'a, V> {
-                type Item = (#ident, &'a V);
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
-                            return #option::Some((key, value));
-                        }
-                    }
-                }
-            }
-
-            #[repr(transparent)]
-            #vis struct Keys {
-                iter: #array_into_iter<#option<#ident>, #count>,
-            }
-
-            impl #clone for Keys {
-                #[inline]
-                fn clone(&self) -> Self {
-                    Keys {
-                        iter: #clone::clone(&self.iter),
-                    }
-                }
-            }
-
-            impl #iterator for Keys {
-                type Item = #ident;
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let #option::Some(key) = #iterator::next(&mut self.iter)? {
-                            return #option::Some(key);
-                        }
-                    }
-                }
-            }
-
-            #[repr(transparent)]
-            #vis struct Values<'a, V> {
-                iter: #slice_iter<'a, #option<V>>,
-            }
-
-            impl<'a, V> #clone for Values<'a, V> {
-                #[inline]
-                fn clone(&self) -> Self {
-                    Values {
-                        iter: #clone::clone(&self.iter),
-                    }
-                }
-            }
-
-            impl<'a, V> #iterator for Values<'a, V> {
-                type Item = &'a V;
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let #option::Some(value) = #iterator::next(&mut self.iter)? {
-                            return #option::Some(value);
-                        }
-                    }
-                }
-            }
-
-            #[repr(transparent)]
-            #vis struct IterMut<'a, V> {
-                iter: #array_into_iter<(#ident, &'a mut #option<V>), #count>,
-            }
-
-            impl<'a, V> #iterator for IterMut<'a, V> {
-                type Item = (#ident, &'a mut V);
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
-                            return #option::Some((key, value));
-                        }
-                    }
-                }
-            }
-
-            #[repr(transparent)]
-            #vis struct ValuesMut<'a, V> {
-                iter: #slice_iter_mut<'a, #option<V>>,
-            }
-
-            impl<'a, V> #iterator for ValuesMut<'a, V> {
-                type Item = &'a mut V;
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let #option::Some(value) = #iterator::next(&mut self.iter)? {
-                            return #option::Some(value);
-                        }
-                    }
-                }
-            }
-
-            #[repr(transparent)]
-            #vis struct IntoIter<V> {
-                iter: #array_into_iter<(#ident, #option<V>), #count>,
-            }
-
-            impl<V> #iterator for IntoIter<V> {
-                type Item = (#ident, V);
-
-                #[inline]
-                fn next(&mut self) -> #option<Self::Item> {
-                    loop {
-                        if let (key, #option::Some(value)) = #iterator::next(&mut self.iter)? {
-                            return #option::Some((key, value));
-                        }
-                    }
-                }
-            }
+            #(#iterators)*
         };
     })
 }

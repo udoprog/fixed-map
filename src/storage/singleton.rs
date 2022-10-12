@@ -66,6 +66,13 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     }
 }
 
+impl<K, V> DoubleEndedIterator for IterMut<'_, K, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
 pub struct IntoIter<K, V> {
     value: Option<(K, V)>,
 }
@@ -75,6 +82,13 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
+impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
         self.value.take()
     }
 }

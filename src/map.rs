@@ -684,13 +684,7 @@ where
     V: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug_map = f.debug_map();
-
-        for (k, v) in self.iter() {
-            debug_map.entry(&k, v);
-        }
-
-        debug_map.finish()
+        f.debug_map().entries(self.iter()).finish()
     }
 }
 
@@ -782,17 +776,7 @@ where
     }
 }
 
-impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, v))
-    }
-}
+iterator!(@identity, {Iter, Iter}, {'a}, [K, V], K, V => (K, &'a V));
 
 impl<'a, K, V> IntoIterator for &'a Map<K, V>
 where
@@ -818,19 +802,7 @@ where
     iter: <K::Storage as Storage<K, V>>::IterMut<'a>,
 }
 
-/// [`IntoIterator`] implementation which uses [`Map::into_iter`]. See its
-/// documentation for more.
-impl<'a, K, V> Iterator for IterMut<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, v))
-    }
-}
+iterator!(@identity, {IterMut, IterMut}, {'a}, [K, V], K, V => (K, &'a mut V));
 
 /// [`IntoIterator`] implementation which uses [`Map::iter_mut`]. See its
 /// documentation for more.
@@ -858,17 +830,7 @@ where
     iter: <K::Storage as Storage<K, V>>::IntoIter,
 }
 
-impl<K, V> Iterator for IntoIter<K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {IntoIter, IntoIter}, {}, [K, V], K, V => (K, V));
 
 impl<K, V> IntoIterator for Map<K, V>
 where
@@ -887,19 +849,51 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
+    ///     First,
+    ///     Second,
+    ///     Third,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Third, 3);
     ///
-    /// // Convert to a Vec
-    /// let v: Vec<_> = map.into_iter().collect();
+    /// let mut it = map.into_iter();
+    /// assert_eq!(it.next(), Some((Key::First, 1)));
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), None);
     ///
-    /// assert_eq!(v, vec![(Key::One, 1), (Key::Two, 2)]);
+    /// let mut it = map.into_iter().rev();
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), Some((Key::First, 1)));
+    /// assert_eq!(it.next(), None);
+    /// ```
+    ///
+    /// Into iterator with a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    ///     Third,
+    /// }
+    ///
+    /// let mut map = Map::<_, u32>::new();
+    /// map.insert(Key::First(false), 1);
+    /// map.insert(Key::Third, 3);
+    ///
+    /// let mut it = map.into_iter();
+    /// assert_eq!(it.next(), Some((Key::First(false), 1)));
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), None);
+    ///
+    /// let mut it = map.into_iter().rev();
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), Some((Key::First(false), 1)));
+    /// assert_eq!(it.next(), None);
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -921,6 +915,8 @@ where
     iter: <K::Storage as Storage<K, V>>::Keys<'a>,
 }
 
+iterator!(@identity, {Keys, Keys}, {'a}, [K, V], K, V => K);
+
 impl<'a, K, V> Clone for Keys<'a, K, V>
 where
     K: Key<K, V>,
@@ -931,18 +927,6 @@ where
         Self {
             iter: self.iter.clone(),
         }
-    }
-}
-
-impl<'a, K: 'a, V: 'a> Iterator for Keys<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = K;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
     }
 }
 
@@ -959,18 +943,7 @@ where
     iter: <K::Storage as Storage<K, V>>::Values<'a>,
 }
 
-impl<'a, K: 'a, V: 'a> Iterator for Values<'a, K, V>
-where
-    K: Key<K, V>,
-    <K::Storage as Storage<K, V>>::Values<'a>: Clone,
-{
-    type Item = &'a V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {Values, Values}, {'a}, [K, V], K, V => &'a V);
 
 /// A mutable iterator over the values of a [`Map`].
 ///
@@ -984,18 +957,7 @@ where
     iter: <K::Storage as Storage<K, V>>::ValuesMut<'a>,
 }
 
-impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
-where
-    K: 'a + Key<K, V>,
-    V: 'a,
-{
-    type Item = &'a mut V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {ValuesMut, ValuesMut}, {'a}, [K, V], K, V => &'a mut V);
 
 /// A simple [`FromIterator`] implementation for [`Map`].
 ///

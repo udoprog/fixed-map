@@ -47,6 +47,26 @@ impl<V> Default for BooleanStorage<V> {
     }
 }
 
+/// Iterator over boolean storage.
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Key)]
+/// enum Key {
+///     Bool(bool),
+///     Other,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::Bool(true), 1);
+/// a.insert(Key::Bool(false), 2);
+///
+/// assert!(a.iter().eq([(Key::Bool(true), &1), (Key::Bool(false), &2)]));
+/// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![(Key::Bool(false), &2), (Key::Bool(true), &1)]);
+/// ```
 pub struct Iter<'a, V> {
     t: Option<&'a V>,
     f: Option<&'a V>,
@@ -72,6 +92,24 @@ impl<'a, V> Iterator for Iter<'a, V> {
         }
 
         Some((false, self.f.take()?))
+    }
+}
+
+impl<V> DoubleEndedIterator for Iter<'_, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(value) = self.f.take() {
+            return Some((false, value));
+        }
+
+        Some((true, self.t.take()?))
+    }
+}
+
+impl<V> ExactSizeIterator for Iter<'_, V> {
+    #[inline]
+    fn len(&self) -> usize {
+        usize::from(self.t.is_some()) + usize::from(self.f.is_some())
     }
 }
 
@@ -184,6 +222,21 @@ impl<V> Iterator for IntoIter<V> {
 
         if let Some(f) = self.f.take() {
             return Some((false, f));
+        }
+
+        None
+    }
+}
+
+impl<V> DoubleEndedIterator for IntoIter<V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if let Some(f) = self.f.take() {
+            return Some((false, f));
+        }
+
+        if let Some(t) = self.t.take() {
+            return Some((true, t));
         }
 
         None
