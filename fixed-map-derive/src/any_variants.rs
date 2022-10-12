@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{DataEnum, Fields, Ident};
 
@@ -9,61 +9,59 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
-    let clone = &cx.tokens.clone;
-    let copy = &cx.tokens.copy;
-    let default = &cx.tokens.default;
-    let eq = &cx.tokens.eq;
-    let key_trait = &cx.tokens.key_trait;
-    let mem = &cx.tokens.mem;
-    let option = &cx.tokens.option;
-    let partial_eq = &cx.tokens.partial_eq;
-    let storage_trait = &cx.tokens.storage_trait;
+    let clone = &cx.toks.clone;
+    let copy = &cx.toks.copy;
+    let default = &cx.toks.default;
+    let eq = &cx.toks.eq;
+    let key_trait = &cx.toks.key_trait;
+    let mem = &cx.toks.mem;
+    let option = &cx.toks.option;
+    let partial_eq = &cx.toks.partial_eq;
+    let storage_trait = &cx.toks.storage_trait;
 
     let const_wrapper = Ident::new(
         &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
         Span::call_site(),
     );
 
+    let mut len = Vec::new();
+    let mut is_empty = Vec::new();
     let mut pattern = Vec::new();
-
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
     let mut field_clones = Vec::new();
     let mut field_partial_eqs = Vec::new();
-
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
     let mut clear = Vec::new();
-
     let mut copy_bounds = Vec::new();
-
     let mut field_specs = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
-        let field = Ident::new(&format!("f{}", index), Span::call_site());
+        let name = Ident::new(&format!("f{}", index), Span::call_site());
 
-        field_inits.push(quote!(#field: #default::default()));
-        field_clones.push(quote!(#field: #clone::clone(&self.#field)));
+        field_inits.push(quote!(#name: #default::default()));
+        field_clones.push(quote!(#name: #clone::clone(&self.#name)));
         field_partial_eqs.push(quote! {
-            if self.#field != other.#field {
+            if self.#name != other.#name {
                 return false;
             }
         });
 
         let kind = match &variant.fields {
             Fields::Unit => {
-                fields.push(quote!(#field: #option<V>));
+                len.push(quote!(usize::from(#option::is_some(&self.#name))));
+                is_empty.push(quote!(#option::is_none(&self.#name)));
+                fields.push(quote!(#name: #option<V>));
                 pattern.push(quote!(#ident::#var));
-                clear.push(quote!(self.#field = #option::None));
-
-                get.push(quote!(#option::as_ref(&self.#field)));
-                get_mut.push(quote!(#option::as_mut(&mut self.#field)));
-                insert.push(quote!(#mem::replace(&mut self.#field, #option::Some(value))));
-                remove.push(quote!(#mem::replace(&mut self.#field, #option::None)));
-
+                clear.push(quote!(self.#name = #option::None));
+                get.push(quote!(#option::as_ref(&self.#name)));
+                get_mut.push(quote!(#option::as_mut(&mut self.#name)));
+                insert.push(quote!(#mem::replace(&mut self.#name, #option::Some(value))));
+                remove.push(quote!(#mem::replace(&mut self.#name, #option::None)));
                 FieldKind::Simple
             }
             Fields::Unnamed(unnamed) => {
@@ -79,14 +77,17 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 let storage = quote!(<#element as #key_trait<#element, V>>::Storage);
                 let as_storage = quote!(<#storage as #storage_trait<#element, V>>);
 
-                fields.push(quote!(#field: #storage));
-                pattern.push(quote!(#ident::#var(v)));
-                clear.push(quote!(#as_storage::clear(&mut self.#field)));
+                len.push(quote!(#as_storage::len(&self.#name)));
+                is_empty.push(quote!(#as_storage::is_empty(&self.#name)));
 
-                get.push(quote!(#as_storage::get(&self.#field, v)));
-                get_mut.push(quote!(#as_storage::get_mut(&mut self.#field, v)));
-                insert.push(quote!(#as_storage::insert(&mut self.#field, v, value)));
-                remove.push(quote!(#as_storage::remove(&mut self.#field, v)));
+                fields.push(quote!(#name: #storage));
+                pattern.push(quote!(#ident::#var(v)));
+                clear.push(quote!(#as_storage::clear(&mut self.#name)));
+
+                get.push(quote!(#as_storage::get(&self.#name, v)));
+                get_mut.push(quote!(#as_storage::get_mut(&mut self.#name, v)));
+                insert.push(quote!(#as_storage::insert(&mut self.#name, v, value)));
+                remove.push(quote!(#as_storage::remove(&mut self.#name, v)));
 
                 copy_bounds.push(quote!(#storage: #copy));
 
@@ -102,8 +103,9 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         };
 
         field_specs.push(FieldSpec {
+            span: variant.span(),
             index,
-            name: field,
+            name,
             var,
             kind,
         });
@@ -123,6 +125,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let (iter_mut_impl, iter_mut_init) = build_iter_mut_impl(cx, "IterMut", &field_specs)?;
     let (values_mut_impl, values_mut_init) = build_values_mut_impl(cx, "ValuesMut", &field_specs)?;
     let (into_iter_impl, into_iter_init) = build_into_iter_impl(cx, "IntoIter", &field_specs)?;
+
+    let end = field_specs.len();
 
     Ok(quote! {
         const #const_wrapper: () = {
@@ -153,8 +157,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
 
             impl<V> #default for Storage<V> {
                 #[inline]
-                fn default() -> Storage<V> {
-                    Storage {
+                fn default() -> Self {
+                    Self {
                         #(#field_inits,)*
                     }
                 }
@@ -167,6 +171,16 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 type IterMut<'this> = IterMut<'this, V> where Self: 'this;
                 type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
                 type IntoIter = IntoIter<V>;
+
+                #[inline]
+                fn len(&self) -> usize {
+                    #(#len)+*
+                }
+
+                #[inline]
+                fn is_empty(&self) -> bool {
+                    #(#is_empty)&&*
+                }
 
                 #[inline]
                 fn insert(&mut self, key: #ident, value: V) -> #option<V> {
@@ -204,7 +218,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn iter(&self) -> Self::Iter<'_> {
                     Iter {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#iter_init,)*
                     }
                 }
@@ -212,7 +227,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn keys(&self) -> Self::Keys<'_> {
                     Keys {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#keys_iter_init,)*
                     }
                 }
@@ -220,7 +236,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn values(&self) -> Self::Values<'_> {
                     Values {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#values_iter_init,)*
                     }
                 }
@@ -228,7 +245,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn iter_mut(&mut self) -> Self::IterMut<'_> {
                     IterMut {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#iter_mut_init,)*
                     }
                 }
@@ -236,7 +254,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn values_mut(&mut self) -> Self::ValuesMut<'_> {
                     ValuesMut {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#values_mut_init,)*
                     }
                 }
@@ -244,7 +263,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn into_iter(self) -> Self::IntoIter {
                     IntoIter {
-                        step: 0,
+                        start: 0,
+                        end: #end,
                         #(#into_iter_init,)*
                     }
                 }
@@ -265,47 +285,81 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
 }
 
 /// Build iterator next.
-fn build_iter_next(cx: &Ctxt, field_specs: &[FieldSpec<'_>]) -> Result<Vec<TokenStream>, ()> {
-    let option = &cx.tokens.option;
-    let iterator = &cx.tokens.iterator;
+fn build_iter_next(
+    cx: &Ctxt,
+    step_forward: &mut IteratorNext,
+    step_backward: &mut IteratorNextBack,
+    field_specs: &[FieldSpec<'_>],
+    assoc_type: &syn::Ident,
+    lt: Option<&syn::Lifetime>,
+) -> Result<(), ()> {
+    let option = &cx.toks.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
     let ident = &cx.ast.ident;
 
-    let mut output = Vec::new();
-
     for FieldSpec {
+        span,
         index,
         name,
         var,
         kind,
+        ..
     } in field_specs
     {
         match kind {
             FieldKind::Simple => {
-                output.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(value) = self.#name.take() {
                             return #option::Some((#ident::#var, value));
                         }
+                    }
+                });
 
-                        self.step += 1;
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(value) = self.#name.take() {
+                            return #option::Some((#ident::#var, value));
+                        }
                     }
                 });
             }
-            FieldKind::Complex { .. } => {
-                output.push(quote! {
+            FieldKind::Complex { as_storage, .. } => {
+                step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some((key, value)) = #iterator::next(&mut self.#name) {
+                        if let #option::Some((key, value)) = #iterator_t::next(&mut self.#name) {
                             return #option::Some((#ident::#var(key), value));
                         }
-
-                        self.step += 1;
                     }
                 });
+
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some((key, value)) = #double_ended_iterator_t::next_back(&mut self.#name) {
+                            return #option::Some((#ident::#var(key), value));
+                        }
+                    }
+                });
+
+                // NB: The `Item = ..` component of the bound is technically
+                // superflous but currently necessary to satisfy rustc.
+                let where_clause = step_backward.make_where_clause();
+
+                let assoc_type = if let Some(lt) = lt {
+                    quote!(#as_storage::#assoc_type<#lt>)
+                } else {
+                    quote!(#as_storage::#assoc_type)
+                };
+
+                where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
+                    *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
+                }))?);
             }
         }
     }
 
-    Ok(output)
+    Ok(())
 }
 
 /// Construct an iterator implementation.
@@ -316,60 +370,80 @@ fn build_iter_impl(
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
     let type_name = syn::Ident::new(id, Span::call_site());
 
-    let option = &cx.tokens.option;
-    let iterator = &cx.tokens.iterator;
-    let clone = &cx.tokens.clone;
+    let lt = cx.lt;
+    let option = &cx.toks.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+    let clone = &cx.toks.clone;
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
 
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
+
     let mut iter_clone = Vec::new();
-    let mut iter_fields = Vec::new();
+    let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let iter_next = build_iter_next(cx, field_specs)?;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        Some(cx.lt),
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         iter_clone.push(quote!(#name: #clone::clone(&self.#name)));
 
         match kind {
             FieldKind::Simple => {
-                iter_fields.push(quote!(#name: #option<&'a V>));
+                field_decls.push(quote!(#name: #option<&#lt V>));
                 init.push(quote!(#name: #option::as_ref(&self.#name)));
             }
             FieldKind::Complex { as_storage, .. } => {
-                iter_fields.push(quote!(#name: #as_storage::Iter<'a>));
+                field_decls.push(quote!(#name: #as_storage::Iter<#lt>));
                 init.push(quote!(#name: #as_storage::iter(&self.#name)));
             }
         }
     }
 
+    let double_ended_where_clause = &step_backward.where_clause;
+
     let iter_impl = quote! {
-        #vis struct #type_name<'a, V> {
-            step: usize,
-            #(#iter_fields,)*
+        #vis struct #type_name<#lt, V> {
+            start: usize,
+            end: usize,
+            #(#field_decls,)*
         }
 
-        impl<'a, V> #clone for #type_name<'a, V> {
+        impl<#lt, V> #clone for #type_name<#lt, V> {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
-                    step: self.step,
+                    start: self.start,
+                    end: self.end,
                     #(#iter_clone,)*
                 }
             }
         }
 
-        impl<'a, V> #iterator for #type_name<'a, V> {
-            type Item = (#ident, &'a V);
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+            type Item = (#ident, &#lt V);
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
+            }
+        }
+
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
             }
         }
     };
@@ -377,7 +451,7 @@ fn build_iter_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct an keys iterator implementation.
+/// Construct an keys iterator_t implementation.
 fn build_keys_impl(
     cx: &Ctxt,
     id: &str,
@@ -385,21 +459,25 @@ fn build_keys_impl(
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
     let type_name = syn::Ident::new(id, Span::call_site());
 
-    let option = &cx.tokens.option;
-    let iterator = &cx.tokens.iterator;
-    let clone = &cx.tokens.clone;
-    let bool_type = &cx.tokens.bool_type;
-    let mem = &cx.tokens.mem;
+    let lt = cx.lt;
+    let option = &cx.toks.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+    let clone = &cx.toks.clone;
+    let bool_type = &cx.toks.bool_type;
+    let mem = &cx.toks.mem;
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
 
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
+
     let mut iter_clone = Vec::new();
-    let mut iter_fields = Vec::new();
+    let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let mut iter_next = Vec::new();
-
     for FieldSpec {
+        span,
         index,
         name,
         var,
@@ -411,63 +489,91 @@ fn build_keys_impl(
 
         match kind {
             FieldKind::Simple => {
-                iter_fields.push(quote!(#name: #bool_type));
+                field_decls.push(quote!(#name: #bool_type));
                 init.push(quote!(#name: #option::is_some(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if #mem::take(&mut self.#name) {
                             return #option::Some(#ident::#var);
                         }
+                    }
+                });
 
-                        self.step += 1;
+                step_backward.next.push(quote! {
+                    #index => {
+                        if #mem::take(&mut self.#name) {
+                            return #option::Some(#ident::#var);
+                        }
                     }
                 });
             }
             FieldKind::Complex { as_storage, .. } => {
-                iter_fields.push(quote!(#name: #as_storage::Keys<'a>));
+                field_decls.push(quote!(#name: #as_storage::Keys<#lt>));
                 init.push(quote!(#name: #as_storage::keys(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(key) = #iterator::next(&mut self.#name) {
+                        if let #option::Some(key) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(#ident::#var(key));
                         }
-
-                        self.step += 1;
                     }
                 });
+
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(key) = #double_ended_iterator_t::next_back(&mut self.#name) {
+                            return #option::Some(#ident::#var(key));
+                        }
+                    }
+                });
+
+                let where_clause = step_backward.make_where_clause();
+
+                let assoc_type = quote!(#as_storage::#type_name<#lt>);
+
+                where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
+                    *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
+                }))?);
             }
         }
     }
 
+    let double_ended_where_clause = &step_backward.where_clause;
+
     let iter_impl = quote! {
-        #vis struct #type_name<'a, V> where V: 'a {
-            step: usize,
-            #(#iter_fields,)*
+        #vis struct #type_name<#lt, V> where V: #lt {
+            start: usize,
+            end: usize,
+            #(#field_decls,)*
         }
 
         impl<V> #clone for #type_name<'_, V> {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
-                    step: self.step,
+                    start: self.start,
+                    end: self.end,
                     #(#iter_clone,)*
                 }
             }
         }
 
-        impl<V> #iterator for #type_name<'_, V> {
+        impl<V> #iterator_t for #type_name<'_, V> {
             type Item = #ident;
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
+            }
+        }
+
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
             }
         }
     };
@@ -475,7 +581,7 @@ fn build_keys_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct a values iterator implementation.
+/// Construct a values iterator_t implementation.
 fn build_values_impl(
     cx: &Ctxt,
     id: &str,
@@ -483,85 +589,119 @@ fn build_values_impl(
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
     let type_name = syn::Ident::new(id, Span::call_site());
 
-    let option = &cx.tokens.option;
-    let iterator = &cx.tokens.iterator;
-    let clone = &cx.tokens.clone;
+    let lt = cx.lt;
+    let option = &cx.toks.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+    let clone = &cx.toks.clone;
     let vis = &cx.ast.vis;
 
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
+
     let mut iter_clone = Vec::new();
-    let mut iter_fields = Vec::new();
+    let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let mut iter_next = Vec::new();
-
     for FieldSpec {
-        index, name, kind, ..
+        span,
+        index,
+        name,
+        kind,
+        ..
     } in field_specs
     {
         iter_clone.push(quote!(#name: #clone::clone(&self.#name)));
 
         match kind {
             FieldKind::Simple => {
-                iter_fields.push(quote!(#name: #option<&'a V>));
+                field_decls.push(quote!(#name: #option<&#lt V>));
                 init.push(quote!(#name: #option::as_ref(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(v) = self.#name.take() {
-                            return #option::Some(v);
+                        if let #option::Some(value) = self.#name.take() {
+                            return #option::Some(value);
                         }
+                    }
+                });
 
-                        self.step += 1;
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(value) = self.#name.take() {
+                            return #option::Some(value);
+                        }
                     }
                 });
             }
             FieldKind::Complex { as_storage, .. } => {
-                iter_fields.push(quote!(#name: #as_storage::Values<'a>));
+                field_decls.push(quote!(#name: #as_storage::Values<#lt>));
                 init.push(quote!(#name: #as_storage::values(&self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = #iterator::next(&mut self.#name) {
+                        if let #option::Some(value) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(value);
                         }
-
-                        self.step += 1;
                     }
                 });
+
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(value) = #double_ended_iterator_t::next_back(&mut self.#name) {
+                            return #option::Some(value);
+                        }
+                    }
+                });
+
+                let where_clause = step_backward.make_where_clause();
+
+                let assoc_type = quote!(#as_storage::#type_name<#lt>);
+
+                where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
+                    *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
+                }))?);
             }
         }
     }
 
+    let double_ended_where_clause = &step_backward.where_clause;
+
     let iter_impl = quote! {
-        #vis struct #type_name<'a, V> {
-            step: usize,
-            #(#iter_fields,)*
+        #vis struct #type_name<#lt, V> {
+            start: usize,
+            end: usize,
+            #(#field_decls,)*
         }
 
-        impl<'a, V> #clone for #type_name<'a, V> {
+        impl<#lt, V> #clone for #type_name<#lt, V> {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
-                    step: self.step,
+                    start: self.start,
+                    end: self.end,
                     #(#iter_clone,)*
                 }
             }
         }
 
-        impl<'a, V> #iterator for #type_name<'a, V> {
-            type Item = &'a V;
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+            type Item = &#lt V;
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
             }
         }
 
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
+            }
+        }
     };
 
     Ok((iter_impl, init))
@@ -575,49 +715,68 @@ fn build_iter_mut_impl(
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
     let type_name = syn::Ident::new(id, Span::call_site());
 
+    let lt = cx.lt;
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
-    let iterator = &cx.tokens.iterator;
-    let option = &cx.tokens.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+    let option = &cx.toks.option;
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let iter_next = build_iter_next(cx, field_specs)?;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        Some(cx.lt),
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         match kind {
             FieldKind::Simple => {
-                field_decls.push(quote!(#name: #option<&'a mut V>));
+                field_decls.push(quote!(#name: #option<&#lt mut V>));
                 init.push(quote!(#name: #option::as_mut(&mut self.#name)));
             }
             FieldKind::Complex {
                 as_storage,
                 storage,
             } => {
-                field_decls.push(quote!(#name: #as_storage::IterMut<'a>));
+                field_decls.push(quote!(#name: #as_storage::IterMut<#lt>));
                 init.push(quote!(#name: #storage::iter_mut(&mut self.#name)));
             }
         }
     }
 
+    let double_ended_where = &step_backward.where_clause;
+
     let iter_impl = quote! {
-        #vis struct #type_name<'a, V> {
-            step: usize,
+        #vis struct #type_name<#lt, V> {
+            start: usize,
+            end: usize,
             #(#field_decls,)*
         }
 
-        impl<'a, V> #iterator for #type_name<'a, V> {
-            type Item = (#ident, &'a mut V);
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+            type Item = (#ident, &#lt mut V);
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
+            }
+        }
+
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
             }
         }
     };
@@ -625,7 +784,7 @@ fn build_iter_mut_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct a values mutable iterator implementation.
+/// Construct a values mutable iterator_t implementation.
 fn build_values_mut_impl(
     cx: &Ctxt,
     id: &str,
@@ -633,75 +792,108 @@ fn build_values_mut_impl(
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
     let type_name = syn::Ident::new(id, Span::call_site());
 
-    let option = &cx.tokens.option;
-    let iterator = &cx.tokens.iterator;
-    let clone = &cx.tokens.clone;
+    let lt = cx.lt;
+    let option = &cx.toks.option;
+    let iterator_t = &cx.toks.iterator_t;
+    let clone = &cx.toks.clone;
     let vis = &cx.ast.vis;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut iter_clone = Vec::new();
-    let mut iter_fields = Vec::new();
+    let mut field_decls = Vec::new();
     let mut init = Vec::new();
 
-    let mut iter_next = Vec::new();
-
     for FieldSpec {
-        index, name, kind, ..
+        span,
+        index,
+        name,
+        kind,
+        ..
     } in field_specs
     {
         iter_clone.push(quote!(#name: #clone::clone(&self.#name)));
 
         match kind {
             FieldKind::Simple => {
-                iter_fields.push(quote!(#name: #option<&'a mut V>));
+                field_decls.push(quote!(#name: #option<&#lt mut V>));
                 init.push(quote!(#name: #option::as_mut(&mut self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some(v) = self.#name.take() {
                             return #option::Some(v);
                         }
+                    }
+                });
 
-                        self.step += 1;
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(v) = self.#name.take() {
+                            return #option::Some(v);
+                        }
                     }
                 });
             }
             FieldKind::Complex { as_storage, .. } => {
-                iter_fields.push(quote!(#name: #as_storage::ValuesMut<'a>));
+                field_decls.push(quote!(#name: #as_storage::ValuesMut<#lt>));
                 init.push(quote!(#name: #as_storage::values_mut(&mut self.#name)));
 
-                iter_next.push(quote! {
+                step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = #iterator::next(&mut self.#name) {
+                        if let #option::Some(value) = #iterator_t::next(&mut self.#name) {
                             return #option::Some(value);
                         }
-
-                        self.step += 1;
                     }
                 });
+
+                step_backward.next.push(quote! {
+                    #index => {
+                        if let #option::Some(value) = #double_ended_iterator_t::next_back(&mut self.#name) {
+                            return #option::Some(value);
+                        }
+                    }
+                });
+
+                let where_clause = step_backward.make_where_clause();
+
+                let assoc_type = quote!(#as_storage::#type_name<#lt>);
+
+                where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
+                    *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
+                }))?);
             }
         }
     }
 
+    let double_ended_where_clause = &step_backward.where_clause;
+
     let iter_impl = quote! {
-        #vis struct #type_name<'a, V> {
-            step: usize,
-            #(#iter_fields,)*
+        #vis struct #type_name<#lt, V> {
+            start: usize,
+            end: usize,
+            #(#field_decls,)*
         }
 
-        impl<'a, V> #iterator for #type_name<'a, V> {
-            type Item = &'a mut V;
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+            type Item = &#lt mut V;
 
             #[inline]
             fn next(&mut self) -> #option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return #option::None,
-                    }
-                }
+                #step_forward
+                #option::None
             }
         }
 
+        impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
+            }
+        }
     };
 
     Ok((iter_impl, init))
@@ -717,15 +909,27 @@ fn build_into_iter_impl(
 
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
-    let option = &cx.tokens.option;
-    let clone = &cx.tokens.clone;
+    let option = &cx.toks.option;
+    let clone = &cx.toks.clone;
+    let iterator_t = &cx.toks.iterator_t;
+    let double_ended_iterator_t = &cx.toks.double_ended_iterator_t;
+
+    let mut step_forward = IteratorNext::default();
+    let mut step_backward = IteratorNextBack::default();
 
     let mut field_decls = Vec::new();
     let mut init = Vec::new();
     let mut field_clone = Vec::new();
     let mut clone_bounds = Vec::new();
 
-    let iter_next = build_iter_next(cx, field_specs)?;
+    build_iter_next(
+        cx,
+        &mut step_forward,
+        &mut step_backward,
+        field_specs,
+        &type_name,
+        None,
+    )?;
 
     for FieldSpec { name, kind, .. } in field_specs {
         field_clone.push(quote!(#name: #clone::clone(&self.#name)));
@@ -746,9 +950,12 @@ fn build_into_iter_impl(
         }
     }
 
+    let double_ended_where = &step_backward.where_clause;
+
     let iter_impl = quote! {
         #vis struct #type_name<V> {
-            step: usize,
+            start: usize,
+            end: usize,
             #(#field_decls,)*
         }
 
@@ -756,26 +963,88 @@ fn build_into_iter_impl(
             #[inline]
             fn clone(&self) -> Self {
                 Self {
-                    step: self.step,
+                    start: self.start,
+                    end: self.end,
                     #(#field_clone,)*
                 }
             }
         }
 
-        impl<V> Iterator for #type_name<V> {
+        impl<V> #iterator_t for #type_name<V> {
             type Item = (#ident, V);
 
             #[inline]
             fn next(&mut self) -> Option<Self::Item> {
-                loop {
-                    match self.step {
-                        #(#iter_next,)*
-                        _ => return None,
-                    }
-                }
+                #step_forward
+                #option::None
+            }
+        }
+
+        impl<V> #double_ended_iterator_t for #type_name<V> #double_ended_where {
+            #[inline]
+            fn next_back(&mut self) -> #option<Self::Item> {
+                #step_backward
+                #option::None
             }
         }
     };
 
     Ok((iter_impl, init))
+}
+
+#[derive(Default)]
+struct IteratorNext {
+    next: Vec<TokenStream>,
+}
+
+impl ToTokens for IteratorNext {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let iter_next = &self.next;
+
+        tokens.extend(quote! {
+            while self.start < self.end {
+                match self.start {
+                    #(#iter_next,)*
+                    _ => break,
+                }
+
+                self.start = usize::min(self.start.wrapping_add(1), self.end);
+            }
+        });
+    }
+}
+
+#[derive(Default)]
+struct IteratorNextBack {
+    next: Vec<TokenStream>,
+    where_clause: Option<syn::WhereClause>,
+}
+
+impl IteratorNextBack {
+    /// Initializes an empty `where`-clause if there is not one present already.
+    pub fn make_where_clause(&mut self) -> &mut syn::WhereClause {
+        self.where_clause.get_or_insert_with(|| syn::WhereClause {
+            where_token: <syn::Token![where]>::default(),
+            predicates: syn::punctuated::Punctuated::new(),
+        })
+    }
+}
+
+impl ToTokens for IteratorNextBack {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let iter_next = &self.next;
+
+        tokens.extend(quote! {
+            while self.start < self.end {
+                let next = self.end.wrapping_sub(1);
+
+                match next {
+                    #(#iter_next,)*
+                    _ => break,
+                }
+
+                self.end = usize::max(next, self.start);
+            }
+        });
+    }
 }

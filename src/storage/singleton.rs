@@ -66,6 +66,13 @@ impl<'a, K, V> Iterator for IterMut<'a, K, V> {
     }
 }
 
+impl<K, V> DoubleEndedIterator for IterMut<'_, K, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
 pub struct IntoIter<K, V> {
     value: Option<(K, V)>,
 }
@@ -75,6 +82,13 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
+        self.value.take()
+    }
+}
+
+impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
         self.value.take()
     }
 }
@@ -89,6 +103,16 @@ where
     type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
     type ValuesMut<'this> = ::core::option::IterMut<'this, V> where Self: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
+
+    #[inline]
+    fn len(&self) -> usize {
+        usize::from(self.inner.is_some())
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.inner.is_none()
+    }
 
     #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {

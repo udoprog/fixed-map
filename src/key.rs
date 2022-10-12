@@ -10,9 +10,8 @@ pub trait Key<K, V>: Copy {
     type Storage: Storage<K, V>;
 }
 
-#[cfg(feature = "map")]
-impl<V> Key<&'static str, V> for &'static str {
-    type Storage = MapStorage<Self, V>;
+impl<V> Key<bool, V> for bool {
+    type Storage = BooleanStorage<V>;
 }
 
 impl<K, V> Key<Option<K>, V> for Option<K>
@@ -22,7 +21,7 @@ where
     type Storage = OptionStorage<K, V>;
 }
 
-macro_rules! impl_map_storage {
+macro_rules! map_key {
     ($ty:ty) => {
         #[cfg(feature = "map")]
         impl<V> Key<$ty, V> for $ty {
@@ -31,7 +30,7 @@ macro_rules! impl_map_storage {
     };
 }
 
-macro_rules! impl_singleton_storage {
+macro_rules! singleton_key {
     ($ty:ty) => {
         impl<V> Key<$ty, V> for $ty {
             type Storage = SingletonStorage<V>;
@@ -39,19 +38,17 @@ macro_rules! impl_singleton_storage {
     };
 }
 
-impl_map_storage!(char);
-impl_map_storage!(u8);
-impl_map_storage!(u32);
-impl_map_storage!(u64);
-impl_map_storage!(u128);
-impl_map_storage!(usize);
-impl_map_storage!(i8);
-impl_map_storage!(i32);
-impl_map_storage!(i64);
-impl_map_storage!(i128);
-impl_map_storage!(isize);
-impl_singleton_storage!(());
-
-impl<V> Key<bool, V> for bool {
-    type Storage = BooleanStorage<V>;
-}
+map_key!(char);
+map_key!(u8);
+map_key!(u32);
+map_key!(u64);
+map_key!(u128);
+map_key!(usize);
+map_key!(i8);
+map_key!(i32);
+map_key!(i64);
+map_key!(i128);
+map_key!(isize);
+map_key!(&'static str);
+map_key!(&'static [u8]);
+singleton_key!(());

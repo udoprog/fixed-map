@@ -127,7 +127,7 @@ impl<K, V> Map<K, V>
 where
     K: Key<K, V>,
 {
-    /// Creates an empty `Map`.
+    /// Creates an empty [`Map`].
     ///
     /// # Examples
     ///
@@ -188,16 +188,39 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// pub enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
+    ///     First,
+    ///     Second,
+    ///     Third,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Second, 2);
     ///
-    /// assert_eq!(map.keys().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert!(map.keys().eq([Key::First, Key::Second]));
+    /// assert!(map.keys().rev().eq([Key::Second, Key::First]));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// pub enum Key {
+    ///     First,
+    ///     Second(bool),
+    ///     Third,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Second(false), 2);
+    ///
+    /// dbg!(map.keys().collect::<Vec<_>>());
+    ///
+    /// assert!(map.keys().eq([Key::First, Key::Second(false)]));
+    /// assert!(map.keys().rev().eq([Key::Second(false), Key::First]));
     /// ```
     #[inline]
     pub fn keys(&self) -> Keys<'_, K, V> {
@@ -216,16 +239,37 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// pub enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
+    ///     First,
+    ///     Second,
+    ///     Third,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Second, 2);
     ///
-    /// assert_eq!(map.values().map(|v| *v).collect::<Vec<_>>(), vec![1, 2]);
+    /// assert!(map.values().copied().eq([1, 2]));
+    /// assert!(map.values().rev().copied().eq([2, 1]));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// pub enum Key {
+    ///     First(bool),
+    ///     Second,
+    ///     Third,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First(false), 1);
+    /// map.insert(Key::Second, 2);
+    ///
+    /// assert!(map.values().copied().eq([1, 2]));
+    /// assert!(map.values().rev().copied().eq([2, 1]));
     /// ```
     #[inline]
     pub fn values(&self) -> Values<'_, K, V> {
@@ -305,14 +349,24 @@ where
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::First, 1);
-    /// map.insert(Key::Second, 2);
+    /// map.insert(Key::First, 2);
+    /// map.insert(Key::Second, 5);
     ///
-    /// for val in map.values_mut() {
-    ///     *val *= 3;
+    /// for (index, val) in map.values_mut().enumerate() {
+    ///     *val *= index + 1;
     /// }
     ///
-    /// assert!(map.values().copied().eq([3, 6]));
+    /// assert!(map.values().copied().eq([2, 10]));
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First, 2);
+    /// map.insert(Key::Second, 5);
+    ///
+    /// for (index, val) in map.values_mut().rev().enumerate() {
+    ///     *val *= index + 1;
+    /// }
+    ///
+    /// assert!(map.values().copied().eq([4, 5]));
     /// ```
     ///
     /// Using a composite key:
@@ -322,19 +376,29 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// pub enum Key {
-    ///     First(&'static str),
+    ///     First(bool),
     ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::First("hello"), 1);
-    /// map.insert(Key::Second, 2);
+    /// map.insert(Key::First(false), 2);
+    /// map.insert(Key::Second, 5);
     ///
-    /// for val in map.values_mut() {
-    ///     *val *= 3;
+    /// for (index, val) in map.values_mut().enumerate() {
+    ///     *val *= index + 1;
     /// }
     ///
-    /// assert!(map.values().copied().eq([3, 6]));
+    /// assert!(map.values().copied().eq([2, 10]));
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First(false), 2);
+    /// map.insert(Key::Second, 5);
+    ///
+    /// for (index, val) in map.values_mut().rev().enumerate() {
+    ///     *val *= index + 1;
+    /// }
+    ///
+    /// assert!(map.values().copied().eq([4, 5]));
     /// ```
     #[inline]
     pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
@@ -520,21 +584,33 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
     /// assert!(map.is_empty());
-    /// map.insert(Key::One, "a");
+    /// map.insert(Key::First, 1);
     /// assert!(!map.is_empty());
+    /// ```
+    ///
+    /// An empty key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {}
+    ///
+    /// let map = Map::<Key, u32>::new();
+    /// assert!(map.is_empty());
     /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.iter().next().is_none()
+        self.storage.is_empty()
     }
 
-    /// Returns the number of elements in the map.
+    /// Gets the current length of a [`Map`].
     ///
     /// # Examples
     ///
@@ -543,18 +619,48 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
-    /// let mut map = Map::new();
+    /// let mut map: Map<Key, i32> = Map::new();
     /// assert_eq!(map.len(), 0);
-    /// map.insert(Key::One, "a");
+    ///
+    /// map.insert(Key::First, 42);
+    /// assert_eq!(map.len(), 1);
+    ///
+    /// map.insert(Key::First, 42);
+    /// assert_eq!(map.len(), 1);
+    ///
+    /// map.remove(Key::First);
+    /// assert_eq!(map.len(), 0);
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    /// assert_eq!(map.len(), 0);
+    ///
+    /// map.insert(Key::First(true), 42);
+    /// assert_eq!(map.len(), 1);
+    ///
+    /// map.insert(Key::First(false), 42);
+    /// assert_eq!(map.len(), 2);
+    ///
+    /// map.remove(Key::First(true));
     /// assert_eq!(map.len(), 1);
     /// ```
-    #[inline]
     pub fn len(&self) -> usize {
-        self.iter().count()
+        self.storage.len()
     }
 }
 
@@ -684,13 +790,7 @@ where
     V: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut debug_map = f.debug_map();
-
-        for (k, v) in self.iter() {
-            debug_map.entry(&k, v);
-        }
-
-        debug_map.finish()
+        f.debug_map().entries(self.iter()).finish()
     }
 }
 
@@ -782,17 +882,7 @@ where
     }
 }
 
-impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, v))
-    }
-}
+iterator!(@identity, {Iter, Iter}, {'a}, [K, V], K, V => (K, &'a V));
 
 impl<'a, K, V> IntoIterator for &'a Map<K, V>
 where
@@ -818,19 +908,7 @@ where
     iter: <K::Storage as Storage<K, V>>::IterMut<'a>,
 }
 
-/// [`IntoIterator`] implementation which uses [`Map::into_iter`]. See its
-/// documentation for more.
-impl<'a, K, V> Iterator for IterMut<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (k, v))
-    }
-}
+iterator!(@identity, {IterMut, IterMut}, {'a}, [K, V], K, V => (K, &'a mut V));
 
 /// [`IntoIterator`] implementation which uses [`Map::iter_mut`]. See its
 /// documentation for more.
@@ -858,17 +936,7 @@ where
     iter: <K::Storage as Storage<K, V>>::IntoIter,
 }
 
-impl<K, V> Iterator for IntoIter<K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = (K, V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {IntoIter, IntoIter}, {}, [K, V], K, V => (K, V));
 
 impl<K, V> IntoIterator for Map<K, V>
 where
@@ -887,19 +955,51 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
-    ///     Three,
+    ///     First,
+    ///     Second,
+    ///     Third,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::One, 1);
-    /// map.insert(Key::Two, 2);
+    /// map.insert(Key::First, 1);
+    /// map.insert(Key::Third, 3);
     ///
-    /// // Convert to a Vec
-    /// let v: Vec<_> = map.into_iter().collect();
+    /// let mut it = map.into_iter();
+    /// assert_eq!(it.next(), Some((Key::First, 1)));
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), None);
     ///
-    /// assert_eq!(v, vec![(Key::One, 1), (Key::Two, 2)]);
+    /// let mut it = map.into_iter().rev();
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), Some((Key::First, 1)));
+    /// assert_eq!(it.next(), None);
+    /// ```
+    ///
+    /// Into iterator with a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    ///     Third,
+    /// }
+    ///
+    /// let mut map = Map::<_, u32>::new();
+    /// map.insert(Key::First(false), 1);
+    /// map.insert(Key::Third, 3);
+    ///
+    /// let mut it = map.into_iter();
+    /// assert_eq!(it.next(), Some((Key::First(false), 1)));
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), None);
+    ///
+    /// let mut it = map.into_iter().rev();
+    /// assert_eq!(it.next(), Some((Key::Third, 3)));
+    /// assert_eq!(it.next(), Some((Key::First(false), 1)));
+    /// assert_eq!(it.next(), None);
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -921,6 +1021,8 @@ where
     iter: <K::Storage as Storage<K, V>>::Keys<'a>,
 }
 
+iterator!(@identity, {Keys, Keys}, {'a}, [K, V], K, V => K);
+
 impl<'a, K, V> Clone for Keys<'a, K, V>
 where
     K: Key<K, V>,
@@ -931,18 +1033,6 @@ where
         Self {
             iter: self.iter.clone(),
         }
-    }
-}
-
-impl<'a, K: 'a, V: 'a> Iterator for Keys<'a, K, V>
-where
-    K: Key<K, V>,
-{
-    type Item = K;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
     }
 }
 
@@ -959,18 +1049,7 @@ where
     iter: <K::Storage as Storage<K, V>>::Values<'a>,
 }
 
-impl<'a, K: 'a, V: 'a> Iterator for Values<'a, K, V>
-where
-    K: Key<K, V>,
-    <K::Storage as Storage<K, V>>::Values<'a>: Clone,
-{
-    type Item = &'a V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {Values, Values}, {'a}, [K, V], K, V => &'a V);
 
 /// A mutable iterator over the values of a [`Map`].
 ///
@@ -984,18 +1063,7 @@ where
     iter: <K::Storage as Storage<K, V>>::ValuesMut<'a>,
 }
 
-impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
-where
-    K: 'a + Key<K, V>,
-    V: 'a,
-{
-    type Item = &'a mut V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next()
-    }
-}
+iterator!(@identity, {ValuesMut, ValuesMut}, {'a}, [K, V], K, V => &'a mut V);
 
 /// A simple [`FromIterator`] implementation for [`Map`].
 ///

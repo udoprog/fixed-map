@@ -306,6 +306,16 @@ where
     type IntoIter = IntoIter<K, V>;
 
     #[inline]
+    fn len(&self) -> usize {
+        self.some.len() + usize::from(self.none.is_some())
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.some.is_empty() && self.none.is_none()
+    }
+
+    #[inline]
     fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
         match key {
             Some(key) => self.some.insert(key, value),

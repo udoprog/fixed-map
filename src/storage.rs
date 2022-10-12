@@ -51,6 +51,12 @@ pub trait Storage<K, V>: Default {
     /// Consuming iterator.
     type IntoIter: Iterator<Item = (K, V)>;
 
+    /// Get the length of storage.
+    fn len(&self) -> usize;
+
+    /// Check if storage is empty.
+    fn is_empty(&self) -> bool;
+
     /// This is the storage abstraction for [`Map::insert`][crate::Map::insert].
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
