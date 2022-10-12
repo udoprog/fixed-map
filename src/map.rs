@@ -584,14 +584,26 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     One,
-    ///     Two,
+    ///     First,
+    ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
     /// assert!(map.is_empty());
-    /// map.insert(Key::One, "a");
+    /// map.insert(Key::First, 1);
     /// assert!(!map.is_empty());
+    /// ```
+    ///
+    /// An empty key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {}
+    ///
+    /// let map = Map::<Key, u32>::new();
+    /// assert!(map.is_empty());
     /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {

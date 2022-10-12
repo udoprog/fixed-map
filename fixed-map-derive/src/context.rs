@@ -89,7 +89,7 @@ impl<'a> Ctxt<'a> {
             Ok(output) => Ok(output),
             Err(error) => {
                 self.errors.borrow_mut().push(error);
-                return Err(());
+                Err(())
             }
         }
     }

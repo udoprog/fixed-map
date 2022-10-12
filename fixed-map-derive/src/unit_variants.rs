@@ -404,13 +404,13 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #[inline]
                 fn len(&self) -> usize {
                     let [#(#names),*] = &self.data;
-                    #(#len)+*
+                    0 #(+ #len)*
                 }
 
                 #[inline]
                 fn is_empty(&self) -> bool {
                     let [#(#names),*] = &self.data;
-                    #(#is_empty)&&*
+                    true #(&& #is_empty)*
                 }
 
                 #[inline]
