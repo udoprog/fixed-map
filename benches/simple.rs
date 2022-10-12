@@ -22,7 +22,7 @@ macro_rules! expand {
 
         #[no_mangle]
         #[inline(never)]
-        pub fn test_fixed(map: &[Option<u32>; $len]) -> u32 {
+        pub fn sum_array(map: &[Option<u32>; $len]) -> u32 {
             map.iter().flat_map(|v| v).copied().sum()
         }
     }
@@ -43,7 +43,7 @@ fn benches(criterion: &mut Criterion) {
             array[ArrayKey::T07 as usize] = Some(4);
             array[ArrayKey::T10 as usize] = Some(13);
 
-            iter.iter(|| test_fixed(&array))
+            iter.iter(|| sum_array(&array))
         });
     }
 
