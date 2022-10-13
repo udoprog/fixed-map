@@ -1,11 +1,28 @@
 #![allow(missing_copy_implementations)] // Iterators are confusing if they impl `Copy`.
 
+use core::iter;
 use core::mem;
+use core::option;
 
 use crate::storage::Storage;
 
 const TRUE_BIT: u8 = 0b10;
 const FALSE_BIT: u8 = 0b01;
+
+type Iter<'a, V> = iter::Chain<
+    iter::Map<option::Iter<'a, V>, fn(&'a V) -> (bool, &'a V)>,
+    iter::Map<option::Iter<'a, V>, fn(&'a V) -> (bool, &'a V)>,
+>;
+type Values<'a, V> = iter::Chain<option::Iter<'a, V>, option::Iter<'a, V>>;
+type IterMut<'a, V> = iter::Chain<
+    iter::Map<option::IterMut<'a, V>, fn(&'a mut V) -> (bool, &'a mut V)>,
+    iter::Map<option::IterMut<'a, V>, fn(&'a mut V) -> (bool, &'a mut V)>,
+>;
+type ValuesMut<'a, V> = iter::Chain<option::IterMut<'a, V>, option::IterMut<'a, V>>;
+type IntoIter<V> = iter::Chain<
+    iter::Map<option::IntoIter<V>, fn(V) -> (bool, V)>,
+    iter::Map<option::IntoIter<V>, fn(V) -> (bool, V)>,
+>;
 
 /// Storage for [`bool`] types.
 ///
@@ -31,25 +48,8 @@ const FALSE_BIT: u8 = 0b01;
 /// assert!(a.values().copied().eq([1]));
 /// assert!(a.keys().eq([Key::First(false)]));
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct BooleanStorage<V> {
-    t: Option<V>,
-    f: Option<V>,
-}
-
-impl<V> Default for BooleanStorage<V> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            t: Option::default(),
-            f: Option::default(),
-        }
-    }
-}
-
-/// Iterator over boolean storage.
 ///
-/// # Examples
+/// Iterator over boolean storage:
 ///
 /// ```
 /// use fixed_map::{Key, Map};
@@ -67,57 +67,20 @@ impl<V> Default for BooleanStorage<V> {
 /// assert!(a.iter().eq([(Key::Bool(true), &1), (Key::Bool(false), &2)]));
 /// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![(Key::Bool(false), &2), (Key::Bool(true), &1)]);
 /// ```
-pub struct Iter<'a, V> {
-    t: Option<&'a V>,
-    f: Option<&'a V>,
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct BooleanStorage<V> {
+    t: Option<V>,
+    f: Option<V>,
 }
 
-impl<'a, V> Clone for Iter<'a, V> {
+impl<V> Default for BooleanStorage<V> {
     #[inline]
-    fn clone(&self) -> Iter<'a, V> {
-        Iter {
-            t: self.t,
-            f: self.f,
+    fn default() -> Self {
+        Self {
+            t: Option::default(),
+            f: Option::default(),
         }
-    }
-}
-
-impl<'a, V> Iterator for Iter<'a, V> {
-    type Item = (bool, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.t.take() {
-            return Some((true, value));
-        }
-
-        if let Some(value) = self.f.take() {
-            return Some((false, value));
-        }
-
-        None
-    }
-}
-
-impl<V> DoubleEndedIterator for Iter<'_, V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.f.take() {
-            return Some((false, value));
-        }
-
-        if let Some(value) = self.t.take() {
-            return Some((true, value));
-        }
-
-        None
-    }
-}
-
-impl<V> ExactSizeIterator for Iter<'_, V> {
-    #[inline]
-    fn len(&self) -> usize {
-        usize::from(self.t.is_some()) + usize::from(self.f.is_some())
     }
 }
 
@@ -150,6 +113,12 @@ impl Iterator for Keys {
 
         None
     }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.bits.count_ones() as usize;
+        (len, Some(len))
+    }
 }
 
 impl DoubleEndedIterator for Keys {
@@ -169,148 +138,10 @@ impl DoubleEndedIterator for Keys {
     }
 }
 
-/// See [`BooleanStorage::values`].
-pub struct Values<'a, V> {
-    t: Option<&'a V>,
-    f: Option<&'a V>,
-}
-
-impl<'a, V> Clone for Values<'a, V> {
+impl ExactSizeIterator for Keys {
     #[inline]
-    fn clone(&self) -> Values<'a, V> {
-        Values {
-            t: self.t,
-            f: self.f,
-        }
-    }
-}
-
-impl<'a, V> Iterator for Values<'a, V> {
-    type Item = &'a V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.t.take() {
-            return Some(value);
-        }
-
-        if let Some(value) = self.f.take() {
-            return Some(value);
-        }
-
-        None
-    }
-}
-
-impl<V> DoubleEndedIterator for Values<'_, V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.f.take() {
-            return Some(value);
-        }
-
-        if let Some(value) = self.t.take() {
-            return Some(value);
-        }
-
-        None
-    }
-}
-
-pub struct IterMut<'a, V> {
-    t: Option<&'a mut V>,
-    f: Option<&'a mut V>,
-}
-
-impl<'a, V> Iterator for IterMut<'a, V> {
-    type Item = (bool, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(t) = self.t.take() {
-            return Some((true, t));
-        }
-
-        if let Some(f) = self.f.take() {
-            return Some((false, f));
-        }
-
-        None
-    }
-}
-
-/// See [`BooleanStorage::values`].
-pub struct ValuesMut<'a, V> {
-    t: Option<&'a mut V>,
-    f: Option<&'a mut V>,
-}
-
-impl<'a, V> Iterator for ValuesMut<'a, V> {
-    type Item = &'a mut V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.t.take() {
-            return Some(value);
-        }
-
-        if let Some(value) = self.f.take() {
-            return Some(value);
-        }
-
-        None
-    }
-}
-
-impl<V> DoubleEndedIterator for ValuesMut<'_, V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(value) = self.f.take() {
-            return Some(value);
-        }
-
-        if let Some(value) = self.t.take() {
-            return Some(value);
-        }
-
-        None
-    }
-}
-
-pub struct IntoIter<V> {
-    t: Option<V>,
-    f: Option<V>,
-}
-
-impl<V> Iterator for IntoIter<V> {
-    type Item = (bool, V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(t) = self.t.take() {
-            return Some((true, t));
-        }
-
-        if let Some(f) = self.f.take() {
-            return Some((false, f));
-        }
-
-        None
-    }
-}
-
-impl<V> DoubleEndedIterator for IntoIter<V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if let Some(f) = self.f.take() {
-            return Some((false, f));
-        }
-
-        if let Some(t) = self.t.take() {
-            return Some((true, t));
-        }
-
-        None
+    fn len(&self) -> usize {
+        self.bits.count_ones() as usize
     }
 }
 
@@ -385,10 +216,11 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
 
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
-        Iter {
-            t: self.t.as_ref(),
-            f: self.f.as_ref(),
-        }
+        let map: fn(_) -> _ = |v| (true, v);
+        let a = self.t.iter().map(map);
+        let map: fn(_) -> _ = |v| (false, v);
+        let b = self.f.iter().map(map);
+        a.chain(b)
     }
 
     #[inline]
@@ -401,33 +233,29 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
 
     #[inline]
     fn values(&self) -> Self::Values<'_> {
-        Values {
-            t: self.t.as_ref(),
-            f: self.f.as_ref(),
-        }
+        self.t.iter().chain(self.f.iter())
     }
 
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        IterMut {
-            t: self.t.as_mut(),
-            f: self.f.as_mut(),
-        }
+        let map: fn(_) -> _ = |v| (true, v);
+        let a = self.t.iter_mut().map(map);
+        let map: fn(_) -> _ = |v| (false, v);
+        let b = self.f.iter_mut().map(map);
+        a.chain(b)
     }
 
     #[inline]
     fn values_mut(&mut self) -> Self::ValuesMut<'_> {
-        ValuesMut {
-            t: self.t.as_mut(),
-            f: self.f.as_mut(),
-        }
+        self.t.iter_mut().chain(self.f.iter_mut())
     }
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            t: self.t,
-            f: self.f,
-        }
+        let map: fn(_) -> _ = |v| (true, v);
+        let a = self.t.into_iter().map(map);
+        let map: fn(_) -> _ = |v| (false, v);
+        let b = self.f.into_iter().map(map);
+        a.chain(b)
     }
 }
