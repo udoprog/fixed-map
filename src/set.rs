@@ -159,8 +159,7 @@ where
         }
     }
 
-    /// Returns `true` if the set contains a value.
-    /// Returns a reference to the value corresponding to the key.
+    /// Returns `true` if the set currently contains the given value.
     ///
     /// # Examples
     ///
@@ -173,14 +172,14 @@ where
     ///     Two,
     /// }
     ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// assert_eq!(map.contains(Key::One), true);
-    /// assert_eq!(map.contains(Key::Two), false);
+    /// let mut set = Set::new();
+    /// set.insert(Key::One);
+    /// assert_eq!(set.contains(Key::One), true);
+    /// assert_eq!(set.contains(Key::Two), false);
     /// ```
     #[inline]
-    pub fn contains(&self, key: K) -> bool {
-        self.storage.get(key).is_some()
+    pub fn contains(&self, value: K) -> bool {
+        self.storage.contains_key(value)
     }
 
     /// Adds a value to the set.

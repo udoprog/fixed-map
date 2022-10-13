@@ -324,6 +324,14 @@ where
     }
 
     #[inline]
+    fn contains_key(&self, key: Option<K>) -> bool {
+        match key {
+            Some(key) => self.some.contains_key(key),
+            None => self.none.is_some(),
+        }
+    }
+
+    #[inline]
     fn get(&self, key: Option<K>) -> Option<&V> {
         match key {
             Some(key) => self.some.get(key),

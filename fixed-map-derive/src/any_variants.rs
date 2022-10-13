@@ -31,6 +31,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let mut field_inits = Vec::new();
     let mut field_clones = Vec::new();
     let mut field_partial_eqs = Vec::new();
+    let mut contains_key = Vec::new();
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
@@ -58,6 +59,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 fields.push(quote!(#name: #option<V>));
                 pattern.push(quote!(#ident::#var));
                 clear.push(quote!(self.#name = #option::None));
+                contains_key.push(quote!(#option::is_some(&self.#name)));
                 get.push(quote!(#option::as_ref(&self.#name)));
                 get_mut.push(quote!(#option::as_mut(&mut self.#name)));
                 insert.push(quote!(#mem::replace(&mut self.#name, #option::Some(value))));
@@ -84,6 +86,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 pattern.push(quote!(#ident::#var(v)));
                 clear.push(quote!(#as_storage::clear(&mut self.#name)));
 
+                contains_key.push(quote!(#as_storage::contains_key(&self.#name, v)));
                 get.push(quote!(#as_storage::get(&self.#name, v)));
                 get_mut.push(quote!(#as_storage::get_mut(&mut self.#name, v)));
                 insert.push(quote!(#as_storage::insert(&mut self.#name, v, value)));
@@ -186,6 +189,13 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 fn insert(&mut self, key: #ident, value: V) -> #option<V> {
                     match key {
                         #(#pattern => #insert,)*
+                    }
+                }
+
+                #[inline]
+                fn contains_key(&self, value: #ident) -> bool {
+                    match value {
+                        #(#pattern => #contains_key,)*
                     }
                 }
 

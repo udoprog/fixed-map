@@ -342,6 +342,15 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
+    fn contains_key(&self, key: bool) -> bool {
+        if key {
+            self.t.is_some()
+        } else {
+            self.f.is_some()
+        }
+    }
+
+    #[inline]
     fn get(&self, key: bool) -> Option<&V> {
         if key {
             self.t.as_ref()
