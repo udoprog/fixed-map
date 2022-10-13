@@ -76,7 +76,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
 
                 let element = unnamed.unnamed.first().expect("Expected one element");
-                let storage = quote!(<#element as #key_trait<#element, V>>::Storage);
+                let storage = quote!(<#element as #key_trait>::Storage::<V>);
                 let as_storage = quote!(<#storage as #storage_trait<#element, V>>);
 
                 len.push(quote!(#as_storage::len(&self.#name)));
@@ -280,8 +280,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
-            impl<V> #key_trait<#ident, V> for #ident {
-                type Storage = Storage<V>;
+            impl #key_trait for #ident {
+                type Storage<V> = Storage<V>;
             }
 
             #iter_impl

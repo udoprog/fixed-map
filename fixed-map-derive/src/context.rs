@@ -15,6 +15,7 @@ pub(crate) struct Toks {
     pub(crate) eq: TokenStream,
     pub(crate) into_iter: TokenStream,
     pub(crate) iterator_t: TokenStream,
+    pub(crate) iterator_flatten: TokenStream,
     pub(crate) key_trait: TokenStream,
     pub(crate) mem: TokenStream,
     pub(crate) option: TokenStream,
@@ -22,6 +23,7 @@ pub(crate) struct Toks {
     pub(crate) slice_iter_mut: TokenStream,
     pub(crate) slice_iter: TokenStream,
     pub(crate) storage_trait: TokenStream,
+    pub(crate) iterator_flat_map: TokenStream,
 }
 
 impl Toks {
@@ -36,6 +38,7 @@ impl Toks {
             eq: quote!(::core::cmp::Eq),
             into_iter: quote!(::core::iter::IntoIterator::into_iter),
             iterator_t: quote!(::core::iter::Iterator),
+            iterator_flatten: quote!(::core::iter::Flatten),
             key_trait: quote!(#krate::key::Key),
             mem: quote!(::core::mem),
             option: quote!(::core::option::Option),
@@ -43,6 +46,7 @@ impl Toks {
             slice_iter_mut: quote!(::core::slice::IterMut),
             slice_iter: quote!(::core::slice::Iter),
             storage_trait: quote!(#krate::storage::Storage),
+            iterator_flat_map: quote!(::core::iter::FlatMap),
         }
     }
 }

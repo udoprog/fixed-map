@@ -20,7 +20,7 @@ macro_rules! benches {
 
                     // Assert that size of Key is identical to array.
                     assert_eq!(
-                        mem::size_of::<<Key as fixed_map::key::Key<Key, usize>>::Storage>(),
+                        mem::size_of::<<Key as fixed_map::key::Key>::Storage<usize>>(),
                         mem::size_of::<[Option<usize>; $len]>(),
                     );
 
@@ -108,7 +108,7 @@ macro_rules! benches {
         }
 
         {
-            let mut group = criterion.benchmark_group("values_iter");
+            let mut group = criterion.benchmark_group("values");
 
             $(
                 group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {
@@ -120,7 +120,7 @@ macro_rules! benches {
                     let mut map = fixed_map::Map::new();
                     $(map.insert(Key::$insert, it.next().unwrap());)*
 
-                    b.iter(|| map.values().cloned().sum::<u32>())
+                    b.iter(|| map.values().copied().sum::<u32>())
                 });
             )*
 
@@ -134,7 +134,7 @@ macro_rules! benches {
                     let mut map = hashbrown::HashMap::with_capacity(*len);
                     $(map.insert(Key::$insert, it.next().unwrap());)*
 
-                    b.iter(|| map.values().cloned().sum::<u32>())
+                    b.iter(|| map.values().copied().sum::<u32>())
                 });
             )*
 
@@ -147,7 +147,7 @@ macro_rules! benches {
                     let mut it = 1u32..;
                     let mut map = [None; $len];
                     $(map[Key::$insert as usize] = Some(it.next().unwrap());)*
-                    b.iter(|| map.iter().flat_map(|v| v.clone()).sum::<u32>())
+                    b.iter(|| map.iter().flatten().copied().sum::<u32>())
                 });
             )*
         }

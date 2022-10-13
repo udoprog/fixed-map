@@ -289,9 +289,6 @@
     clippy::expl_impl_clone_on_copy
 )]
 
-#[macro_use]
-mod macros;
-
 pub mod key;
 
 pub mod map;

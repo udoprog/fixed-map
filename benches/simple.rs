@@ -23,7 +23,7 @@ macro_rules! expand {
         #[no_mangle]
         #[inline(never)]
         pub fn sum_array(map: &[Option<u32>; $len]) -> u32 {
-            map.iter().flat_map(|v| v).copied().sum()
+            map.iter().flatten().copied().sum()
         }
     }
 }

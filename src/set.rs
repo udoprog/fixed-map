@@ -1,9 +1,17 @@
 //! Contains the fixed [`Set`] implementation.
 
 use core::fmt;
+use core::iter;
 
 use crate::key::Key;
 use crate::storage::Storage;
+
+/// The iterator produced by [`Set::into_iter`].
+pub type IntoIter<K> =
+    iter::Map<<<K as Key>::Storage<()> as Storage<K, ()>>::IntoIter, fn((K, ())) -> K>;
+
+/// The iterator produced by [`Set::iter`].
+pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 
 /// A fixed set.
 ///
@@ -56,9 +64,9 @@ use crate::storage::Storage;
 /// ```
 pub struct Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
-    storage: K::Storage,
+    storage: K::Storage<()>,
 }
 
 /// A map implementation that uses fixed storage.
@@ -106,7 +114,7 @@ where
 /// ```
 impl<K> Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
     /// Creates an empty [`Set`].
     ///
@@ -154,9 +162,7 @@ where
     /// ```
     #[inline]
     pub fn iter(&self) -> Iter<'_, K> {
-        Iter {
-            iter: self.storage.keys(),
-        }
+        self.storage.keys()
     }
 
     /// Returns `true` if the set currently contains the given value.
@@ -334,8 +340,8 @@ where
 /// ```
 impl<K> Clone for Set<K>
 where
-    K: Key<K, ()>,
-    K::Storage: Clone,
+    K: Key,
+    K::Storage<()>: Clone,
 {
     #[inline]
     fn clone(&self) -> Set<K> {
@@ -375,8 +381,8 @@ where
 /// ```
 impl<K> Copy for Set<K>
 where
-    K: Key<K, ()>,
-    K::Storage: Copy,
+    K: Key,
+    K::Storage<()>: Copy,
 {
 }
 
@@ -400,7 +406,7 @@ where
 /// ```
 impl<K> Default for Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
     #[inline]
     fn default() -> Self {
@@ -428,7 +434,7 @@ where
 /// ```
 impl<K> fmt::Debug for Set<K>
 where
-    K: Key<K, ()> + fmt::Debug,
+    K: Key + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_set().entries(self.iter()).finish()
@@ -481,8 +487,8 @@ where
 /// ```
 impl<K> PartialEq for Set<K>
 where
-    K: Key<K, ()>,
-    K::Storage: PartialEq,
+    K: Key,
+    K::Storage<()>: PartialEq,
 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -492,27 +498,14 @@ where
 
 impl<K> Eq for Set<K>
 where
-    K: Key<K, ()>,
-    K::Storage: Eq,
+    K: Key,
+    K::Storage<()>: Eq,
 {
 }
-
-/// An iterator over the items of a [`Set`].
-///
-/// This `struct` is created by the [`iter`][Set::iter] method on [`Set`].
-/// See its documentation for more.
-pub struct Iter<'a, K>
-where
-    K: 'a + Key<K, ()>,
-{
-    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::Keys<'a>,
-}
-
-iterator!(@identity, {Iter, Keys}, {'a}, [K], K, () => K);
 
 impl<'a, K> IntoIterator for &'a Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
     type Item = K;
     type IntoIter = Iter<'a, K>;
@@ -523,22 +516,30 @@ where
     }
 }
 
-/// An owning iterator over the items of a [`Set`].
+/// Produce an owning iterator which iterates over all elements in the set in
+/// order.
 ///
-/// This `struct` is created by the [`into_iter`][Set::into_iter] method on
-/// [`Set`]. See its documentation for more.
-pub struct IntoIter<K>
-where
-    K: Key<K, ()>,
-{
-    iter: <<K as Key<K, ()>>::Storage as Storage<K, ()>>::IntoIter,
-}
-
-iterator!(@first, {IntoIter, IntoIter}, {}, [K], K, () => K);
-
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
+/// enum Key {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// let mut map = Set::new();
+/// map.insert(Key::First);
+/// map.insert(Key::Second);
+///
+/// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
+/// ```
 impl<K> IntoIterator for Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
     type Item = K;
     type IntoIter = IntoIter<K>;
@@ -566,15 +567,13 @@ where
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            iter: self.storage.into_iter(),
-        }
+        self.storage.into_iter().map(|(key, ())| key)
     }
 }
 
 impl<K> FromIterator<K> for Set<K>
 where
-    K: Key<K, ()>,
+    K: Key,
 {
     #[inline]
     fn from_iter<T>(iter: T) -> Self
@@ -592,7 +591,7 @@ where
 #[cfg(feature = "serde")]
 impl<K> serde::Serialize for Set<K>
 where
-    K: Key<K, ()> + serde::Serialize,
+    K: Key + serde::Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -613,7 +612,7 @@ where
 #[cfg(feature = "serde")]
 impl<'de, K> serde::de::Deserialize<'de> for Set<K>
 where
-    K: Key<K, ()> + serde::de::Deserialize<'de>,
+    K: Key + serde::de::Deserialize<'de>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -623,7 +622,7 @@ where
 
         impl<'de, K> serde::de::Visitor<'de> for SeqVisitor<K>
         where
-            K: Key<K, ()> + serde::de::Deserialize<'de>,
+            K: Key + serde::de::Deserialize<'de>,
         {
             type Value = Set<K>;
 
