@@ -619,8 +619,6 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        return deserializer.deserialize_seq(SeqVisitor(core::marker::PhantomData));
-
         struct SeqVisitor<K>(core::marker::PhantomData<K>);
 
         impl<'de, K> serde::de::Visitor<'de> for SeqVisitor<K>
@@ -647,5 +645,7 @@ where
                 Ok(set)
             }
         }
+
+        deserializer.deserialize_seq(SeqVisitor(core::marker::PhantomData))
     }
 }

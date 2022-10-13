@@ -1159,8 +1159,6 @@ where
     where
         D: serde::Deserializer<'de>,
     {
-        return deserializer.deserialize_map(MapVisitor(core::marker::PhantomData));
-
         struct MapVisitor<K, V>(core::marker::PhantomData<(K, V)>);
 
         impl<'de, K, V> serde::de::Visitor<'de> for MapVisitor<K, V>
@@ -1188,5 +1186,7 @@ where
                 Ok(map)
             }
         }
+
+        deserializer.deserialize_map(MapVisitor(core::marker::PhantomData))
     }
 }
