@@ -16,9 +16,11 @@ For more information on how to use, see the [documentation].
 
 The following features are available:
 
+* `std` - Disabling this feature enables causes this crate to be no-std.
+  This means that dynamic types cannot be used in keys, like ones enabled by
+  the `map` feature (default).
 * `map` - Causes [Storage] to be implemented by dynamic types such as
-  `&'static str` or `u32`. These are backed by a `hashbrown` HashMap
-  (default).
+  `&'static str` or `u32`. These are backed by a `hashbrown` (default).
 * `serde` - Causes [Map] and [Set] to implement [Serialize] and
   [Deserialize] if it's implemented by the key and value.
 
@@ -147,6 +149,14 @@ if let Some(item) = map.get(Dir::North) {
     println!("found item: {:?}", item);
 }
 ```
+
+### Unsafe use
+
+This crate uses unsafe for its iterators. This is needed because there is no
+proper way to associate generic lifetimes to associated types.
+
+Instead, we associate the lifetime to the container (`Map` or `Set`) which
+wraps a set of unsafe derefs over raw pointers.
 
 ### Benchmarks
 

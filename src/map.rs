@@ -39,7 +39,9 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
+///     # #[cfg(feature = "map")]
 ///     String(&'static str),
+///     # #[cfg(feature = "map")]
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
@@ -50,7 +52,9 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 ///
 /// map.insert(Key::Simple, 1);
 /// map.insert(Key::Composite(Part::One), 2);
+/// # #[cfg(feature = "map")]
 /// map.insert(Key::String("foo"), 3);
+/// # #[cfg(feature = "map")]
 /// map.insert(Key::Number(1), 4);
 /// map.insert(Key::Singleton(()), 5);
 /// map.insert(Key::Option(None), 6);
@@ -60,9 +64,13 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 /// assert_eq!(map.get(Key::Simple), Some(&1));
 /// assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
 /// assert_eq!(map.get(Key::Composite(Part::Two)), None);
+/// # #[cfg(feature = "map")]
 /// assert_eq!(map.get(Key::String("foo")), Some(&3));
+/// # #[cfg(feature = "map")]
 /// assert_eq!(map.get(Key::String("bar")), None);
+/// # #[cfg(feature = "map")]
 /// assert_eq!(map.get(Key::Number(1)), Some(&4));
+/// # #[cfg(feature = "map")]
 /// assert_eq!(map.get(Key::Number(2)), None);
 /// assert_eq!(map.get(Key::Singleton(())), Some(&5));
 /// assert_eq!(map.get(Key::Option(None)), Some(&6));
@@ -324,12 +332,12 @@ where
     ///
     /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
     /// enum Key {
-    ///     First(&'static str),
+    ///     First(bool),
     ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::First("Hello"), 1);
+    /// map.insert(Key::First(true), 1);
     /// map.insert(Key::Second, 2);
     ///
     /// // Update all values
@@ -337,7 +345,7 @@ where
     ///     *val *= 2;
     /// }
     ///
-    /// assert!(map.iter().eq([(Key::First("Hello"), &2), (Key::Second, &4)]));
+    /// assert!(map.iter().eq([(Key::First(true), &2), (Key::Second, &4)]));
     /// ```
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
@@ -464,13 +472,13 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     First(&'static str),
+    ///     First(bool),
     ///     Second,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::First("Hello"), "a");
-    /// assert_eq!(map.get(Key::First("Hello")).copied(), Some("a"));
+    /// map.insert(Key::First(true), "a");
+    /// assert_eq!(map.get(Key::First(true)).copied(), Some("a"));
     /// assert_eq!(map.get(Key::Second), None);
     /// ```
     #[inline]
@@ -508,19 +516,19 @@ where
     ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
-    ///     First(&'static str),
-    ///     Second(u32),
+    ///     First(bool),
+    ///     Second(()),
     ///     Third,
     /// }
     ///
     /// let mut map = Map::new();
-    /// map.insert(Key::First("Hello"), "a");
+    /// map.insert(Key::First(true), "a");
     ///
-    /// if let Some(x) = map.get_mut(Key::First("Hello")) {
+    /// if let Some(x) = map.get_mut(Key::First(true)) {
     ///     *x = "b";
     /// }
     ///
-    /// assert_eq!(map.get(Key::First("Hello")).copied(), Some("b"));
+    /// assert_eq!(map.get(Key::First(true)).copied(), Some("b"));
     /// ```
     #[inline]
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
@@ -704,21 +712,21 @@ where
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
 /// enum Key {
-///     First(&'static str),
+///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Map::new();
-/// a.insert(Key::First("Hello"), 1);
+/// a.insert(Key::First(true), 1);
 /// let mut b = a.clone();
 /// b.insert(Key::Second, 2);
 ///
 /// assert_ne!(a, b);
 ///
-/// assert_eq!(a.get(Key::First("Hello")), Some(&1));
+/// assert_eq!(a.get(Key::First(true)), Some(&1));
 /// assert_eq!(a.get(Key::Second), None);
 ///
-/// assert_eq!(b.get(Key::First("Hello")), Some(&1));
+/// assert_eq!(b.get(Key::First(true)), Some(&1));
 /// assert_eq!(b.get(Key::Second), Some(&2));
 /// ```
 impl<K, V> Clone for Map<K, V>
@@ -856,12 +864,12 @@ where
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
 /// enum Key {
-///     First(&'static str),
+///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Map::new();
-/// a.insert(Key::First("Hello"), 42);
+/// a.insert(Key::First(true), 42);
 /// let mut b = a.clone();
 ///
 /// assert_eq!(a, b);

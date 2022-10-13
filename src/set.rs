@@ -30,7 +30,9 @@ pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
+///     # #[cfg(feature = "map")]
 ///     String(&'static str),
+///     # #[cfg(feature = "map")]
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
@@ -41,7 +43,9 @@ pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 ///
 /// set.insert(Key::Simple);
 /// set.insert(Key::Composite(Part::One));
+/// # #[cfg(feature = "map")]
 /// set.insert(Key::String("foo"));
+/// # #[cfg(feature = "map")]
 /// set.insert(Key::Number(1));
 /// set.insert(Key::Singleton(()));
 /// set.insert(Key::Option(None));
@@ -51,9 +55,13 @@ pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 /// assert!(set.contains(Key::Simple));
 /// assert!(set.contains(Key::Composite(Part::One)));
 /// assert!(!set.contains(Key::Composite(Part::Two)));
+/// # #[cfg(feature = "map")]
 /// assert!(set.contains(Key::String("foo")));
+/// # #[cfg(feature = "map")]
 /// assert!(!set.contains(Key::String("bar")));
+/// # #[cfg(feature = "map")]
 /// assert!(set.contains(Key::Number(1)));
+/// # #[cfg(feature = "map")]
 /// assert!(!set.contains(Key::Number(2)));
 /// assert!(set.contains(Key::Singleton(())));
 /// assert!(set.contains(Key::Option(None)));
@@ -69,7 +77,7 @@ where
     storage: K::Storage<()>,
 }
 
-/// A map implementation that uses fixed storage.
+/// A set implementation that uses fixed storage.
 ///
 /// # Examples
 ///
@@ -154,11 +162,11 @@ where
     ///     Three,
     /// }
     ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// map.insert(Key::Two);
+    /// let mut set = Set::new();
+    /// set.insert(Key::One);
+    /// set.insert(Key::Two);
     ///
-    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
     pub fn iter(&self) -> Iter<'_, K> {
@@ -321,21 +329,21 @@ where
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
 /// enum Key {
-///     First(&'static str),
+///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First("Hello"));
+/// a.insert(Key::First(true));
 /// let mut b = a.clone();
 /// b.insert(Key::Second);
 ///
 /// assert_ne!(a, b);
 ///
-/// assert!(a.contains(Key::First("Hello")));
+/// assert!(a.contains(Key::First(true)));
 /// assert!(!a.contains(Key::Second));
 ///
-/// assert!(b.contains(Key::First("Hello")));
+/// assert!(b.contains(Key::First(true)));
 /// assert!(b.contains(Key::Second));
 /// ```
 impl<K> Clone for Set<K>
@@ -472,12 +480,12 @@ where
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
 /// enum Key {
-///     First(&'static str),
+///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First("Hello"));
+/// a.insert(Key::First(true));
 /// let mut b = a.clone();
 ///
 /// assert_eq!(a, b);
@@ -531,11 +539,11 @@ where
 ///     Third,
 /// }
 ///
-/// let mut map = Set::new();
-/// map.insert(Key::First);
-/// map.insert(Key::Second);
+/// let mut set = Set::new();
+/// set.insert(Key::First);
+/// set.insert(Key::Second);
 ///
-/// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
+/// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
 /// ```
 impl<K> IntoIterator for Set<K>
 where
@@ -559,11 +567,11 @@ where
     ///     Three,
     /// }
     ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// map.insert(Key::Two);
+    /// let mut set = Set::new();
+    /// set.insert(Key::One);
+    /// set.insert(Key::Two);
     ///
-    /// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {

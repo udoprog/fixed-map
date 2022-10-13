@@ -3,7 +3,28 @@ use core::iter;
 
 use crate::storage::Storage;
 
-/// Storage for static types that must be stored in a map.
+/// Storage for dynamic types, using [`hashbrown::HashMap`].
+///
+/// This allows for dynamic types such as `&'static str` or `u32` to be used as
+/// a [`Key`][crate::Key].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Clone, Copy, Key)]
+/// enum Key {
+///     First(u32),
+///     Second,
+/// }
+///
+/// let mut map = Map::new();
+/// map.insert(Key::First(1), 10);
+/// assert_eq!(map.get(Key::First(1)).copied(), Some(10));
+/// assert_eq!(map.get(Key::First(2)), None);
+/// assert_eq!(map.get(Key::Second), None);
+/// ```
 #[repr(transparent)]
 pub struct MapStorage<K, V> {
     inner: ::hashbrown::HashMap<K, V>,

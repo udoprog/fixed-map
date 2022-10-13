@@ -28,7 +28,7 @@
 //! to build optimized storage for a given Key. We also require the key to
 //! implement [Copy] for it to implement `Key`.
 //!
-//! ```rust
+//! ```
 //! use fixed_map::{Key, Map};
 //!
 //! #[derive(Clone, Copy, Key)]
@@ -41,7 +41,9 @@
 //! enum Key {
 //!     Simple,
 //!     Composite(Part),
+//! # #[cfg(feature = "map")]
 //!     String(&'static str),
+//! # #[cfg(feature = "map")]
 //!     Number(u32),
 //!     Singleton(()),
 //! }
@@ -50,16 +52,22 @@
 //!
 //! map.insert(Key::Simple, 1);
 //! map.insert(Key::Composite(Part::One), 2);
+//! # #[cfg(feature = "map")]
 //! map.insert(Key::String("foo"), 3);
+//! # #[cfg(feature = "map")]
 //! map.insert(Key::Number(1), 4);
 //! map.insert(Key::Singleton(()), 5);
 //!
 //! assert_eq!(map.get(Key::Simple), Some(&1));
 //! assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
 //! assert_eq!(map.get(Key::Composite(Part::Two)), None);
+//! # #[cfg(feature = "map")]
 //! assert_eq!(map.get(Key::String("foo")), Some(&3));
+//! # #[cfg(feature = "map")]
 //! assert_eq!(map.get(Key::String("bar")), None);
+//! # #[cfg(feature = "map")]
 //! assert_eq!(map.get(Key::Number(1)), Some(&4));
+//! # #[cfg(feature = "map")]
 //! assert_eq!(map.get(Key::Number(2)), None);
 //! assert_eq!(map.get(Key::Singleton(())), Some(&5));
 //! ```
@@ -73,7 +81,7 @@
 //! directions. We can model this relationship between the direction and the
 //! item using two enums.
 //!
-//! ```rust
+//! ```
 //! pub enum Dir {
 //!     North,
 //!     East,
@@ -122,7 +130,7 @@
 //! But with `fixed-map` you can do it like this without (hopefully) incurring
 //! any drop in performance:
 //!
-//! ```rust
+//! ```
 //! use fixed_map::{Key, Map};
 //!
 //! #[derive(Clone, Copy, Key)]
