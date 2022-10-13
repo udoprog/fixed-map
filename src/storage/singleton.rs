@@ -30,79 +30,16 @@ where
 
 impl<V> Eq for SingletonStorage<V> where V: Eq {}
 
-pub struct Iter<'a, K, V> {
-    value: Option<(K, &'a V)>,
-}
-
-impl<K, V> Clone for Iter<'_, K, V>
-where
-    K: Copy,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        Iter { value: self.value }
-    }
-}
-
-impl<'a, K, V> Iterator for Iter<'a, K, V> {
-    type Item = (K, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.value.take()
-    }
-}
-
-pub struct IterMut<'a, K, V> {
-    value: Option<(K, &'a mut V)>,
-}
-
-impl<'a, K, V> Iterator for IterMut<'a, K, V> {
-    type Item = (K, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.value.take()
-    }
-}
-
-impl<K, V> DoubleEndedIterator for IterMut<'_, K, V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.value.take()
-    }
-}
-
-pub struct IntoIter<K, V> {
-    value: Option<(K, V)>,
-}
-
-impl<K, V> Iterator for IntoIter<K, V> {
-    type Item = (K, V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.value.take()
-    }
-}
-
-impl<K, V> DoubleEndedIterator for IntoIter<K, V> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.value.take()
-    }
-}
-
 impl<K, V> Storage<K, V> for SingletonStorage<V>
 where
     K: Copy + Default,
 {
-    type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Iter<'this> = ::core::option::IntoIter<(K, &'this V)> where Self: 'this, V: 'this;
     type Keys<'this> = ::core::option::IntoIter<K> where Self: 'this;
     type Values<'this> = ::core::option::Iter<'this, V> where Self: 'this, V: 'this;
-    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type IterMut<'this> = ::core::option::IntoIter<(K, &'this mut V)> where Self: 'this, V: 'this;
     type ValuesMut<'this> = ::core::option::IterMut<'this, V> where Self: 'this, V: 'this;
-    type IntoIter = IntoIter<K, V>;
+    type IntoIter = ::core::option::IntoIter<(K, V)>;
 
     #[inline]
     fn len(&self) -> usize {
@@ -146,9 +83,7 @@ where
 
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
-        Iter {
-            value: self.inner.as_ref().map(|v| (K::default(), v)),
-        }
+        self.inner.as_ref().map(|v| (K::default(), v)).into_iter()
     }
 
     #[inline]
@@ -163,9 +98,7 @@ where
 
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        IterMut {
-            value: self.inner.as_mut().map(|v| (K::default(), v)),
-        }
+        self.inner.as_mut().map(|v| (K::default(), v)).into_iter()
     }
 
     #[inline]
@@ -175,8 +108,6 @@ where
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            value: self.inner.map(|v| (K::default(), v)),
-        }
+        self.inner.map(|v| (K::default(), v)).into_iter()
     }
 }
