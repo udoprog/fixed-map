@@ -38,6 +38,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let mut names = Vec::new();
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
+    let mut contains_key = Vec::new();
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
@@ -54,6 +55,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         field_inits.push(quote!(#option::None));
         fields.push(quote!(#option<V>));
         pattern.push(quote!(#ident::#var));
+        contains_key.push(quote!(#option::is_some(#name)));
         get.push(quote!(#option::as_ref(#name)));
         get_mut.push(quote!(#option::as_mut(#name)));
         insert.push(quote!(#mem::replace(#name, #option::Some(value))));
@@ -419,6 +421,15 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
 
                     match key {
                         #(#pattern => #insert,)*
+                    }
+                }
+
+                #[inline]
+                fn contains_key(&self, value: #ident) -> bool {
+                    let [#(#names),*] = &self.data;
+
+                    match value {
+                        #(#pattern => #contains_key,)*
                     }
                 }
 

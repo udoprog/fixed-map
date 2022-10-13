@@ -407,6 +407,29 @@ where
         }
     }
 
+    /// Returns `true` if the map currently contains the given key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map = Map::new();
+    /// map.insert(Key::First, "a");
+    /// assert_eq!(map.contains_key(Key::First), true);
+    /// assert_eq!(map.contains_key(Key::Second), false);
+    /// ```
+    #[inline]
+    pub fn contains_key(&self, key: K) -> bool {
+        self.storage.contains_key(key)
+    }
+
     /// Returns a reference to the value corresponding to the key.
     ///
     /// # Examples

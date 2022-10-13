@@ -60,6 +60,9 @@ pub trait Storage<K, V>: Default {
     /// This is the storage abstraction for [`Map::insert`][crate::Map::insert].
     fn insert(&mut self, key: K, value: V) -> Option<V>;
 
+    /// This is the storage abstraction for [`Map::contains_key`][crate::Map::contains_key].
+    fn contains_key(&self, key: K) -> bool;
+
     /// This is the storage abstraction for [`Map::get`][crate::Map::get].
     fn get(&self, key: K) -> Option<&V>;
 

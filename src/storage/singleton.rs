@@ -120,6 +120,11 @@ where
     }
 
     #[inline]
+    fn contains_key(&self, _: K) -> bool {
+        self.inner.is_some()
+    }
+
+    #[inline]
     fn get(&self, _: K) -> Option<&V> {
         self.inner.as_ref()
     }
