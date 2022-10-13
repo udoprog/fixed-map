@@ -419,16 +419,21 @@ fn build_iter_impl(
         }
     }
 
+    step_backward
+        .make_where_clause()
+        .predicates
+        .push(cx.fallible(|| syn::parse2(quote!(V: #lt)))?);
+
     let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
-        #vis struct #type_name<#lt, V> {
+        #vis struct #type_name<#lt, V> where V: #lt {
             start: usize,
             end: usize,
             #(#field_decls,)*
         }
 
-        impl<#lt, V> #clone for #type_name<#lt, V> {
+        impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
@@ -439,7 +444,7 @@ fn build_iter_impl(
             }
         }
 
-        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = (#ident, &#lt V);
 
             #[inline]
@@ -549,6 +554,11 @@ fn build_keys_impl(
         }
     }
 
+    step_backward
+        .make_where_clause()
+        .predicates
+        .push(cx.fallible(|| syn::parse2(quote!(V: #lt)))?);
+
     let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
@@ -558,7 +568,7 @@ fn build_keys_impl(
             #(#field_decls,)*
         }
 
-        impl<V> #clone for #type_name<'_, V> {
+        impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
@@ -569,7 +579,7 @@ fn build_keys_impl(
             }
         }
 
-        impl<V> #iterator_t for #type_name<'_, V> {
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = #ident;
 
             #[inline]
@@ -675,16 +685,21 @@ fn build_values_impl(
         }
     }
 
+    step_backward
+        .make_where_clause()
+        .predicates
+        .push(cx.fallible(|| syn::parse2(quote!(V: #lt)))?);
+
     let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
-        #vis struct #type_name<#lt, V> {
+        #vis struct #type_name<#lt, V> where V: #lt {
             start: usize,
             end: usize,
             #(#field_decls,)*
         }
 
-        impl<#lt, V> #clone for #type_name<#lt, V> {
+        impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
                 Self {
@@ -695,7 +710,7 @@ fn build_values_impl(
             }
         }
 
-        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = &#lt V;
 
             #[inline]
@@ -763,16 +778,21 @@ fn build_iter_mut_impl(
         }
     }
 
+    step_backward
+        .make_where_clause()
+        .predicates
+        .push(cx.fallible(|| syn::parse2(quote!(V: #lt)))?);
+
     let double_ended_where = &step_backward.where_clause;
 
     let iter_impl = quote! {
-        #vis struct #type_name<#lt, V> {
+        #vis struct #type_name<#lt, V> where V: #lt {
             start: usize,
             end: usize,
             #(#field_decls,)*
         }
 
-        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = (#ident, &#lt mut V);
 
             #[inline]
@@ -878,16 +898,21 @@ fn build_values_mut_impl(
         }
     }
 
+    step_backward
+        .make_where_clause()
+        .predicates
+        .push(cx.fallible(|| syn::parse2(quote!(V: #lt)))?);
+
     let double_ended_where_clause = &step_backward.where_clause;
 
     let iter_impl = quote! {
-        #vis struct #type_name<#lt, V> {
+        #vis struct #type_name<#lt, V> where V: #lt {
             start: usize,
             end: usize,
             #(#field_decls,)*
         }
 
-        impl<#lt, V> #iterator_t for #type_name<#lt, V> {
+        impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = &#lt mut V;
 
             #[inline]
