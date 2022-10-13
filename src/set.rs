@@ -6,105 +6,6 @@ use core::iter;
 use crate::key::Key;
 use crate::storage::Storage;
 
-#[cfg(all(doc, feature = "map"))]
-pub mod composite {
-    //! # Set Examples using Composite Keys
-    //!
-    //! All of the following require the `map` feature.
-    //!
-    //! ```rust
-    //! use fixed_map::{Key, Set};
-    //!
-    //! #[derive(Clone, Copy, Key)]
-    //! enum Part {
-    //!     One,
-    //!     Two,
-    //! }
-    //!
-    //! #[derive(Clone, Copy, Key)]
-    //! enum Key {
-    //!     Simple,
-    //!     Composite(Part),
-    //!     String(&'static str),
-    //!     Number(u32),
-    //!     Singleton(()),
-    //!     Option(Option<Part>),
-    //!     Boolean(bool),
-    //! }
-    //!
-    //! let mut set = Set::new();
-    //!
-    //! set.insert(Key::Simple);
-    //! set.insert(Key::Composite(Part::One));
-    //! set.insert(Key::String("foo"));
-    //! set.insert(Key::Number(1));
-    //! set.insert(Key::Singleton(()));
-    //! set.insert(Key::Option(None));
-    //! set.insert(Key::Option(Some(Part::One)));
-    //! set.insert(Key::Boolean(true));
-    //!
-    //! assert!(set.contains(Key::Simple));
-    //! assert!(set.contains(Key::Composite(Part::One)));
-    //! assert!(!set.contains(Key::Composite(Part::Two)));
-    //! assert!(set.contains(Key::String("foo")));
-    //! assert!(!set.contains(Key::String("bar")));
-    //! assert!(set.contains(Key::Number(1)));
-    //! assert!(!set.contains(Key::Number(2)));
-    //! assert!(set.contains(Key::Singleton(())));
-    //! assert!(set.contains(Key::Option(None)));
-    //! assert!(set.contains(Key::Option(Some(Part::One))));
-    //! assert!(!set.contains(Key::Option(Some(Part::Two))));
-    //! assert!(set.contains(Key::Boolean(true)));
-    //! assert!(!set.contains(Key::Boolean(false)));
-    //! ```
-    //!
-    //! Using [`Set::clone`][crate::Set::clone] with a composite key:
-    //!
-    //! ```
-    //! use fixed_map::{Key, Set};
-    //!
-    //! #[derive(Debug, Clone, Copy, Key)]
-    //! enum Key {
-    //!     First(&'static str),
-    //!     Second,
-    //! }
-    //!
-    //! let mut a = Set::new();
-    //! a.insert(Key::First("Hello"));
-    //! let mut b = a.clone();
-    //! b.insert(Key::Second);
-    //!
-    //! assert_ne!(a, b);
-    //!
-    //! assert!(a.contains(Key::First("Hello")));
-    //! assert!(!a.contains(Key::Second));
-    //!
-    //! assert!(b.contains(Key::First("Hello")));
-    //! assert!(b.contains(Key::Second));
-    //! ```
-    //!
-    //! Using [`Set::eq`][crate::Set::eq] with a composite key:
-    //!
-    //! ```
-    //! use fixed_map::{Key, Set};
-    //!
-    //! #[derive(Debug, Clone, Copy, Key)]
-    //! enum Key {
-    //!     First(&'static str),
-    //!     Second,
-    //! }
-    //!
-    //! let mut a = Set::new();
-    //! a.insert(Key::First("Hello"));
-    //! let mut b = a.clone();
-    //!
-    //! assert_eq!(a, b);
-    //!
-    //! b.insert(Key::Second);
-    //! assert_ne!(a, b);
-    //! ```
-}
-
 /// The iterator produced by [`Set::into_iter`].
 pub type IntoIter<K> =
     iter::Map<<<K as Key>::Storage<()> as Storage<K, ()>>::IntoIter, fn((K, ())) -> K>;
@@ -116,27 +17,58 @@ pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 ///
 /// # Examples
 ///
-/// See the [`composite` module documentation] for examples with
-/// composite keys, requiring the `map` feature.
-///
 /// ```rust
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum Part {
 ///     One,
 ///     Two,
-///     Three,
+/// }
+///
+/// #[derive(Clone, Copy, Key)]
+/// enum Key {
+///     Simple,
+///     Composite(Part),
+///     # #[cfg(feature = "map")]
+///     String(&'static str),
+///     # #[cfg(feature = "map")]
+///     Number(u32),
+///     Singleton(()),
+///     Option(Option<Part>),
+///     Boolean(bool),
 /// }
 ///
 /// let mut set = Set::new();
 ///
-/// set.insert(Key::One);
-/// set.insert(Key::Three);
+/// set.insert(Key::Simple);
+/// set.insert(Key::Composite(Part::One));
+/// # #[cfg(feature = "map")]
+/// set.insert(Key::String("foo"));
+/// # #[cfg(feature = "map")]
+/// set.insert(Key::Number(1));
+/// set.insert(Key::Singleton(()));
+/// set.insert(Key::Option(None));
+/// set.insert(Key::Option(Some(Part::One)));
+/// set.insert(Key::Boolean(true));
 ///
-/// assert!(set.contains(Key::One));
-/// assert!(!set.contains(Key::Two));
-/// assert!(set.contains(Key::One));
+/// assert!(set.contains(Key::Simple));
+/// assert!(set.contains(Key::Composite(Part::One)));
+/// assert!(!set.contains(Key::Composite(Part::Two)));
+/// # #[cfg(feature = "map")]
+/// assert!(set.contains(Key::String("foo")));
+/// # #[cfg(feature = "map")]
+/// assert!(!set.contains(Key::String("bar")));
+/// # #[cfg(feature = "map")]
+/// assert!(set.contains(Key::Number(1)));
+/// # #[cfg(feature = "map")]
+/// assert!(!set.contains(Key::Number(2)));
+/// assert!(set.contains(Key::Singleton(())));
+/// assert!(set.contains(Key::Option(None)));
+/// assert!(set.contains(Key::Option(Some(Part::One))));
+/// assert!(!set.contains(Key::Option(Some(Part::Two))));
+/// assert!(set.contains(Key::Boolean(true)));
+/// assert!(!set.contains(Key::Boolean(false)));
 /// ```
 pub struct Set<K>
 where
@@ -230,11 +162,11 @@ where
     ///     Three,
     /// }
     ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// map.insert(Key::Two);
+    /// let mut set = Set::new();
+    /// set.insert(Key::One);
+    /// set.insert(Key::Two);
     ///
-    /// assert_eq!(map.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
     pub fn iter(&self) -> Iter<'_, K> {
@@ -389,6 +321,31 @@ where
 }
 
 /// [`Clone`] implementation for a [`Set`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First(true));
+/// let mut b = a.clone();
+/// b.insert(Key::Second);
+///
+/// assert_ne!(a, b);
+///
+/// assert!(a.contains(Key::First(true)));
+/// assert!(!a.contains(Key::Second));
+///
+/// assert!(b.contains(Key::First(true)));
+/// assert!(b.contains(Key::Second));
+/// ```
 impl<K> Clone for Set<K>
 where
     K: Key,
@@ -402,9 +359,9 @@ where
     }
 }
 
-/// The [`Copy`] implementation for a [`Set`] depends on its [`Key`].
-/// If the key enum only consists of unit variants the
-/// corresponding [`Set`] will always be [`Copy`].
+/// The [`Copy`] implementation for a [`Set`] depends on its [`Key`]. If the
+/// derived key only consists of unit variants the corresponding [`Set`] will be
+/// [`Copy`] as well.
 ///
 /// # Examples
 ///
@@ -515,6 +472,27 @@ where
 /// b.insert(Key::Second);
 /// assert_ne!(a, b);
 /// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Debug, Clone, Copy, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First(true));
+/// let mut b = a.clone();
+///
+/// assert_eq!(a, b);
+///
+/// b.insert(Key::Second);
+/// assert_ne!(a, b);
+/// ```
 impl<K> PartialEq for Set<K>
 where
     K: Key,
@@ -561,11 +539,11 @@ where
 ///     Third,
 /// }
 ///
-/// let mut map = Set::new();
-/// map.insert(Key::First);
-/// map.insert(Key::Second);
+/// let mut set = Set::new();
+/// set.insert(Key::First);
+/// set.insert(Key::Second);
 ///
-/// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
+/// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
 /// ```
 impl<K> IntoIterator for Set<K>
 where
@@ -589,11 +567,11 @@ where
     ///     Three,
     /// }
     ///
-    /// let mut map = Set::new();
-    /// map.insert(Key::One);
-    /// map.insert(Key::Two);
+    /// let mut set = Set::new();
+    /// set.insert(Key::One);
+    /// set.insert(Key::Two);
     ///
-    /// assert_eq!(map.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
