@@ -36,16 +36,16 @@ use crate::{key::Key, storage::Storage};
 /// ```
 pub struct OptionStorage<K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
-    some: K::Storage,
+    some: K::Storage<V>,
     none: Option<V>,
 }
 
 impl<K, V> Clone for OptionStorage<K, V>
 where
-    K: Key<K, V>,
-    K::Storage: Clone,
+    K: Key,
+    K::Storage<V>: Clone,
     V: Clone,
 {
     fn clone(&self) -> Self {
@@ -58,15 +58,15 @@ where
 
 impl<K, V> Copy for OptionStorage<K, V>
 where
-    K: Key<K, V>,
-    K::Storage: Copy,
+    K: Key,
+    K::Storage<V>: Copy,
     V: Copy,
 {
 }
 
 impl<K, V> Default for OptionStorage<K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     #[inline]
     fn default() -> Self {
@@ -79,8 +79,8 @@ where
 
 impl<K, V> PartialEq for OptionStorage<K, V>
 where
-    K: Key<K, V>,
-    K::Storage: PartialEq,
+    K: Key,
+    K::Storage<V>: PartialEq,
     V: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -90,24 +90,24 @@ where
 
 impl<K, V> Eq for OptionStorage<K, V>
 where
-    K: Key<K, V>,
-    K::Storage: Eq,
+    K: Key,
+    K::Storage<V>: Eq,
     V: Eq,
 {
 }
 
 pub struct Iter<'a, K, V>
 where
-    K: 'a + Key<K, V>,
+    K: 'a + Key,
 {
-    some: <K::Storage as Storage<K, V>>::Iter<'a>,
+    some: <K::Storage<V> as Storage<K, V>>::Iter<'a>,
     none: Option<&'a V>,
 }
 
 impl<'a, K, V> Clone for Iter<'a, K, V>
 where
-    K: Key<K, V>,
-    <K::Storage as Storage<K, V>>::Iter<'a>: Clone,
+    K: Key,
+    <K::Storage<V> as Storage<K, V>>::Iter<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Iter<'a, K, V> {
@@ -120,7 +120,7 @@ where
 
 impl<'a, K, V> Iterator for Iter<'a, K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = (Option<K>, &'a V);
 
@@ -141,17 +141,17 @@ where
 /// See [`OptionStorage::keys`].
 pub struct Keys<'a, K, V>
 where
-    K: Key<K, V>,
-    K::Storage: 'a,
+    K: Key,
+    K::Storage<V>: 'a,
 {
-    some: <K::Storage as Storage<K, V>>::Keys<'a>,
+    some: <K::Storage<V> as Storage<K, V>>::Keys<'a>,
     none: bool,
 }
 
 impl<'a, K, V> Clone for Keys<'a, K, V>
 where
-    K: Key<K, V>,
-    <K::Storage as Storage<K, V>>::Keys<'a>: Clone,
+    K: Key,
+    <K::Storage<V> as Storage<K, V>>::Keys<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Keys<'a, K, V> {
@@ -164,7 +164,7 @@ where
 
 impl<K, V> Iterator for Keys<'_, K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = Option<K>;
 
@@ -185,16 +185,16 @@ where
 /// See [`OptionStorage::values`].
 pub struct Values<'a, K, V>
 where
-    K: 'a + Key<K, V>,
+    K: 'a + Key,
 {
-    some: <K::Storage as Storage<K, V>>::Values<'a>,
+    some: <K::Storage<V> as Storage<K, V>>::Values<'a>,
     none: Option<&'a V>,
 }
 
 impl<'a, K, V> Clone for Values<'a, K, V>
 where
-    K: Key<K, V>,
-    <K::Storage as Storage<K, V>>::Values<'a>: Clone,
+    K: Key,
+    <K::Storage<V> as Storage<K, V>>::Values<'a>: Clone,
 {
     #[inline]
     fn clone(&self) -> Values<'a, K, V> {
@@ -207,7 +207,7 @@ where
 
 impl<'a, K, V> Iterator for Values<'a, K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = &'a V;
 
@@ -219,15 +219,15 @@ where
 
 pub struct IterMut<'a, K, V>
 where
-    K: 'a + Key<K, V>,
+    K: 'a + Key,
 {
-    some: <K::Storage as Storage<K, V>>::IterMut<'a>,
+    some: <K::Storage<V> as Storage<K, V>>::IterMut<'a>,
     none: Option<&'a mut V>,
 }
 
 impl<'a, K, V> Iterator for IterMut<'a, K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = (Option<K>, &'a mut V);
 
@@ -248,15 +248,15 @@ where
 /// See [`OptionStorage::values`].
 pub struct ValuesMut<'a, K, V>
 where
-    K: 'a + Key<K, V>,
+    K: 'a + Key,
 {
-    some: <K::Storage as Storage<K, V>>::ValuesMut<'a>,
+    some: <K::Storage<V> as Storage<K, V>>::ValuesMut<'a>,
     none: Option<&'a mut V>,
 }
 
 impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = &'a mut V;
 
@@ -268,15 +268,15 @@ where
 
 pub struct IntoIter<K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
-    some: <K::Storage as Storage<K, V>>::IntoIter,
+    some: <K::Storage<V> as Storage<K, V>>::IntoIter,
     none: Option<V>,
 }
 
 impl<K, V> Iterator for IntoIter<K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Item = (Option<K>, V);
 
@@ -296,7 +296,7 @@ where
 
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
-    K: Key<K, V>,
+    K: Key,
 {
     type Iter<'this> = Iter<'this, K, V> where Self: 'this;
     type Keys<'this> = Keys<'this, K, V> where Self: 'this;
