@@ -1,6 +1,36 @@
+use core::iter;
 use core::mem;
+use core::option;
 
-use crate::{key::Key, storage::Storage};
+use crate::key::Key;
+use crate::storage::Storage;
+
+type Iter<'a, K, V> = iter::Chain<
+    iter::Map<
+        <<K as Key>::Storage<V> as Storage<K, V>>::Iter<'a>,
+        fn((K, &'a V)) -> (Option<K>, &'a V),
+    >,
+    iter::Map<option::Iter<'a, V>, fn(&'a V) -> (Option<K>, &'a V)>,
+>;
+type Keys<'a, K, V> = iter::Chain<
+    iter::Map<<<K as Key>::Storage<V> as Storage<K, V>>::Keys<'a>, fn(K) -> Option<K>>,
+    option::IntoIter<Option<K>>,
+>;
+type Values<'a, K, V> =
+    iter::Chain<<<K as Key>::Storage<V> as Storage<K, V>>::Values<'a>, option::Iter<'a, V>>;
+type IterMut<'a, K, V> = iter::Chain<
+    iter::Map<
+        <<K as Key>::Storage<V> as Storage<K, V>>::IterMut<'a>,
+        fn((K, &'a mut V)) -> (Option<K>, &'a mut V),
+    >,
+    iter::Map<option::IterMut<'a, V>, fn(&'a mut V) -> (Option<K>, &'a mut V)>,
+>;
+type ValuesMut<'a, K, V> =
+    iter::Chain<<<K as Key>::Storage<V> as Storage<K, V>>::ValuesMut<'a>, option::IterMut<'a, V>>;
+type IntoIter<K, V> = iter::Chain<
+    iter::Map<<<K as Key>::Storage<V> as Storage<K, V>>::IntoIter, fn((K, V)) -> (Option<K>, V)>,
+    iter::Map<option::IntoIter<V>, fn(V) -> (Option<K>, V)>,
+>;
 
 /// Storage for [`Option`] types.
 ///
@@ -96,204 +126,6 @@ where
 {
 }
 
-pub struct Iter<'a, K, V>
-where
-    K: 'a + Key,
-{
-    some: <K::Storage<V> as Storage<K, V>>::Iter<'a>,
-    none: Option<&'a V>,
-}
-
-impl<'a, K, V> Clone for Iter<'a, K, V>
-where
-    K: Key,
-    <K::Storage<V> as Storage<K, V>>::Iter<'a>: Clone,
-{
-    #[inline]
-    fn clone(&self) -> Iter<'a, K, V> {
-        Iter {
-            some: self.some.clone(),
-            none: self.none,
-        }
-    }
-}
-
-impl<'a, K, V> Iterator for Iter<'a, K, V>
-where
-    K: Key,
-{
-    type Item = (Option<K>, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((k, v)) = self.some.next() {
-            return Some((Some(k), v));
-        }
-
-        if let Some(v) = self.none.take() {
-            return Some((None, v));
-        }
-
-        None
-    }
-}
-
-/// See [`OptionStorage::keys`].
-pub struct Keys<'a, K, V>
-where
-    K: Key,
-    K::Storage<V>: 'a,
-{
-    some: <K::Storage<V> as Storage<K, V>>::Keys<'a>,
-    none: bool,
-}
-
-impl<'a, K, V> Clone for Keys<'a, K, V>
-where
-    K: Key,
-    <K::Storage<V> as Storage<K, V>>::Keys<'a>: Clone,
-{
-    #[inline]
-    fn clone(&self) -> Keys<'a, K, V> {
-        Keys {
-            some: self.some.clone(),
-            none: self.none,
-        }
-    }
-}
-
-impl<K, V> Iterator for Keys<'_, K, V>
-where
-    K: Key,
-{
-    type Item = Option<K>;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(key) = self.some.next() {
-            return Some(Some(key));
-        }
-
-        if ::core::mem::take(&mut self.none) {
-            return Some(None);
-        }
-
-        None
-    }
-}
-
-/// See [`OptionStorage::values`].
-pub struct Values<'a, K, V>
-where
-    K: 'a + Key,
-{
-    some: <K::Storage<V> as Storage<K, V>>::Values<'a>,
-    none: Option<&'a V>,
-}
-
-impl<'a, K, V> Clone for Values<'a, K, V>
-where
-    K: Key,
-    <K::Storage<V> as Storage<K, V>>::Values<'a>: Clone,
-{
-    #[inline]
-    fn clone(&self) -> Values<'a, K, V> {
-        Values {
-            some: self.some.clone(),
-            none: self.none,
-        }
-    }
-}
-
-impl<'a, K, V> Iterator for Values<'a, K, V>
-where
-    K: Key,
-{
-    type Item = &'a V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.some.next().or_else(|| self.none.take())
-    }
-}
-
-pub struct IterMut<'a, K, V>
-where
-    K: 'a + Key,
-{
-    some: <K::Storage<V> as Storage<K, V>>::IterMut<'a>,
-    none: Option<&'a mut V>,
-}
-
-impl<'a, K, V> Iterator for IterMut<'a, K, V>
-where
-    K: Key,
-{
-    type Item = (Option<K>, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((k, v)) = self.some.next() {
-            return Some((Some(k), v));
-        }
-
-        if let Some(v) = self.none.take() {
-            return Some((None, v));
-        }
-
-        None
-    }
-}
-
-/// See [`OptionStorage::values`].
-pub struct ValuesMut<'a, K, V>
-where
-    K: 'a + Key,
-{
-    some: <K::Storage<V> as Storage<K, V>>::ValuesMut<'a>,
-    none: Option<&'a mut V>,
-}
-
-impl<'a, K, V> Iterator for ValuesMut<'a, K, V>
-where
-    K: Key,
-{
-    type Item = &'a mut V;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.some.next().or_else(|| self.none.take())
-    }
-}
-
-pub struct IntoIter<K, V>
-where
-    K: Key,
-{
-    some: <K::Storage<V> as Storage<K, V>>::IntoIter,
-    none: Option<V>,
-}
-
-impl<K, V> Iterator for IntoIter<K, V>
-where
-    K: Key,
-{
-    type Item = (Option<K>, V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((k, v)) = self.some.next() {
-            return Some((Some(k), v));
-        }
-
-        if let Some(v) = self.none.take() {
-            return Some((None, v));
-        }
-
-        None
-    }
-}
-
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key,
@@ -363,49 +195,47 @@ where
 
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
-        Iter {
-            some: self.some.iter(),
-            none: self.none.as_ref(),
-        }
+        let map: fn(_) -> _ = |(k, b)| (Some(k), b);
+        let a = self.some.iter().map(map);
+        let map: fn(_) -> _ = |v| (None, v);
+        let b = self.none.iter().map(map);
+        a.chain(b)
     }
 
     #[inline]
     fn keys(&self) -> Self::Keys<'_> {
-        Keys {
-            some: self.some.keys(),
-            none: true,
-        }
+        let map: fn(_) -> _ = |k| Some(k);
+        self.some
+            .keys()
+            .map(map)
+            .chain(self.none.is_some().then_some(None::<K>))
     }
 
     #[inline]
     fn values(&self) -> Self::Values<'_> {
-        Values {
-            some: self.some.values(),
-            none: self.none.as_ref(),
-        }
+        self.some.values().chain(self.none.iter())
     }
 
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        IterMut {
-            some: self.some.iter_mut(),
-            none: self.none.as_mut(),
-        }
+        let map: fn(_) -> _ = |(k, b)| (Some(k), b);
+        let a = self.some.iter_mut().map(map);
+        let map: fn(_) -> _ = |v| (None, v);
+        let b = self.none.iter_mut().map(map);
+        a.chain(b)
     }
 
     #[inline]
     fn values_mut(&mut self) -> Self::ValuesMut<'_> {
-        ValuesMut {
-            some: self.some.values_mut(),
-            none: self.none.as_mut(),
-        }
+        self.some.values_mut().chain(self.none.iter_mut())
     }
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter {
-            some: self.some.into_iter(),
-            none: self.none,
-        }
+        let map: fn(_) -> _ = |(k, b)| (Some(k), b);
+        let a = self.some.into_iter().map(map);
+        let map: fn(_) -> _ = |v| (None, v);
+        let b = self.none.into_iter().map(map);
+        a.chain(b)
     }
 }
