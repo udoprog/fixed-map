@@ -5,12 +5,59 @@
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-fixed--map-66c2a5?style=for-the-badge&logoColor=white&logo=data:image/svg+xml;base64,PHN2ZyByb2xlPSJpbWciIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmlld0JveD0iMCAwIDUxMiA1MTIiPjxwYXRoIGZpbGw9IiNmNWY1ZjUiIGQ9Ik00ODguNiAyNTAuMkwzOTIgMjE0VjEwNS41YzAtMTUtOS4zLTI4LjQtMjMuNC0zMy43bC0xMDAtMzcuNWMtOC4xLTMuMS0xNy4xLTMuMS0yNS4zIDBsLTEwMCAzNy41Yy0xNC4xIDUuMy0yMy40IDE4LjctMjMuNCAzMy43VjIxNGwtOTYuNiAzNi4yQzkuMyAyNTUuNSAwIDI2OC45IDAgMjgzLjlWMzk0YzAgMTMuNiA3LjcgMjYuMSAxOS45IDMyLjJsMTAwIDUwYzEwLjEgNS4xIDIyLjEgNS4xIDMyLjIgMGwxMDMuOS01MiAxMDMuOSA1MmMxMC4xIDUuMSAyMi4xIDUuMSAzMi4yIDBsMTAwLTUwYzEyLjItNi4xIDE5LjktMTguNiAxOS45LTMyLjJWMjgzLjljMC0xNS05LjMtMjguNC0yMy40LTMzLjd6TTM1OCAyMTQuOGwtODUgMzEuOXYtNjguMmw4NS0zN3Y3My4zek0xNTQgMTA0LjFsMTAyLTM4LjIgMTAyIDM4LjJ2LjZsLTEwMiA0MS40LTEwMi00MS40di0uNnptODQgMjkxLjFsLTg1IDQyLjV2LTc5LjFsODUtMzguOHY3NS40em0wLTExMmwtMTAyIDQxLjQtMTAyLTQxLjR2LS42bDEwMi0zOC4yIDEwMiAzOC4ydi42em0yNDAgMTEybC04NSA0Mi41di03OS4xbDg1LTM4Ljh2NzUuNHptMC0xMTJsLTEwMiA0MS40LTEwMi00MS40di0uNmwxMDItMzguMiAxMDIgMzguMnYuNnoiPjwvcGF0aD48L3N2Zz4K" height="20">](https://docs.rs/fixed-map)
 [<img alt="build status" src="https://img.shields.io/github/workflow/status/udoprog/fixed-map/CI/main?style=for-the-badge" height="20">](https://github.com/udoprog/fixed-map/actions?query=branch%3Amain)
 
-This crate provides a map implementation that can make use of a fixed-size
-backing storage. It enables the compiler to heavily optimize map lookups by
-translating them into pattern matching over strictly defined enums.
-Potentially allowing for interesting performance characteristics.
+This crate provides a [`Map`] and [`Set`] container that can make use of a
+pre-calculated backing storage. This enables the Rust compiler to heavily
+optimize operations over them and avoid allocating.
 
-For more information on how to use, see the [documentation].
+See [documentation] for information on how to use this crate.
+
+<br>
+
+### Usage
+
+Add `fixed-map` to your `Cargo.toml`:
+
+```toml
+[dependencies]
+fixed-map = "0.8.0-alpha.2"
+```
+
+Anything used as a key in either a [`Map`] or a [`Set`] needs to implement
+the [`Key`] trait. This should be derived:
+
+```rust
+use fixed_map::{Key, Map};
+
+#[derive(Clone, Copy, Key)]
+enum Key {
+    North,
+    South,
+    East,
+    West,
+}
+```
+
+After this you can use one of our containers:
+
+```rust
+use fixed_map::{Map, Set};
+
+let mut map = Map::new();
+map.insert(Key::North, 200);
+map.insert(Key::South, 100);
+
+assert_eq!(map.get(Key::North), Some(&200));
+assert_eq!(map.get(Key::East), None);
+
+let mut set = Set::new();
+set.insert(Key::North);
+set.insert(Key::South);
+
+assert!(set.contains(Key::South));
+assert!(!set.contains(Key::East));
+```
+
+<br>
 
 ### Features
 
@@ -19,83 +66,55 @@ The following features are available:
 * `std` - Disabling this feature enables causes this crate to be no-std.
   This means that dynamic types cannot be used in keys, like ones enabled by
   the `map` feature (default).
-* `map` - Causes [Storage] to be implemented by dynamic types such as
+* `map` - Causes [`Storage`] to be implemented by dynamic types such as
   `&'static str` or `u32`. These are backed by a `hashbrown` (default).
-* `serde` - Causes [Map] and [Set] to implement [Serialize] and
-  [Deserialize] if it's implemented by the key and value.
+* `serde` - Causes [`Map`] and [`Set`] to implement [`Serialize`] and
+  [`Deserialize`] if it's implemented by the key and value.
 
-### Deriving `Key`
+<br>
 
-The [Key derive] is provided to instruct the `fixed-map` containers on how
-to build optimized storage for a given Key. We also require the key to
-implement [Copy] for it to implement `Key`.
+### Specialized storage through the [`Key`] trait
+
+The [`Key` derive] is provided to instruct our containers on how to build
+optimized storage for a given [`Key`]. We also require any key to be [`Copy`].
 
 ```rust
-use fixed_map::{Key, Map};
-
-#[derive(Clone, Copy, Key)]
-enum Part {
-    One,
-    Two,
-}
+use fixed_map::Key;
 
 #[derive(Clone, Copy, Key)]
 enum Key {
-    Simple,
-    Composite(Part),
-    String(&'static str),
-    Number(u32),
-    Singleton(()),
+    North,
+    South,
+    East,
+    West,
 }
-
-let mut map = Map::new();
-
-map.insert(Key::Simple, 1);
-map.insert(Key::Composite(Part::One), 2);
-map.insert(Key::String("foo"), 3);
-map.insert(Key::Number(1), 4);
-map.insert(Key::Singleton(()), 5);
-
-assert_eq!(map.get(Key::Simple), Some(&1));
-assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
-assert_eq!(map.get(Key::Composite(Part::Two)), None);
-assert_eq!(map.get(Key::String("foo")), Some(&3));
-assert_eq!(map.get(Key::String("bar")), None);
-assert_eq!(map.get(Key::Number(1)), Some(&4));
-assert_eq!(map.get(Key::Number(2)), None);
-assert_eq!(map.get(Key::Singleton(())), Some(&5));
 ```
+
+What happens behind the scenes is that a proc macro is used to build a
+struct optimized for storing and indexing exactly 4 values - one for each
+variant.
+
+Something exactly like this:
+
+```rust
+struct Storage<V> {
+    data: [Option<V>; 4],
+}
+```
+
+It becomes a bit more complicated once we start considering *composite
+keys*. See the [`Key`] documentation for more information.
+
+<br>
 
 ### Why does this crate exist?
 
 There are many cases where you want associate a value with a small, fixed
 number of elements identified by an enum.
 
-For example, let's say you have a game where each room has something in four
-directions. We can model this relationship between the direction and the
-item using two enums.
-
-```rust
-pub enum Dir {
-    North,
-    East,
-    South,
-    West,
-}
-
-pub enum Item {
-    Bow,
-    Sword,
-    Axe,
-}
-```
-
-The goal is for the performance of fixed-map to be identical to storing the
-data linearly in memory like you could by storing the data as an array like
-`[Option<Item>; N]` where each index correspondings to each variant in
-`Dir`.
-
-Doing this yourself could look like this:
+Let's say you have a game where each room has something in four directions.
+We can model this relationship between the direction and the item using two
+enums.
 
 ```rust
 #[repr(usize)]
@@ -106,13 +125,20 @@ pub enum Dir {
     West,
 }
 
-#[derive(Debug)]
 pub enum Item {
     Bow,
     Sword,
     Axe,
 }
+```
 
+The goal is for the performance of fixed map to be identical to storing the
+data linearly in memory like you could through an array like `[Option<Item>;
+N]` where each *index* corresponds to a variant in `Dir`.
+
+Doing this manually could look like this:
+
+```rust
 let mut map: [Option<Item>; 4] = [None, None, None, None];
 map[Dir::North as usize] = Some(Item::Bow);
 
@@ -121,8 +147,8 @@ if let Some(item) = &map[Dir::North as usize] {
 }
 ```
 
-But with `fixed-map` you can do it like this without (hopefully) incurring
-any drop in performance:
+But with a fixed [`Map`] you can do it idiomatically like this, without
+incurring a drop in performance:
 
 ```rust
 use fixed_map::{Key, Map};
@@ -150,25 +176,23 @@ if let Some(item) = map.get(Dir::North) {
 }
 ```
 
-### Unsafe use
-
-This crate uses unsafe for its iterators. This is needed because there is no
-proper way to associate generic lifetimes to associated types.
-
-Instead, we associate the lifetime to the container (`Map` or `Set`) which
-wraps a set of unsafe derefs over raw pointers.
+<br>
 
 ### Benchmarks
 
-In the following benchmarks, fixed-map is compared to:
+We include benchmarks to ensure that we abide by the expectation that a
+fixed map or set should perform roughly the same as an array with the same
+number of elements.
 
-* `fixed` - A `fixed_map::Map` with a derived `Key` with `N` variants.
+In the following benchmarks fixed-map is compared to:
+
+* `fixed` - A [`Map`] with a derived [`Key`] with `N` variants.
 * [`hashbrown`] - A high performance hash map. This is only included for
   reference.
   - Note: Maps are created with `HashMap::with_capacity(N)`.
 * `array` - A simple `[Option<Key>; N]` array.
 
-Note: for all `insert` benchmarks the underlying map is cloned in each
+Note: for all `insert` benchmarks the underlying storage is cloned in each
 iteration.
 
 ```
@@ -215,8 +239,6 @@ array/sum_values        time:   [3.0394 ns 3.0463 ns 3.0534 ns]
 fixed/sum_values        time:   [3.0503 ns 3.0559 ns 3.0619 ns]
 ```
 
-[`hashbrown`]: https://github.com/Amanieu/hashbrown
-
 ### Examples
 
 Most examples are in place to test what kind of assembler they compile to.
@@ -233,13 +255,15 @@ You should be able to find the assembler generated in the target folder:
 ls target/release/examples/
 ```
 
-[Copy]: https://doc.rust-lang.org/std/marker/trait.Copy.html
-[Deserialize]: https://docs.rs/serde/1/serde/trait.Deserialize.html
+[`Copy`]: https://doc.rust-lang.org/std/marker/trait.Copy.html
+[`Deserialize`]: https://docs.rs/serde/1/serde/trait.Deserialize.html
+[`hashbrown`]: https://github.com/Amanieu/hashbrown
+[`Key` derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
+[`Key`]: https://docs.rs/fixed-map/*/fixed_map/trait.Key.html
+[`Map`]: https://docs.rs/fixed-map/*/fixed_map/struct.Map.html
+[`Serialize`]: https://docs.rs/serde/1/serde/trait.Serialize.html
+[`Set`]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
+[`Storage`]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
 [documentation]: https://docs.rs/fixed-map
-[Key derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
-[Map]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Map.html
-[Serialize]: https://docs.rs/serde/1/serde/trait.Serialize.html
-[Set]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
-[Storage]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
 
 License: MIT/Apache-2.0

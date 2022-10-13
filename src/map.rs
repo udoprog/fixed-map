@@ -22,7 +22,7 @@ pub type ValuesMut<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Values
 /// The iterator produced by [`Map::into_iter`].
 pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 
-/// A fixed map.
+/// A fixed map with storage specialized through the [`Key`] trait.
 ///
 /// # Examples
 ///

@@ -13,7 +13,7 @@ pub type IntoIter<K> =
 /// The iterator produced by [`Set::iter`].
 pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 
-/// A fixed set.
+/// A fixed set with storage specialized through the [`Key`] trait.
 ///
 /// # Examples
 ///
