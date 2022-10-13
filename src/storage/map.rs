@@ -3,7 +3,7 @@ use core::iter;
 
 use crate::storage::Storage;
 
-/// Storage for static types that must be stored in a map.
+/// Storage for dynamic types, using [`hashbrown::HashMap`].
 #[repr(transparent)]
 pub struct MapStorage<K, V> {
     inner: ::hashbrown::HashMap<K, V>,

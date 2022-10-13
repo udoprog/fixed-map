@@ -161,7 +161,7 @@ In the following benchmarks, fixed-map is compared to:
 Note: for all `insert` benchmarks the underlying map is cloned in each
 iteration.
 
-```
+```text
 get/fixed/4             time:   [211.20 ps 211.61 ps 212.06 ps]
 get/fixed/8             time:   [210.09 ps 211.65 ps 213.61 ps]
 get/fixed/16            time:   [210.94 ps 212.20 ps 213.97 ps]

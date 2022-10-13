@@ -15,7 +15,6 @@ jobs:
         components: clippy, rustfmt
 
     - run: cargo test --all-features
-    # exclude doctests when testing without default features
-    - run: cargo test --no-default-features --tests
+    - run: cargo test --no-default-features
     - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
     - run: cargo fmt --check
