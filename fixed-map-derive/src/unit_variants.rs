@@ -81,6 +81,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 data: [#option<V>; #count],
             }
 
+            #[automatically_derived]
             impl<V> #clone for Storage<V> where V: #clone {
                 #[inline]
                 fn clone(&self) -> Storage<V> {
@@ -90,9 +91,11 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #copy for Storage<V> where V: #copy {
             }
 
+            #[automatically_derived]
             impl<V> #partial_eq for Storage<V> where V: #partial_eq{
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
@@ -100,8 +103,10 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #eq for Storage<V> where V: #eq {}
 
+            #[automatically_derived]
             impl<V> #default for Storage<V> {
                 #[inline]
                 fn default() -> Storage<V> {
@@ -111,6 +116,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #storage_trait<#ident, V> for Storage<V> {
                 type Iter<'this> = #iterator_flat_map<
                     #array_into_iter<(#ident, &'this #option<V>), #count>,
@@ -237,6 +243,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl #key_trait for #ident {
                 type Storage<V> = Storage<V>;
             }
