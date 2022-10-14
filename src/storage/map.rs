@@ -73,58 +73,14 @@ where
 {
 }
 
-pub struct Iter<'a, K, V> {
-    iter: hashbrown::hash_map::Iter<'a, K, V>,
-}
-
-impl<'a, K, V> Clone for Iter<'a, K, V>
-where
-    K: 'a + Copy,
-{
-    #[inline]
-    fn clone(&self) -> Self {
-        Iter {
-            iter: self.iter.clone(),
-        }
-    }
-}
-
-impl<'a, K, V> Iterator for Iter<'a, K, V>
-where
-    K: Copy,
-{
-    type Item = (K, &'a V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (*k, v))
-    }
-}
-
-pub struct IterMut<'a, K, V> {
-    iter: hashbrown::hash_map::IterMut<'a, K, V>,
-}
-
-impl<'a, K, V> Iterator for IterMut<'a, K, V>
-where
-    K: Copy,
-{
-    type Item = (K, &'a mut V);
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|(k, v)| (*k, v))
-    }
-}
-
 impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + hash::Hash,
 {
-    type Iter<'this> = Iter<'this, K, V> where Self: 'this, V: 'this;
+    type Iter<'this> = iter::Map<::hashbrown::hash_map::Iter<'this, K, V>, fn((&'this K, &'this V)) -> (K, &'this V)> where Self: 'this, V: 'this;
     type Keys<'this> = iter::Copied<::hashbrown::hash_map::Keys<'this, K, V>> where Self: 'this;
     type Values<'this> = ::hashbrown::hash_map::Values<'this, K, V> where Self: 'this;
-    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this, V: 'this;
+    type IterMut<'this> = iter::Map<::hashbrown::hash_map::IterMut<'this, K, V>, fn((&'this K, &'this mut V)) -> (K, &'this mut V)> where Self: 'this, V: 'this;
     type ValuesMut<'this> = ::hashbrown::hash_map::ValuesMut<'this, K, V> where Self: 'this;
     type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
 
@@ -178,9 +134,8 @@ where
 
     #[inline]
     fn iter(&self) -> Self::Iter<'_> {
-        Iter {
-            iter: self.inner.iter(),
-        }
+        let map: fn(_) -> _ = |(k, v): (&K, &V)| (*k, v);
+        self.inner.iter().map(map)
     }
 
     #[inline]
@@ -195,9 +150,8 @@ where
 
     #[inline]
     fn iter_mut(&mut self) -> Self::IterMut<'_> {
-        IterMut {
-            iter: self.inner.iter_mut(),
-        }
+        let map: fn(_) -> _ = |(k, v): (&K, &mut V)| (*k, v);
+        self.inner.iter_mut().map(map)
     }
 
     #[inline]

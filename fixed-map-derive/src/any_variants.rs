@@ -149,6 +149,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 #(#fields,)*
             }
 
+            #[automatically_derived]
             impl<V> #clone for Storage<V> where V: #clone {
                 #[inline]
                 fn clone(&self) -> Storage<V> {
@@ -158,8 +159,10 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #copy for Storage<V> where V: #copy, #(#copy_bounds,)* {}
 
+            #[automatically_derived]
             impl<V> #partial_eq for Storage<V> where V: #partial_eq {
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
@@ -168,8 +171,10 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #eq for Storage<V> where V: #eq {}
 
+            #[automatically_derived]
             impl<V> #default for Storage<V> {
                 #[inline]
                 fn default() -> Self {
@@ -179,6 +184,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl<V> #storage_trait<#ident, V> for Storage<V> {
                 type Iter<'this> = Iter<'this, V> where Self: 'this;
                 type Keys<'this> = Keys<'this, V> where Self: 'this;
@@ -300,6 +306,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 }
             }
 
+            #[automatically_derived]
             impl #key_trait for #ident {
                 type Storage<V> = Storage<V>;
             }
@@ -453,6 +460,7 @@ fn build_iter_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
@@ -464,6 +472,7 @@ fn build_iter_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = (#ident, &#lt V);
 
@@ -474,6 +483,7 @@ fn build_iter_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
@@ -588,6 +598,7 @@ fn build_keys_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
@@ -599,6 +610,7 @@ fn build_keys_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = #ident;
 
@@ -609,6 +621,7 @@ fn build_keys_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
@@ -719,6 +732,7 @@ fn build_values_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<#lt, V> #clone for #type_name<#lt, V> where V: #lt {
             #[inline]
             fn clone(&self) -> Self {
@@ -730,6 +744,7 @@ fn build_values_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = &#lt V;
 
@@ -740,6 +755,7 @@ fn build_values_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
@@ -812,6 +828,7 @@ fn build_iter_mut_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = (#ident, &#lt mut V);
 
@@ -822,6 +839,7 @@ fn build_iter_mut_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
@@ -932,6 +950,7 @@ fn build_values_mut_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<#lt, V> #iterator_t for #type_name<#lt, V> where V: #lt {
             type Item = &#lt mut V;
 
@@ -942,6 +961,7 @@ fn build_values_mut_impl(
             }
         }
 
+        #[automatically_derived]
         impl<#lt, V> #double_ended_iterator_t for #type_name<#lt, V> #double_ended_where_clause {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
@@ -1014,6 +1034,7 @@ fn build_into_iter_impl(
             #(#field_decls,)*
         }
 
+        #[automatically_derived]
         impl<V> #clone for #type_name<V> where V: Clone, #(#clone_bounds,)* {
             #[inline]
             fn clone(&self) -> Self {
@@ -1025,6 +1046,7 @@ fn build_into_iter_impl(
             }
         }
 
+        #[automatically_derived]
         impl<V> #iterator_t for #type_name<V> {
             type Item = (#ident, V);
 
@@ -1035,6 +1057,7 @@ fn build_into_iter_impl(
             }
         }
 
+        #[automatically_derived]
         impl<V> #double_ended_iterator_t for #type_name<V> #double_ended_where {
             #[inline]
             fn next_back(&mut self) -> #option<Self::Item> {
