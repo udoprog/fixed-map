@@ -8,11 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: beta
-        override: true
-        profile: minimal
-        components: clippy
+      with: { toolchain: beta, override: true, profile: minimal, components: clippy }
     - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
 
   rustfmt:
@@ -20,11 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: beta
-        override: true
-        profile: minimal
-        components: rustfmt
+      with: { toolchain: beta, override: true, profile: minimal, components: rustfmt }
     - run: cargo fmt --check
 
   build:
@@ -32,10 +24,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: beta
-        override: true
-        profile: minimal
+      with: { toolchain: beta, override: true, profile: minimal }
     - run: cargo build --all-features --examples --tests --benches
 
   test:
@@ -43,10 +32,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: beta
-        override: true
-        profile: minimal
+      with: { toolchain: beta, override: true, profile: minimal }
     # Test all relevant feature combos:
     # features: std, map, serde
     - run: cargo test --all-features
