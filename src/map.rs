@@ -590,6 +590,76 @@ where
         self.storage.remove(key)
     }
 
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all pairs (k, v) for which f(k, &mut v) returns false.
+    /// The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.insert(Key::First, 42);
+    /// map.insert(Key::Second, -10);
+    ///
+    /// map.retain(|k, v| *v > 0);
+    ///
+    /// assert_eq!(map.len(), 1);
+    /// assert_eq!(map.get(Key::First), Some(&42));
+    /// assert_eq!(map.get(Key::Second), None);
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.insert(Key::First(true), 42);
+    /// map.insert(Key::First(false), -31);
+    /// map.insert(Key::Second, 100);
+    ///
+    /// let mut other = map.clone();
+    /// assert_eq!(map.len(), 3);
+    ///
+    /// map.retain(|k, v| *v > 0);
+    ///
+    /// assert_eq!(map.len(), 2);
+    /// assert_eq!(map.get(Key::First(true)), Some(&42));
+    /// assert_eq!(map.get(Key::First(false)), None);
+    /// assert_eq!(map.get(Key::Second), Some(&100));
+    ///
+    /// other.retain(|k, v| matches!(k, Key::First(_)));
+    ///
+    /// assert_eq!(other.len(), 2);
+    /// assert_eq!(other.get(Key::First(true)), Some(&42));
+    /// assert_eq!(other.get(Key::First(false)), Some(&-31));
+    /// assert_eq!(other.get(Key::Second), None);
+    /// ```
+    #[inline]
+    pub fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(K, &mut V) -> bool,
+    {
+        self.storage.retain(f);
+    }
+
     /// Clears the map, removing all key-value pairs. Keeps the allocated memory
     /// for reuse.
     ///

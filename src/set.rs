@@ -250,6 +250,79 @@ where
         self.storage.remove(key).is_some()
     }
 
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all elements e for which f(e) returns false.
+    /// The elements are visited in unsorted (and unspecified) order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut set = Set::new();
+    ///
+    /// set.insert(Key::First);
+    /// set.insert(Key::Second);
+    ///
+    /// set.retain(|k| matches!(k, Key::First));
+    ///
+    /// assert_eq!(set.len(), 1);
+    /// assert_eq!(set.contains(Key::First), true);
+    /// assert_eq!(set.contains(Key::Second), false);
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second(bool),
+    /// }
+    ///
+    /// let mut set = Set::new();
+    ///
+    /// set.insert(Key::First(true));
+    /// set.insert(Key::First(false));
+    /// set.insert(Key::Second(true));
+    /// set.insert(Key::Second(false));
+    ///
+    /// let mut other = set.clone();
+    /// assert_eq!(set.len(), 4);
+    ///
+    /// set.retain(|k| matches!(k, Key::First(true) | Key::Second(true)));
+    ///
+    /// assert_eq!(set.len(), 2);
+    /// assert_eq!(set.contains(Key::First(true)), true);
+    /// assert_eq!(set.contains(Key::First(false)), false);
+    /// assert_eq!(set.contains(Key::Second(true)), true);
+    /// assert_eq!(set.contains(Key::Second(false)), false);
+    ///
+    /// other.retain(|k| matches!(k, Key::First(_)));
+    ///
+    /// assert_eq!(other.len(), 2);
+    /// assert_eq!(other.contains(Key::First(true)), true);
+    /// assert_eq!(other.contains(Key::First(false)), true);
+    /// assert_eq!(other.contains(Key::Second(true)), false);
+    /// assert_eq!(other.contains(Key::Second(false)), false);
+    /// ```
+    #[inline]
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(K) -> bool,
+    {
+        self.storage.retain(|k, _| f(k));
+    }
+
     /// Clears the set, removing all values.
     ///
     /// # Examples

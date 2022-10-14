@@ -77,6 +77,18 @@ where
     }
 
     #[inline]
+    fn retain<F>(&mut self, mut func: F)
+    where
+        F: FnMut(K, &mut V) -> bool,
+    {
+        if let Some(val) = self.inner.as_mut() {
+            if !func(K::default(), val) {
+                self.inner = None;
+            }
+        }
+    }
+
+    #[inline]
     fn clear(&mut self) {
         self.inner = None;
     }

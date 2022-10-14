@@ -36,6 +36,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
+    let mut retain = Vec::new();
     let mut clear = Vec::new();
     let mut copy_bounds = Vec::new();
     let mut field_specs = Vec::new();
@@ -64,6 +65,14 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 get_mut.push(quote!(#option::as_mut(&mut self.#name)));
                 insert.push(quote!(#mem::replace(&mut self.#name, #option::Some(value))));
                 remove.push(quote!(#mem::replace(&mut self.#name, #option::None)));
+                retain.push(quote! {
+                    if let Some(val) = #option::as_mut(&mut self.#name) {
+                        if !func(#ident::#var, val) {
+                            self.#name = None;
+                        }
+                    }
+                });
+
                 FieldKind::Simple
             }
             Fields::Unnamed(unnamed) => {
@@ -91,6 +100,9 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                 get_mut.push(quote!(#as_storage::get_mut(&mut self.#name, v)));
                 insert.push(quote!(#as_storage::insert(&mut self.#name, v, value)));
                 remove.push(quote!(#as_storage::remove(&mut self.#name, v)));
+                retain.push(quote! {
+                    #as_storage::retain(&mut self.#name, |k, v| func(#ident::#var(k), v));
+                });
 
                 copy_bounds.push(quote!(#storage: #copy));
 
@@ -218,6 +230,14 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                     match value {
                         #(#pattern => #remove,)*
                     }
+                }
+
+                #[inline]
+                fn retain<F>(&mut self, mut func: F)
+                where
+                    F: FnMut(#ident, &mut V) -> bool
+                {
+                    #(#retain)*
                 }
 
                 #[inline]

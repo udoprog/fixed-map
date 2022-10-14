@@ -3,18 +3,40 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with: { toolchain: beta, override: true, profile: minimal, components: clippy }
+    - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with: { toolchain: beta, override: true, profile: minimal, components: rustfmt }
+    - run: cargo fmt --check
+
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: beta
-        override: true
-        profile: minimal
-        components: clippy, rustfmt
+      with: { toolchain: beta, override: true, profile: minimal }
+    - run: cargo build --all-features --examples --tests --benches
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with: { toolchain: beta, override: true, profile: minimal }
+    # Test all relevant feature combos:
+    # features: std, map, serde
     - run: cargo test --all-features
+    # features: -std, -map, -serde
     - run: cargo test --no-default-features
-    - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
-    - run: cargo fmt --check
+    # features: -std, -map, serde
+    - run: cargo test --no-default-features --features serde

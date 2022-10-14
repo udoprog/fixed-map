@@ -164,6 +164,14 @@ where
     }
 
     #[inline]
+    fn retain<F>(&mut self, mut func: F)
+    where
+        F: FnMut(K, &mut V) -> bool,
+    {
+        self.inner.retain(|&k, v| func(k, v));
+    }
+
+    #[inline]
     fn clear(&mut self) {
         self.inner.clear();
     }
