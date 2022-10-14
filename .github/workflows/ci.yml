@@ -14,7 +14,15 @@ jobs:
         profile: minimal
         components: clippy, rustfmt
 
+    # Run library and proc macro unit tests and doc tests
+    # also checks that those compile ok
     - run: cargo test --all-features
     - run: cargo test --no-default-features
+    # Run example and bench tests
+    # also checks that those compile ok
+    - run: cargo test --all-features --examples --benches
+    - run: cargo test --no-default-features --examples --benches
+    # Run clippy on everything, denying warnings
     - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
+    # Check that formatting is correct
     - run: cargo fmt --check

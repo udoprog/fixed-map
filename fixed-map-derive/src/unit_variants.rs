@@ -42,6 +42,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let mut get_mut = Vec::new();
     let mut insert = Vec::new();
     let mut remove = Vec::new();
+    let mut retain = Vec::new();
     let mut keys_iter_init = Vec::new();
     let mut iter_init = Vec::new();
 
@@ -59,6 +60,13 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         get_mut.push(quote!(#option::as_mut(#name)));
         insert.push(quote!(#mem::replace(#name, #option::Some(value))));
         remove.push(quote!(#mem::take(#name)));
+        retain.push(quote! {
+            if let Some(val) = #option::as_mut(#name) {
+                if !func(#ident::#var, val) {
+                    *#name = None;
+                }
+            }
+        });
         keys_iter_init.push(quote!(if #name.is_some() { Some(#ident::#var) } else { None }));
         iter_init.push(quote!((#ident::#var, #name)));
         names.push(name.clone());
@@ -178,6 +186,15 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                     match value {
                         #(#pattern => #remove,)*
                     }
+                }
+
+                #[inline]
+                fn retain<F>(&mut self, mut func: F)
+                where
+                    F: FnMut(#ident, &mut V) -> bool
+                {
+                    let [#(#names),*] = &mut self.data;
+                    #(#retain)*
                 }
 
                 #[inline]

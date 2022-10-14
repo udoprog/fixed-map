@@ -72,6 +72,11 @@ pub trait Storage<K, V>: Default {
     /// This is the storage abstraction for [`Map::remove`][crate::Map::remove].
     fn remove(&mut self, key: K) -> Option<V>;
 
+    /// This is the storage abstraction for [`Map::retain`][crate::Map::retain].
+    fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(K, &mut V) -> bool;
+
     /// This is the storage abstraction for [`Map::clear`][crate::Map::clear].
     fn clear(&mut self);
 

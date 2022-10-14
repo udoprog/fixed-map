@@ -209,6 +209,23 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     }
 
     #[inline]
+    fn retain<F>(&mut self, mut func: F)
+    where
+        F: FnMut(bool, &mut V) -> bool,
+    {
+        if let Some(t) = self.t.as_mut() {
+            if !func(true, t) {
+                self.t = None;
+            }
+        }
+        if let Some(f) = self.f.as_mut() {
+            if !func(false, f) {
+                self.f = None;
+            }
+        }
+    }
+
+    #[inline]
     fn clear(&mut self) {
         self.t = None;
         self.f = None;

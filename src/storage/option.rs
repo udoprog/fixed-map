@@ -188,6 +188,19 @@ where
     }
 
     #[inline]
+    fn retain<F>(&mut self, mut func: F)
+    where
+        F: FnMut(Option<K>, &mut V) -> bool,
+    {
+        self.some.retain(|k, v| func(Some(k), v));
+        if let Some(none) = self.none.as_mut() {
+            if !func(None, none) {
+                self.none = None;
+            }
+        }
+    }
+
+    #[inline]
     fn clear(&mut self) {
         self.some.clear();
         self.none = None;
