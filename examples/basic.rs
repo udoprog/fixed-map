@@ -12,10 +12,3 @@ fn main() {
     assert_eq!(map.get(Key::First), Some(&42));
     assert_eq!(map.get(Key::Second), None);
 }
-
-// Execute this during testing as well.
-#[cfg(test)]
-#[test]
-fn test_main() {
-    main();
-}
