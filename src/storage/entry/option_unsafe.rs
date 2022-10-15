@@ -62,11 +62,22 @@ struct OccupiedEntrySome<'a, K: Key, V> {
     some: &'a mut K::Storage<V>,
 }
 
-pub enum Entry<'a, K: Key, V> {
-    VacantEntryNone(VacantEntryNone<'a, K, V>),
-    VacantEntrySome(VacantEntrySome<'a, K, V>),
-    OccupiedEntryNone(OccupiedEntryNone<'a, K, V>),
-    OccupiedEntrySome(OccupiedEntrySome<'a, K, V>),
+enum VacantEntryEither<'a, K: Key, V> {
+    None(VacantEntryNone<'a, K, V>),
+    Some(VacantEntrySome<'a, K, V>)
+}
+
+struct VacantEntry<'a, K: Key, V> {
+    either: VacantEntryEither<'a, K, V>
+}
+
+enum OccupiedEntryEither<'a, K: Key, V> {
+    None(OccupiedEntryNone<'a, K, V>),
+    Some(OccupiedEntrySome<'a, K, V>)
+}
+
+struct OccupiedEntry<'a, K: Key, V> {
+    either: OccupiedEntryEither<'a, K, V>
 }
 
 impl<'a, K: Key, V> VacantEntryNone<'a, K, V> {
@@ -77,6 +88,33 @@ impl<'a, K: Key, V> VacantEntryNone<'a, K, V> {
     pub fn insert(self, value: V) -> &'a mut V {
         *self.none = Some(value);
         unsafe { self.none.as_mut().unwrap_unchecked() }
+    }
+}
+
+impl<'a, K: Key, V> VacantEntrySome<'a, K, V> {
+    pub fn key(&self) -> Option<K> {
+        Some(self.key)
+    }
+
+    pub fn insert(self, value: V) -> &'a mut V {
+        self.some.insert(self.key, value);
+        unsafe { self.some.get_mut(self.key).unwrap_unchecked() }
+    }
+}
+
+impl<'a, K: Key, V> super::VacantEntry<'a, Option<K>, V> for VacantEntry<'a, K, V> {
+    fn key(&self) -> Option<K> {
+        match &self.either {
+            VacantEntryEither::None(entry) => entry.key(),
+            VacantEntryEither::Some(entry) => entry.key(),
+        }
+    }
+
+    fn insert(self, value: V) -> &'a mut V {
+        match self.either {
+            VacantEntryEither::None(entry) => entry.insert(value),
+            VacantEntryEither::Some(entry) => entry.insert(value),
+        }
     }
 }
 
@@ -106,17 +144,6 @@ impl<'a, K: Key, V> OccupiedEntryNone<'a, K, V> {
     }
 }
 
-impl<'a, K: Key, V> VacantEntrySome<'a, K, V> {
-    pub fn key(&self) -> Option<K> {
-        Some(self.key)
-    }
-
-    pub fn insert(self, value: V) -> &'a mut V {
-        self.some.insert(self.key, value);
-        unsafe { self.some.get_mut(self.key).unwrap_unchecked() }
-    }
-}
-
 impl<'a, K: Key, V> OccupiedEntrySome<'a, K, V> {
     pub fn key(&self) -> Option<K> {
         Some(self.key)
@@ -142,3 +169,49 @@ impl<'a, K: Key, V> OccupiedEntrySome<'a, K, V> {
         self.some.remove(self.key).unwrap()
     }
 }
+
+impl<'a, K: Key, V> super::OccupiedEntry<'a, Option<K>, V> for OccupiedEntry<'a, K, V> {
+    fn key(&self) -> Option<K> {
+        match &self.either {
+            OccupiedEntryEither::None(entry) => entry.key(),
+            OccupiedEntryEither::Some(entry) => entry.key(),
+        }
+    }
+
+    fn get(&self) -> &V {
+        match &self.either {
+            OccupiedEntryEither::None(entry) => entry.get(),
+            OccupiedEntryEither::Some(entry) => entry.get(),
+        }
+    }
+
+    fn get_mut(&mut self) -> &mut V {
+        match &mut self.either {
+            OccupiedEntryEither::None(entry) => entry.get_mut(),
+            OccupiedEntryEither::Some(entry) => entry.get_mut(),
+        }
+    }
+
+    fn into_mut(self) -> &'a mut V {
+        match self.either {
+            OccupiedEntryEither::None(entry) => entry.into_mut(),
+            OccupiedEntryEither::Some(entry) => entry.into_mut(),
+        }
+    }
+
+    fn insert(&mut self, value: V) -> V {
+        match &mut self.either {
+            OccupiedEntryEither::None(entry) => entry.insert(value),
+            OccupiedEntryEither::Some(entry) => entry.insert(value),
+        }
+    }
+
+    fn remove(self) -> V {
+        match self.either {
+            OccupiedEntryEither::None(entry) => entry.remove(),
+            OccupiedEntryEither::Some(entry) => entry.remove(),
+        }
+    }
+}
+
+type Entry<'a, K, V> = super::Entry<OccupiedEntry<'a, K, V>, VacantEntry<'a, K, V>>;
