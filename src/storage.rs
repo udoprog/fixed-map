@@ -5,6 +5,8 @@ mod boolean;
 mod map;
 mod option;
 mod singleton;
+#[cfg(feature = "entry")]
+mod entry;
 
 pub use self::boolean::BooleanStorage;
 #[cfg(feature = "map")]

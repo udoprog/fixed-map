@@ -273,7 +273,9 @@
 //! [documentation]: https://docs.rs/fixed-map
 
 #![no_std]
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "entry"), forbid(unsafe_code))]
+#![cfg_attr(feature = "entry", deny(unsafe_code))]
+// #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 // Enable pedantic lints as warnings so we don't break builds when
 // lints are modified or new lints are added to clippy.
