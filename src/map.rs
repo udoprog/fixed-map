@@ -2,7 +2,12 @@
 
 use core::fmt;
 
-use crate::{key::Key, storage::Storage};
+use crate::{key::Key, storage::entry, storage::Storage};
+
+// Re-export them here, as if they are from the `map` module
+#[cfg(feature = "entry")]
+#[doc(inline)]
+pub use entry::{Entry, OccupiedEntry, VacantEntry};
 
 /// The iterator produced by [`Map::iter`].
 pub type Iter<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Iter<'a>;
@@ -770,6 +775,20 @@ where
     /// ```
     pub fn len(&self) -> usize {
         self.storage.len()
+    }
+
+    /// Gets the given key’s corresponding [`Entry`] in the [`Map`] for in-place manipulation.
+    #[cfg(feature = "entry")]
+    pub fn entry<'this>(
+        &'this mut self,
+        key: K,
+    ) -> Entry<impl OccupiedEntry<'this, K, V>, impl VacantEntry<'this, K, V>>
+    where
+        K::Storage<V>: entry::StorageEntry<K, V>,
+        <K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>: VacantEntry<'this, K, V>,
+        <K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>: OccupiedEntry<'this, K, V>,
+    {
+        entry::StorageEntry::entry(&mut self.storage, key)
     }
 }
 

@@ -2,11 +2,14 @@
 
 mod boolean;
 #[cfg(feature = "entry")]
-mod entry;
+pub(crate) mod entry;
 #[cfg(feature = "map")]
 mod map;
 mod option;
 mod singleton;
+
+#[cfg(feature = "entry")]
+pub use self::entry::StorageEntry;
 
 pub use self::boolean::BooleanStorage;
 #[cfg(feature = "map")]
@@ -97,6 +100,6 @@ pub trait Storage<K, V>: Default {
     /// This is the storage abstraction for [`Map::values_mut`][crate::Map::values_mut].
     fn values_mut(&mut self) -> Self::ValuesMut<'_>;
 
-    /// This is the storage abstraction for [`Map::into_iter`][crate::Map::into_iter])
+    /// This is the storage abstraction for [`Map::into_iter`][crate::Map::into_iter].
     fn into_iter(self) -> Self::IntoIter;
 }

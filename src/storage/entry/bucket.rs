@@ -1,4 +1,4 @@
-#![allow(unsafe_code)]
+#![allow(unsafe_code, unreachable_pub)]
 
 use core::{hint::unreachable_unchecked, marker::PhantomData};
 
@@ -29,6 +29,10 @@ impl<'a, V> SomeBucket<'a, V> {
 
     pub fn into_mut(self) -> &'a mut V {
         unsafe { &mut (*self.inner) }
+    }
+
+    pub fn replace(&mut self, value: V) -> V {
+        core::mem::replace(self.as_mut(), value)
     }
 
     pub fn take(self) -> V {
