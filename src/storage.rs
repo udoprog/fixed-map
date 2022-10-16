@@ -1,12 +1,12 @@
 //! Module for the trait to define [`Storage`].
 
 mod boolean;
+#[cfg(feature = "entry")]
+mod entry;
 #[cfg(feature = "map")]
 mod map;
 mod option;
 mod singleton;
-#[cfg(feature = "entry")]
-mod entry;
 
 pub use self::boolean::BooleanStorage;
 #[cfg(feature = "map")]

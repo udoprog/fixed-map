@@ -1,50 +1,11 @@
-#![allow(unsafe_code)]
-
 use core::{marker::PhantomData, mem};
 
-use crate::{key::Key, storage::Storage};
-
-/// Abstraction for an `Option` that's known to be `Some`
-struct SomeBucket<'a, V> {
-    opt: *mut Option<V>,
-    inner: *mut V,
-    _life: PhantomData<&'a mut Option<V>>,
-}
-impl<'a, V> SomeBucket<'a, V> {
-    fn new(opt: &'a mut Option<V>) -> Option<Self> {
-        let opt_ptr: *mut Option<V> = opt;
-
-        opt.as_mut().map(|inner| SomeBucket {
-            opt: opt_ptr,
-            inner,
-            _life: PhantomData,
-        })
-    }
-
-    fn as_ref(&self) -> &V {
-        unsafe { &(*self.inner) }
-    }
-
-    fn as_mut(&mut self) -> &mut V {
-        unsafe { &mut (*self.inner) }
-    }
-
-    fn into_mut(self) -> &'a mut V {
-        unsafe { &mut (*self.inner) }
-    }
-
-    fn take(self) -> V {
-        unsafe {
-            let value = self.inner.read();
-            self.opt.write(None);
-            value
-        }
-    }
-}
+use super::bucket::{NoneBucket, OptionBucket, SomeBucket};
+use crate::{key::Key, storage::OptionStorage};
 
 struct VacantEntryNone<'a, K: Key, V> {
     _key: PhantomData<K>,
-    none: &'a mut Option<V>,
+    none: NoneBucket<'a, V>,
 }
 
 struct OccupiedEntryNone<'a, K: Key, V> {
@@ -52,32 +13,28 @@ struct OccupiedEntryNone<'a, K: Key, V> {
     none: SomeBucket<'a, V>,
 }
 
-struct VacantEntrySome<'a, K: Key, V> {
-    key: K,
-    some: &'a mut K::Storage<V>,
-}
-
-struct OccupiedEntrySome<'a, K: Key, V> {
-    key: K,
-    some: &'a mut K::Storage<V>,
-}
-
-enum VacantEntryEither<'a, K: Key, V> {
+enum VacantEntryEither<'a, K: Key, V>
+where
+    K::Storage<V>: 'a,
+{
     None(VacantEntryNone<'a, K, V>),
-    Some(VacantEntrySome<'a, K, V>)
+    Some(<K::Storage<V> as super::StorageEntry<K, V>>::Vacant<'a>),
 }
 
-struct VacantEntry<'a, K: Key, V> {
-    either: VacantEntryEither<'a, K, V>
+pub struct VacantEntry<'a, K: Key, V> {
+    either: VacantEntryEither<'a, K, V>,
 }
 
-enum OccupiedEntryEither<'a, K: Key, V> {
+enum OccupiedEntryEither<'a, K: Key, V>
+where
+    K::Storage<V>: 'a,
+{
     None(OccupiedEntryNone<'a, K, V>),
-    Some(OccupiedEntrySome<'a, K, V>)
+    Some(<K::Storage<V> as super::StorageEntry<K, V>>::Occupied<'a>),
 }
 
-struct OccupiedEntry<'a, K: Key, V> {
-    either: OccupiedEntryEither<'a, K, V>
+pub struct OccupiedEntry<'a, K: Key, V> {
+    either: OccupiedEntryEither<'a, K, V>,
 }
 
 impl<'a, K: Key, V> VacantEntryNone<'a, K, V> {
@@ -86,19 +43,7 @@ impl<'a, K: Key, V> VacantEntryNone<'a, K, V> {
     }
 
     pub fn insert(self, value: V) -> &'a mut V {
-        *self.none = Some(value);
-        unsafe { self.none.as_mut().unwrap_unchecked() }
-    }
-}
-
-impl<'a, K: Key, V> VacantEntrySome<'a, K, V> {
-    pub fn key(&self) -> Option<K> {
-        Some(self.key)
-    }
-
-    pub fn insert(self, value: V) -> &'a mut V {
-        self.some.insert(self.key, value);
-        unsafe { self.some.get_mut(self.key).unwrap_unchecked() }
+        self.none.insert(value)
     }
 }
 
@@ -106,7 +51,7 @@ impl<'a, K: Key, V> super::VacantEntry<'a, Option<K>, V> for VacantEntry<'a, K, 
     fn key(&self) -> Option<K> {
         match &self.either {
             VacantEntryEither::None(entry) => entry.key(),
-            VacantEntryEither::Some(entry) => entry.key(),
+            VacantEntryEither::Some(entry) => Some(entry.key()),
         }
     }
 
@@ -144,37 +89,11 @@ impl<'a, K: Key, V> OccupiedEntryNone<'a, K, V> {
     }
 }
 
-impl<'a, K: Key, V> OccupiedEntrySome<'a, K, V> {
-    pub fn key(&self) -> Option<K> {
-        Some(self.key)
-    }
-
-    pub fn get(&self) -> &V {
-        self.some.get(self.key).unwrap()
-    }
-
-    pub fn get_mut(&mut self) -> &mut V {
-        self.some.get_mut(self.key).unwrap()
-    }
-
-    pub fn into_mut(self) -> &'a mut V {
-        self.some.get_mut(self.key).unwrap()
-    }
-
-    pub fn insert(&mut self, value: V) -> V {
-        self.some.insert(self.key, value).unwrap()
-    }
-
-    pub fn remove(self) -> V {
-        self.some.remove(self.key).unwrap()
-    }
-}
-
 impl<'a, K: Key, V> super::OccupiedEntry<'a, Option<K>, V> for OccupiedEntry<'a, K, V> {
     fn key(&self) -> Option<K> {
         match &self.either {
             OccupiedEntryEither::None(entry) => entry.key(),
-            OccupiedEntryEither::Some(entry) => entry.key(),
+            OccupiedEntryEither::Some(entry) => Some(entry.key()),
         }
     }
 
@@ -214,4 +133,38 @@ impl<'a, K: Key, V> super::OccupiedEntry<'a, Option<K>, V> for OccupiedEntry<'a,
     }
 }
 
-type Entry<'a, K, V> = super::Entry<OccupiedEntry<'a, K, V>, VacantEntry<'a, K, V>>;
+pub type Entry<'a, K, V> = super::Entry<OccupiedEntry<'a, K, V>, VacantEntry<'a, K, V>>;
+
+use crate::storage::entry::StorageEntry;
+
+impl<K: Key, V> OptionStorage<K, V> {
+    pub fn entry<'this>(
+        self: &'this mut OptionStorage<K, V>,
+        key: Option<K>,
+    ) -> Entry<'this, K, V> {
+        match key {
+            Some(key) => match self.some.entry(key) {
+                super::Entry::Occupied(entry) => Entry::Occupied(OccupiedEntry {
+                    either: OccupiedEntryEither::Some(entry),
+                }),
+                super::Entry::Vacant(entry) => Entry::Vacant(VacantEntry {
+                    either: VacantEntryEither::Some(entry),
+                }),
+            },
+            None => match OptionBucket::new(&mut self.none) {
+                OptionBucket::Some(some) => Entry::Occupied(OccupiedEntry {
+                    either: OccupiedEntryEither::None(OccupiedEntryNone {
+                        _key: PhantomData,
+                        none: some,
+                    }),
+                }),
+                OptionBucket::None(none) => Entry::Vacant(VacantEntry {
+                    either: VacantEntryEither::None(VacantEntryNone {
+                        _key: PhantomData,
+                        none,
+                    }),
+                }),
+            },
+        }
+    }
+}

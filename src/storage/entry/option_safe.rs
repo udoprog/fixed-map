@@ -1,6 +1,6 @@
 #![allow(clippy::single_match_else, clippy::or_fun_call)]
 
-use crate::{key::Key, storage::Storage, storage::entry::StorageEntry};
+use crate::{key::Key, storage::entry::StorageEntry, storage::Storage};
 
 struct Entry<'a, K: Key, V> {
     key: Option<K>,
@@ -11,34 +11,25 @@ struct Entry<'a, K: Key, V> {
 impl<'a, K: Key, V> Entry<'a, K, V> {
     fn or_insert(self, default: V) -> &'a mut V {
         match self.key {
-            Some(key) => {
-                self.some.entry(key).or_insert(default)
-            },
-            None => {
-                self.none.get_or_insert(default)
-            },
+            Some(key) => self.some.entry(key).or_insert(default),
+            None => self.none.get_or_insert(default),
         }
     }
 
     fn or_insert_with<F: FnOnce() -> V>(self, default: F) -> &'a mut V {
         match self.key {
-            Some(key) => {
-                self.some.entry(key).or_insert_with(default)
-            },
-            None => {
-                self.none.get_or_insert_with(default)
-            },
+            Some(key) => self.some.entry(key).or_insert_with(default),
+            None => self.none.get_or_insert_with(default),
         }
     }
 
     fn or_insert_with_key<F: FnOnce(Option<K>) -> V>(self, default: F) -> &'a mut V {
         match self.key {
-            Some(key) => {
-                self.some.entry(key).or_insert_with_key(|k| default(Some(k)))
-            },
-            None => {
-                self.none.get_or_insert_with(|| default(self.key))
-            },
+            Some(key) => self
+                .some
+                .entry(key)
+                .or_insert_with_key(|k| default(Some(k))),
+            None => self.none.get_or_insert_with(|| default(self.key)),
         }
     }
 
@@ -59,13 +50,13 @@ impl<'a, K: Key, V> Entry<'a, K, V> {
                     f(val);
                 }
                 self
-            },
+            }
         }
     }
 
     fn or_default(self) -> &'a mut V
     where
-        V: Default
+        V: Default,
     {
         self.or_insert(V::default())
     }

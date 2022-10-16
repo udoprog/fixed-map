@@ -1,10 +1,11 @@
 use crate::key::Key;
 use crate::storage::Storage;
 
+mod bucket;
 mod option_safe;
 mod option_unsafe;
 
-trait OccupiedEntry<'this, K: Key, V> {
+pub trait OccupiedEntry<'this, K: Key, V> {
     fn key(&self) -> K;
     fn get(&self) -> &V;
     fn get_mut(&mut self) -> &mut V;
@@ -13,18 +14,18 @@ trait OccupiedEntry<'this, K: Key, V> {
     fn remove(self) -> V;
 }
 
-trait VacantEntry<'this, K: Key, V> {
+pub trait VacantEntry<'this, K: Key, V> {
     fn key(&self) -> K;
     fn insert(self, value: V) -> &'this mut V;
 }
 
-enum Entry<Occupied, Vacant> {
+pub enum Entry<Occupied, Vacant> {
     Occupied(Occupied),
-    Vacant(Vacant)
+    Vacant(Vacant),
 }
 
 impl<Occupied, Vacant> Entry<Occupied, Vacant> {
-    fn or_insert<'this, K: Key, V>(self, default: V) -> &'this mut V
+    pub fn or_insert<'this, K: Key, V>(self, default: V) -> &'this mut V
     where
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -35,7 +36,7 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
         }
     }
 
-    fn or_insert_with<'this, K: Key, V, F: FnOnce() -> V>(self, default: F) -> &'this mut V
+    pub fn or_insert_with<'this, K: Key, V, F: FnOnce() -> V>(self, default: F) -> &'this mut V
     where
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -46,7 +47,7 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
         }
     }
 
-    fn or_insert_with_key<'this, K: Key, V, F: FnOnce(K) -> V>(self, default: F) -> &'this mut V
+    pub fn or_insert_with_key<'this, K: Key, V, F: FnOnce(K) -> V>(self, default: F) -> &'this mut V
     where
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -60,7 +61,7 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
         }
     }
 
-    fn key<'this, K: Key, V>(&self) -> K
+    pub fn key<'this, K: Key, V>(&self) -> K
     where
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -71,7 +72,7 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
         }
     }
 
-    fn and_modify<'this, K: Key, V, F: FnOnce(&mut V)>(self, f: F) -> Self
+    pub fn and_modify<'this, K: Key, V, F: FnOnce(&mut V)>(self, f: F) -> Self
     where
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -85,8 +86,8 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
         }
     }
 
-    fn or_default<'this, K: Key, V>(self) -> &'this mut V
-    where 
+    pub fn or_default<'this, K: Key, V>(self) -> &'this mut V
+    where
         V: Default,
         Occupied: OccupiedEntry<'this, K, V>,
         Vacant: VacantEntry<'this, K, V>,
@@ -99,8 +100,12 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
 }
 
 trait StorageEntry<K: Key, V>: Storage<K, V> {
-    type Occupied<'this> where Self: 'this;
-    type Vacant<'this> where Self: 'this;
+    type Occupied<'this>
+    where
+        Self: 'this;
+    type Vacant<'this>
+    where
+        Self: 'this;
 
     fn entry<'this>(&'this mut self, key: K) -> Entry<Self::Occupied<'this>, Self::Vacant<'this>>
     where
@@ -116,7 +121,7 @@ mod fake {
         key: K,
         table: &'this mut K::Storage<V>,
     }
-    
+
     impl<'this, K: Key, V> super::OccupiedEntry<'this, K, V> for OccupiedEntry<'this, K, V> {
         fn key(&self) -> K {
             self.key
@@ -137,7 +142,7 @@ mod fake {
             self.table.remove(self.key).unwrap()
         }
     }
-    
+
     pub struct VacantEntry<'this, K: Key, V> {
         key: K,
         table: &'this mut K::Storage<V>,
@@ -152,26 +157,23 @@ mod fake {
             self.table.get_mut(self.key).unwrap()
         }
     }
-    
+
     impl<K: Key, V> super::StorageEntry<K, V> for K::Storage<V> {
         type Occupied<'this> = OccupiedEntry<'this, K, V> where Self: 'this;
         type Vacant<'this> = VacantEntry<'this, K, V> where Self: 'this;
 
-        fn entry<'this>(&'this mut self, key: K) -> super::Entry<Self::Occupied<'this>, Self::Vacant<'this>>
+        fn entry<'this>(
+            &'this mut self,
+            key: K,
+        ) -> super::Entry<Self::Occupied<'this>, Self::Vacant<'this>>
         where
             Self::Occupied<'this>: super::OccupiedEntry<'this, K, V>,
-            Self::Vacant<'this>: super::VacantEntry<'this, K, V>
+            Self::Vacant<'this>: super::VacantEntry<'this, K, V>,
         {
             if self.contains_key(key) {
-                super::Entry::Occupied(OccupiedEntry {
-                    key,
-                    table: self,
-                })
+                super::Entry::Occupied(OccupiedEntry { key, table: self })
             } else {
-                super::Entry::Vacant(VacantEntry {
-                    key,
-                    table: self
-                })
+                super::Entry::Vacant(VacantEntry { key, table: self })
             }
         }
     }

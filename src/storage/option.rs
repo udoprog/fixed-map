@@ -68,8 +68,8 @@ pub struct OptionStorage<K, V>
 where
     K: Key,
 {
-    some: K::Storage<V>,
-    none: Option<V>,
+    pub(in crate::storage) some: K::Storage<V>,
+    pub(in crate::storage) none: Option<V>,
 }
 
 impl<K, V> Clone for OptionStorage<K, V>
