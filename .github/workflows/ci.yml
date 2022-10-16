@@ -6,7 +6,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal, components: clippy }
     - run: cargo clippy --workspace --all-features --tests --examples --benches -- --deny warnings
@@ -14,7 +14,7 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal, components: rustfmt }
     - run: cargo fmt --check
@@ -22,7 +22,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal }
     - run: cargo build --all-features --examples --tests --benches
@@ -30,7 +30,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal }
     # Test all relevant feature combos:

@@ -243,6 +243,8 @@
 //! fixed/sum_values        time:   [3.0503 ns 3.0559 ns 3.0619 ns]
 //! ```
 //!
+//! <br>
+//!
 //! ## Examples
 //!
 //! Most examples are in place to test what kind of assembler they compile to.

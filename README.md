@@ -13,7 +13,7 @@ See [documentation] for information on how to use this crate.
 
 <br>
 
-### Usage
+## Usage
 
 Add `fixed-map` to your `Cargo.toml`:
 
@@ -59,7 +59,7 @@ assert!(!set.contains(Key::East));
 
 <br>
 
-### Features
+## Features
 
 The following features are available:
 
@@ -73,7 +73,7 @@ The following features are available:
 
 <br>
 
-### Specialized storage through the [`Key`] trait
+## Specialized storage through the [`Key`] trait
 
 The [`Key` derive] is provided to instruct our containers on how to build
 optimized storage for a given [`Key`]. We also require any key to be [`Copy`].
@@ -107,7 +107,7 @@ keys*. See the [`Key`] documentation for more information.
 
 <br>
 
-### Why does this crate exist?
+## Why does this crate exist?
 
 There are many cases where you want associate a value with a small, fixed
 number of elements identified by an enum.
@@ -178,7 +178,7 @@ if let Some(item) = map.get(Dir::North) {
 
 <br>
 
-### Benchmarks
+## Benchmarks
 
 We include benchmarks to ensure that we abide by the expectation that a
 fixed map or set should perform roughly the same as an array with the same
@@ -195,7 +195,7 @@ In the following benchmarks fixed-map is compared to:
 Note: for all `insert` benchmarks the underlying storage is cloned in each
 iteration.
 
-```
+```text
 get/fixed/4             time:   [208.96 ps 209.57 ps 210.17 ps]
 get/fixed/8             time:   [211.12 ps 211.86 ps 212.55 ps]
 get/fixed/16            time:   [211.50 ps 211.84 ps 212.23 ps]
@@ -239,7 +239,9 @@ array/sum_values        time:   [3.0394 ns 3.0463 ns 3.0534 ns]
 fixed/sum_values        time:   [3.0503 ns 3.0559 ns 3.0619 ns]
 ```
 
-### Examples
+<br>
+
+## Examples
 
 Most examples are in place to test what kind of assembler they compile to.
 
@@ -265,5 +267,3 @@ ls target/release/examples/
 [`Set`]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
 [`Storage`]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
 [documentation]: https://docs.rs/fixed-map
-
-License: MIT/Apache-2.0
