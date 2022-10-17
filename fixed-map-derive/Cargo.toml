@@ -3,20 +3,18 @@ name = "fixed-map-derive"
 version = "0.8.0-alpha.2"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
-license = "MIT/Apache-2.0"
-categories = ["data-structures"]
-
 description = """
 A fixed map where storage layout is calculated by a procedural macro.
 
 This crate contains the procedural macros.
 """
-
 documentation = "https://docs.rs/fixed-map"
+readme = "README.md"
 homepage = "https://github.com/udoprog/fixed-map"
 repository = "https://github.com/udoprog/fixed-map"
-
-readme = "README.md"
+license = "MIT/Apache-2.0"
+keywords = ["data-structure", "container", "map", "no_std"]
+categories = ["data-structures"]
 
 [dependencies]
 syn = "1.0.8"
