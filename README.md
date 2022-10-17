@@ -260,10 +260,10 @@ ls target/release/examples/
 [`Copy`]: https://doc.rust-lang.org/std/marker/trait.Copy.html
 [`Deserialize`]: https://docs.rs/serde/1/serde/trait.Deserialize.html
 [`hashbrown`]: https://github.com/Amanieu/hashbrown
-[`Key` derive]: https://docs.rs/fixed-map/*/fixed_map/derive.Key.html
-[`Key`]: https://docs.rs/fixed-map/*/fixed_map/trait.Key.html
-[`Map`]: https://docs.rs/fixed-map/*/fixed_map/struct.Map.html
+[`Key` derive]: https://docs.rs/fixed-map/latest/fixed_map/derive.Key.html
+[`Key`]: https://docs.rs/fixed-map/latest/fixed_map/derive.Key.html
+[`Map`]: https://docs.rs/fixed-map/latest/fixed_map/map/struct.Map.html
 [`Serialize`]: https://docs.rs/serde/1/serde/trait.Serialize.html
-[`Set`]: https://docs.rs/fixed-map/*/fixed_map/map/struct.Set.html
-[`Storage`]: https://docs.rs/fixed-map/*/fixed_map/storage/trait.Storage.html
+[`Set`]: https://docs.rs/fixed-map/latest/fixed_map/set/struct.Set.html
+[`Storage`]: https://docs.rs/fixed-map/latest/fixed_map/storage/trait.Storage.html
 [documentation]: https://docs.rs/fixed-map
