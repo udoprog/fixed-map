@@ -23,6 +23,7 @@ map = ["hashbrown", "std"]
 entry = []
 
 [dependencies]
+option-bucket = { path = "option-bucket" }
 fixed-map-derive = { version = "0.8.0-alpha.2", path = "fixed-map-derive" }
 hashbrown = { version = "0.12.3", optional = true }
 serde = { version = "1.0.145", optional = true, default_features = false }
@@ -40,4 +41,7 @@ name = "simple"
 harness = false
 
 [workspace]
-members = ["fixed-map-derive"]
+members = [
+  "fixed-map-derive",
+  "option-bucket"
+]

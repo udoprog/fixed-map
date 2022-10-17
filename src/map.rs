@@ -2,8 +2,10 @@
 
 use core::fmt;
 
-use crate::{key::Key, storage::entry, storage::Storage};
+use crate::{key::Key, storage::Storage};
 
+#[cfg(feature = "entry")]
+use crate::storage::entry;
 // Re-export them here, as if they are from the `map` module
 #[cfg(feature = "entry")]
 #[doc(inline)]

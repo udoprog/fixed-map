@@ -1,7 +1,6 @@
 use crate::storage::Storage;
 
 mod boolean;
-mod bucket;
 mod map;
 mod option;
 mod singleton;

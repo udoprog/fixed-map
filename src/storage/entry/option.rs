@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use crate::storage::entry;
 use crate::{key::Key, storage::OptionStorage};
-use entry::bucket::{NoneBucket, OptionBucket, SomeBucket};
+use option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 struct VacantEntryNone<'this, K: Key, V> {
     _key: PhantomData<K>,
