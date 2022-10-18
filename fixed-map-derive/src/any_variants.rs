@@ -5,7 +5,7 @@ use syn::{DataEnum, Fields, Ident};
 
 use crate::context::{Ctxt, FieldKind, FieldSpec};
 
-pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
+pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
@@ -111,7 +111,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
                     storage,
                 }
             }
-            _ => {
+            Fields::Named(_) => {
                 cx.error(variant.fields.span(), "named fields are not supported");
                 continue;
             }
@@ -323,11 +323,11 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
 
 /// Build iterator next.
 fn build_iter_next(
-    cx: &Ctxt,
+    cx: &Ctxt<'_>,
     step_forward: &mut IteratorNext,
     step_backward: &mut IteratorNextBack,
     field_specs: &[FieldSpec<'_>],
-    assoc_type: &syn::Ident,
+    assoc_type: &Ident,
     lt: Option<&syn::Lifetime>,
 ) -> Result<(), ()> {
     let option = &cx.toks.option;
@@ -401,7 +401,7 @@ fn build_iter_next(
 
 /// Construct an iterator implementation.
 fn build_iter_impl(
-    cx: &Ctxt,
+    cx: &Ctxt<'_>,
     id: &str,
     field_specs: &[FieldSpec<'_>],
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
@@ -496,9 +496,9 @@ fn build_iter_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct an keys iterator_t implementation.
+/// Constructs a key's `iterator_t` implementation.
 fn build_keys_impl(
-    cx: &Ctxt,
+    cx: &Ctxt<'_>,
     id: &str,
     field_specs: &[FieldSpec<'_>],
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
@@ -634,9 +634,9 @@ fn build_keys_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct a values iterator_t implementation.
+/// Construct a values `iterator_t` implementation.
 fn build_values_impl(
-    cx: &Ctxt,
+    cx: &Ctxt<'_>,
     id: &str,
     field_specs: &[FieldSpec<'_>],
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
@@ -852,9 +852,9 @@ fn build_iter_mut_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct a values mutable iterator_t implementation.
+/// Construct a values mutable `iterator_t` implementation.
 fn build_values_mut_impl(
-    cx: &Ctxt,
+    cx: &Ctxt<'_>,
     id: &str,
     field_specs: &[FieldSpec<'_>],
 ) -> Result<(TokenStream, Vec<TokenStream>), ()> {
@@ -974,7 +974,7 @@ fn build_values_mut_impl(
     Ok((iter_impl, init))
 }
 
-/// Construct IntoIter implementation.
+/// Construct `IntoIter` implementation.
 fn build_into_iter_impl(
     cx: &Ctxt<'_>,
     id: &str,
@@ -1100,7 +1100,7 @@ struct IteratorNextBack {
 
 impl IteratorNextBack {
     /// Initializes an empty `where`-clause if there is not one present already.
-    pub fn make_where_clause(&mut self) -> &mut syn::WhereClause {
+    pub(crate) fn make_where_clause(&mut self) -> &mut syn::WhereClause {
         self.where_clause.get_or_insert_with(|| syn::WhereClause {
             where_token: <syn::Token![where]>::default(),
             predicates: syn::punctuated::Punctuated::new(),

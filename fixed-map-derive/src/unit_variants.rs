@@ -5,7 +5,7 @@ use syn::{DataEnum, Ident};
 use crate::context::Ctxt;
 
 /// Every variant is a unit variant.
-pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
+pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 

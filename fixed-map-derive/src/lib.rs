@@ -9,6 +9,54 @@
 
 #![recursion_limit = "256"]
 #![forbid(unsafe_code)]
+// Enable pedantic lints as warnings so we don't break builds when
+// lints are modified or new lints are added to clippy.
+#![warn(
+    // Enable more useful rustc lints
+    absolute_paths_not_starting_with_crate,
+    elided_lifetimes_in_paths,
+    explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    meta_variable_misuse,
+    missing_copy_implementations,
+    missing_docs,
+    non_ascii_idents,
+    noop_method_call,
+    pointer_structural_match,
+    single_use_lifetimes,
+    trivial_casts,
+    trivial_numeric_casts,
+    unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    unused_macro_rules,
+    unused_qualifications,
+    unused_tuple_struct_fields,
+    variant_size_differences,
+    // Enable pedantic clippy lints
+    clippy::pedantic,
+    // Useful clippy lints for no_std support
+    clippy::std_instead_of_core,
+    clippy::std_instead_of_alloc,
+    clippy::alloc_instead_of_core
+)]
+#![allow(
+    // rustc exceptions
+    missing_docs,
+    // `clippy::pedantic` exceptions
+    // style choice
+    clippy::module_name_repetitions,
+    // style choice
+    clippy::too_many_lines,
+    // false positive
+    clippy::type_repetition_in_bounds,
+    // false positive
+    clippy::expl_impl_clone_on_copy,
+    // conscious choice
+    clippy::unnecessary_wraps
+)]
 
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -25,7 +73,7 @@ mod unit_variants;
 ///
 /// This derive implements the `Key` trait for a given type.
 ///
-/// The `Key` trait is what allows fixed_map to set up storage for a type that will be the key in
+/// The `Key` trait is what allows `fixed_map` to set up storage for a type that will be the key in
 /// a fixed map.
 ///
 /// Given the following enum:
@@ -112,18 +160,15 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Derive to implement the `Key` trait.
 fn impl_storage(cx: &context::Ctxt<'_>) -> Result<TokenStream, ()> {
-    match &cx.ast.data {
-        Data::Enum(en) => {
-            if is_all_unit_variants(en) {
-                unit_variants::implement(cx, en)
-            } else {
-                any_variants::implement(cx, en)
-            }
+    if let Data::Enum(en) = &cx.ast.data {
+        if is_all_unit_variants(en) {
+            unit_variants::implement(cx, en)
+        } else {
+            any_variants::implement(cx, en)
         }
-        _ => {
-            cx.error(cx.ast.span(), "named fields are not supported");
-            Err(())
-        }
+    } else {
+        cx.error(cx.ast.span(), "named fields are not supported");
+        Err(())
     }
 }
 
