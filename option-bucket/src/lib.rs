@@ -127,8 +127,8 @@ use core::marker::PhantomData;
 ///
 /// # Size
 ///
-/// `SomeOption` is the size of two pointers, making it 
-/// twice the size of `&mut Option`. One points to the 
+/// `SomeOption` is the size of two pointers, making it
+/// twice the size of `&mut Option`. One points to the
 /// value inside, and the other points to the `Option` itself.
 pub struct SomeBucket<'a, T> {
     /// Pointer to the `Option<T>::Some`
@@ -141,14 +141,17 @@ impl<'a, T> SomeBucket<'a, T> {
     /// Creates a new [`SomeBucket`], without checking that
     /// the input [`Option`] is `Some`.
     ///
-    /// It's recommended to use [`SomeBucket::new`] or 
+    /// It's recommended to use [`SomeBucket::new`] or
     /// [`OptionBucket::new`] instead.
     ///
     /// # Safety
     ///
     /// Caller must guarantee that `opt` is NOT `None`.
     pub unsafe fn new_unchecked(opt: &'a mut Option<T>) -> Self {
-        debug_assert!(opt.is_some(), "Undefined Behavior: `None` value passed to `SomeBucket::new_unchecked`.");
+        debug_assert!(
+            opt.is_some(),
+            "Undefined Behavior: `None` value passed to `SomeBucket::new_unchecked`."
+        );
 
         let outer: *mut Option<T> = opt;
 
@@ -259,15 +262,15 @@ impl<'a, T> SomeBucket<'a, T> {
 
     /// Sets the value in the `Option<T>::Some`, and returns
     /// the old value.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// # use option_bucket::SomeBucket;
     ///
     /// let mut x = Some(2);
     /// let mut some = SomeBucket::new(&mut x).unwrap();
-    /// 
+    ///
     /// let old = some.replace(5);
     /// assert_eq!(old, 2);
     /// assert_eq!(x, Some(5));
@@ -278,13 +281,13 @@ impl<'a, T> SomeBucket<'a, T> {
 
     /// Takes the value out of the option, leaving a `None` in its place,
     /// and consuming this `SomeBucket`.
-    /// 
+    ///
     /// ```
     /// # use option_bucket::SomeBucket;
     ///
     /// let mut x = Some(vec![1, 2]);
     /// let some = SomeBucket::new(&mut x).unwrap();
-    /// 
+    ///
     /// let y = some.take();
     /// assert_eq!(x, None);
     /// assert_eq!(y, vec![1, 2]);
@@ -315,14 +318,17 @@ impl<'a, T> NoneBucket<'a, T> {
     /// Creates a new [`NoneBucket`], without checking that
     /// the input [`Option`] is `None`.
     ///
-    /// It's recommended to use [`NoneBucket::new`] or 
+    /// It's recommended to use [`NoneBucket::new`] or
     /// [`OptionBucket::new`] instead.
     ///
     /// # Safety
     ///
     /// Caller must guarantee that `opt` is NOT [`Some`].
     pub unsafe fn new_unchecked(opt: &'a mut Option<T>) -> Self {
-        debug_assert!(opt.is_none(), "Undefined Behavior: `Some` value passed to `NoneBucket::new_unchecked`.");
+        debug_assert!(
+            opt.is_none(),
+            "Undefined Behavior: `Some` value passed to `NoneBucket::new_unchecked`."
+        );
 
         NoneBucket { outer: opt }
     }
@@ -347,7 +353,7 @@ impl<'a, T> NoneBucket<'a, T> {
     /// (since we know there was no old value).
     /// ```
     /// # use option_bucket::NoneBucket;
-    /// 
+    ///
     /// let mut opt = None;
     /// let mut none = NoneBucket::new(&mut opt).unwrap();
     /// let val = none.insert(1);
@@ -361,7 +367,7 @@ impl<'a, T> NoneBucket<'a, T> {
             let outer: *mut Option<T> = self.outer;
             outer.write(Some(value));
         }
-        
+
         // SAFETY: the code above just filled the option
         unsafe { self.outer.as_mut().unwrap_unchecked() }
     }
@@ -378,16 +384,16 @@ pub enum OptionBucket<'a, T> {
 }
 impl<'a, T> OptionBucket<'a, T> {
     /// Create an `OptionBucket` from an `&mut Option`.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use option_bucket::OptionBucket;
-    /// 
+    ///
     /// let mut none: Option<i32> = None;
     /// let none_bucket = OptionBucket::new(&mut none);
     /// assert!(matches!(none_bucket, OptionBucket::None(_)));
-    /// 
+    ///
     /// let mut some: Option<i32> = Some(12);
     /// let some_bucket = OptionBucket::new(&mut some);
     /// assert!(matches!(some_bucket, OptionBucket::Some(_)));

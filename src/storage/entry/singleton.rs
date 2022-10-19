@@ -46,19 +46,15 @@ impl<'this, K: Copy + Default, V> entry::OccupiedEntry<'this, K, V> for Occupied
     }
 }
 
-impl<K: Copy + Default, V> entry::StorageEntry<K, V> for SingletonStorage<V> {
-    type Occupied<'this> = OccupiedEntry<'this, V> where Self: 'this;
-    type Vacant<'this> = VacantEntry<'this, V> where Self: 'this;
+impl<'this, K: Copy + Default, V> entry::StorageEntry<'this, K, V> for SingletonStorage<V>
+where
+    Self: 'this,
+{
+    type Occupied = OccupiedEntry<'this, V>;
+    type Vacant = VacantEntry<'this, V>;
 
     #[inline]
-    fn entry<'this>(
-        &'this mut self,
-        _key: K,
-    ) -> entry::Entry<Self::Occupied<'this>, Self::Vacant<'this>>
-    where
-        Self::Occupied<'this>: entry::OccupiedEntry<'this, Option<K>, V>,
-        Self::Vacant<'this>: entry::VacantEntry<'this, Option<K>, V>,
-    {
+    fn entry(&'this mut self, _key: K) -> entry::Entry<Self::Occupied, Self::Vacant> {
         match OptionBucket::new(&mut self.inner) {
             OptionBucket::Some(inner) => entry::Entry::Occupied(OccupiedEntry { inner }),
             OptionBucket::None(inner) => entry::Entry::Vacant(VacantEntry { inner }),

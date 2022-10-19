@@ -17,16 +17,16 @@ struct OccupiedEntryNone<'this, K: Key, V> {
 enum VacantEntryEither<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     None(VacantEntryNone<'this, K, V>),
-    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>),
+    Some(<K::Storage<V> as entry::StorageEntry<'this, K, V>>::Vacant),
 }
 
 pub struct VacantEntry<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     either: VacantEntryEither<'this, K, V>,
 }
@@ -34,16 +34,16 @@ where
 enum OccupiedEntryEither<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     None(OccupiedEntryNone<'this, K, V>),
-    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>),
+    Some(<K::Storage<V> as entry::StorageEntry<'this, K, V>>::Occupied),
 }
 
 pub struct OccupiedEntry<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     either: OccupiedEntryEither<'this, K, V>,
 }
@@ -62,10 +62,7 @@ impl<'this, K: Key, V> VacantEntryNone<'this, K, V> {
 impl<'this, K, V> entry::VacantEntry<'this, Option<K>, V> for VacantEntry<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: entry::StorageEntry<K, V>,
-    <K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>: entry::VacantEntry<'this, K, V>,
-    <K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>:
-        entry::OccupiedEntry<'this, K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     fn key(&self) -> Option<K> {
         match &self.either {
@@ -112,10 +109,7 @@ impl<'this, K: Key, V> OccupiedEntryNone<'this, K, V> {
 impl<'this, K, V> entry::OccupiedEntry<'this, Option<K>, V> for OccupiedEntry<'this, K, V>
 where
     K: Key,
-    K::Storage<V>: entry::StorageEntry<K, V>,
-    <K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>: entry::VacantEntry<'this, K, V>,
-    <K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>:
-        entry::OccupiedEntry<'this, K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
     fn key(&self) -> Option<K> {
         match &self.either {
@@ -160,27 +154,17 @@ where
     }
 }
 
-impl<K, V> entry::StorageEntry<Option<K>, V> for OptionStorage<K, V>
+impl<'this, K, V> entry::StorageEntry<'this, Option<K>, V> for OptionStorage<K, V>
 where
+    Self: 'this,
     K: Key,
-    K::Storage<V>: entry::StorageEntry<K, V>,
-    for<'this> <K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>:
-        entry::VacantEntry<'this, K, V>,
-    for<'this> <K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>:
-        entry::OccupiedEntry<'this, K, V>,
+    K::Storage<V>: entry::StorageEntry<'this, K, V>,
 {
-    type Occupied<'this> = OccupiedEntry<'this, K, V> where Self: 'this;
-    type Vacant<'this> = VacantEntry<'this, K, V> where Self: 'this;
+    type Occupied = OccupiedEntry<'this, K, V>;
+    type Vacant = VacantEntry<'this, K, V>;
 
     #[inline]
-    fn entry<'this>(
-        &'this mut self,
-        key: Option<K>,
-    ) -> entry::Entry<Self::Occupied<'this>, Self::Vacant<'this>>
-    where
-        Self::Occupied<'this>: entry::OccupiedEntry<'this, Option<K>, V>,
-        Self::Vacant<'this>: entry::VacantEntry<'this, Option<K>, V>,
-    {
+    fn entry(&'this mut self, key: Option<K>) -> entry::Entry<Self::Occupied, Self::Vacant> {
         match key {
             Some(key) => match self.some.entry(key) {
                 entry::Entry::Occupied(entry) => entry::Entry::Occupied(OccupiedEntry {

@@ -786,9 +786,7 @@ where
         key: K,
     ) -> Entry<impl OccupiedEntry<'this, K, V>, impl VacantEntry<'this, K, V>>
     where
-        K::Storage<V>: entry::StorageEntry<K, V>,
-        <K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>: VacantEntry<'this, K, V>,
-        <K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>: OccupiedEntry<'this, K, V>,
+        K::Storage<V>: entry::StorageEntry<'this, K, V>,
     {
         entry::StorageEntry::entry(&mut self.storage, key)
     }

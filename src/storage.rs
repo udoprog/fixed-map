@@ -1,21 +1,19 @@
 //! Module for the trait to define [`Storage`].
 
 mod boolean;
-#[cfg(feature = "entry")]
-pub(crate) mod entry;
 #[cfg(feature = "map")]
 mod map;
 mod option;
 mod singleton;
-
-#[cfg(feature = "entry")]
-pub use self::entry::StorageEntry;
 
 pub use self::boolean::BooleanStorage;
 #[cfg(feature = "map")]
 pub use self::map::MapStorage;
 pub use self::option::OptionStorage;
 pub use self::singleton::SingletonStorage;
+
+#[cfg(feature = "entry")]
+pub mod entry;
 
 /// The trait defining how storage works.
 ///

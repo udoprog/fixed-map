@@ -1,6 +1,7 @@
 use crate::storage::Storage;
 
 mod boolean;
+#[cfg(feature = "map")]
 mod map;
 mod option;
 mod singleton;
@@ -100,16 +101,14 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     }
 }
 
-pub trait StorageEntry<K, V>: Storage<K, V> {
-    type Occupied<'this>
-    where
-        Self: 'this;
-    type Vacant<'this>
-    where
-        Self: 'this;
+pub trait StorageEntry<'this, K, V>: Storage<K, V>
+where
+    Self: 'this,
+    Self::Occupied: OccupiedEntry<'this, K, V>,
+    Self::Vacant: VacantEntry<'this, K, V>,
+{
+    type Occupied;
+    type Vacant;
 
-    fn entry<'this>(&'this mut self, key: K) -> Entry<Self::Occupied<'this>, Self::Vacant<'this>>
-    where
-        Self::Occupied<'this>: OccupiedEntry<'this, K, V>,
-        Self::Vacant<'this>: VacantEntry<'this, K, V>;
+    fn entry(&'this mut self, key: K) -> Entry<Self::Occupied, Self::Vacant>;
 }
