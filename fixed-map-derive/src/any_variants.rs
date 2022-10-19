@@ -107,8 +107,9 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 copy_bounds.push(quote!(#storage: #copy));
 
                 FieldKind::Complex {
-                    as_storage,
+                    element: quote!(#element),
                     storage,
+                    as_storage,
                 }
             }
             Fields::Named(_) => {
@@ -140,6 +141,11 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let (iter_mut_impl, iter_mut_init) = build_iter_mut_impl(cx, "IterMut", &field_specs)?;
     let (values_mut_impl, values_mut_init) = build_values_mut_impl(cx, "ValuesMut", &field_specs)?;
     let (into_iter_impl, into_iter_init) = build_into_iter_impl(cx, "IntoIter", &field_specs)?;
+    let entry_impl = if cfg!(feature = "entry") {
+        build_entry_impl(cx, &field_specs)?
+    } else {
+        quote!()
+    };
 
     let end = field_specs.len();
 
@@ -317,6 +323,8 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             #iter_mut_impl
             #values_mut_impl
             #into_iter_impl
+
+            #entry_impl
         };
     })
 }
@@ -807,6 +815,7 @@ fn build_iter_mut_impl(
             FieldKind::Complex {
                 as_storage,
                 storage,
+                ..
             } => {
                 field_decls.push(quote!(#name: #as_storage::IterMut<#lt>));
                 init.push(quote!(#name: #storage::iter_mut(&mut self.#name)));
@@ -1017,6 +1026,7 @@ fn build_into_iter_impl(
             FieldKind::Complex {
                 as_storage,
                 storage,
+                ..
             } => {
                 field_decls.push(quote!(#name: #as_storage::IntoIter));
                 init.push(quote!(#name: #storage::into_iter(self.#name)));
@@ -1125,4 +1135,251 @@ impl ToTokens for IteratorNextBack {
             }
         });
     }
+}
+
+/// Construct `StorageEntry` implementation.
+fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<TokenStream, ()> {
+    let ident = &cx.ast.ident;
+    let vis = &cx.ast.vis;
+    let option = &cx.toks.option;
+    let storage_entry_trait = &cx.toks.storage_entry_trait;
+    let occupied_entry_trait = &cx.toks.occupied_entry_trait;
+    let vacant_entry_trait = &cx.toks.vacant_entry_trait;
+    let entry_enum = &cx.toks.entry_enum;
+    let option_bucket_option = &cx.toks.option_bucket_option;
+    let option_bucket_some = &cx.toks.option_bucket_some;
+    let option_bucket_none = &cx.toks.option_bucket_none;
+
+    let mut init = Vec::new();
+    let mut occupied_variant = Vec::new();
+    let mut vacant_variant = Vec::new();
+
+    let mut vacant_key = Vec::new();
+    let mut vacant_insert = Vec::new();
+
+    let mut occupied_key = Vec::new();
+    let mut occupied_get = Vec::new();
+    let mut occupied_get_mut = Vec::new();
+    let mut occupied_into_mut = Vec::new();
+    let mut occupied_insert = Vec::new();
+    let mut occupied_remove = Vec::new();
+
+    for FieldSpec {
+        name, kind, var, ..
+    } in field_specs
+    {
+        let pattern = quote!(#ident::#var);
+
+        match kind {
+            FieldKind::Simple => {
+                init.push(quote!( #pattern => option_to_entry(&mut self.#name, key) ));
+            }
+            FieldKind::Complex {
+                element, storage, ..
+            } => {
+                let as_storage_entry =
+                    quote!(<#storage as #storage_entry_trait<'this, #element, V>>);
+
+                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied) ));
+                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant) ));
+
+                init.push(quote! {
+                    #pattern(key) => match #storage_entry_trait::entry(&mut self.#name, key) {
+                        #entry_enum::Occupied(entry) => #entry_enum::Occupied(OccupiedEntry::#name(entry)),
+                        #entry_enum::Vacant(entry) => #entry_enum::Vacant(VacantEntry::#name(entry)),
+                    }
+                });
+
+                let as_vacant_entry =
+                    quote!(<#as_storage_entry::Vacant as #vacant_entry_trait<'this, #element, V>>);
+
+                vacant_key.push(
+                    quote!( VacantEntry::#name(entry) => #pattern(#as_vacant_entry::key(entry)) ),
+                );
+                vacant_insert.push(
+                    quote!( VacantEntry::#name(entry) => #as_vacant_entry::insert(entry, value) ),
+                );
+
+                let as_occupied_entry = quote!(<#as_storage_entry::Occupied as #occupied_entry_trait<'this, #element, V>>);
+
+                occupied_key.push(quote!( OccupiedEntry::#name(entry) => #pattern(#as_occupied_entry::key(entry)) ));
+                occupied_get
+                    .push(quote!( OccupiedEntry::#name(entry) => #as_occupied_entry::get(entry) ));
+                occupied_get_mut.push(
+                    quote!( OccupiedEntry::#name(entry) => #as_occupied_entry::get_mut(entry) ),
+                );
+                occupied_into_mut.push(
+                    quote!( OccupiedEntry::#name(entry) => #as_occupied_entry::into_mut(entry) ),
+                );
+                occupied_insert.push(quote!( OccupiedEntry::#name(entry) => #as_occupied_entry::insert(entry, value) ));
+                occupied_remove.push(
+                    quote!( OccupiedEntry::#name(entry) => #as_occupied_entry::remove(entry) ),
+                );
+            }
+        }
+    }
+
+    let entry_impl = quote! {
+        #vis struct SimpleVacantEntry<'this, V> {
+            key: #ident,
+            inner: #option_bucket_none<'this, V>,
+        }
+
+        #vis struct SimpleOccupiedEntry<'this, V> {
+            key: #ident,
+            inner: #option_bucket_some<'this, V>,
+        }
+
+        #vis enum VacantEntry<'this, V> {
+            Simple(SimpleVacantEntry<'this, V>),
+            #(#vacant_variant,)*
+        }
+
+        #vis enum OccupiedEntry<'this, V> {
+            Simple(SimpleOccupiedEntry<'this, V>),
+            #(#occupied_variant,)*
+        }
+
+        impl<'this, V> SimpleVacantEntry<'this, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                self.key
+            }
+
+            #[inline]
+            fn insert(self, value: V) -> &'this mut V {
+                self.inner.insert(value)
+            }
+        }
+
+        impl<'this, V> SimpleOccupiedEntry<'this, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                self.key
+            }
+
+            #[inline]
+            fn get(&self) -> &V {
+                self.inner.as_ref()
+            }
+
+            #[inline]
+            fn get_mut(&mut self) -> &mut V {
+                self.inner.as_mut()
+            }
+
+            #[inline]
+            fn into_mut(self) -> &'this mut V {
+                self.inner.into_mut()
+            }
+
+            #[inline]
+            fn insert(&mut self, value: V) -> V {
+                self.inner.replace(value)
+            }
+
+            #[inline]
+            fn remove(self) -> V {
+                self.inner.take()
+            }
+        }
+
+        #[automatically_derived]
+        impl<'this, V> #vacant_entry_trait<'this, #ident, V> for VacantEntry<'this, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                match self {
+                    VacantEntry::Simple(entry) => entry.key(),
+                    #(#vacant_key,)*
+                }
+            }
+
+            #[inline]
+            fn insert(self, value: V) -> &'this mut V {
+                match self {
+                    VacantEntry::Simple(entry) => entry.insert(value),
+                    #(#vacant_insert,)*
+                }
+            }
+        }
+
+        #[automatically_derived]
+        impl<'this, V> #occupied_entry_trait<'this, #ident, V> for OccupiedEntry<'this, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.key(),
+                    #(#occupied_key,)*
+                }
+            }
+
+            #[inline]
+            fn get(&self) -> &V {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.get(),
+                    #(#occupied_get,)*
+                }
+            }
+
+            #[inline]
+            fn get_mut(&mut self) -> &mut V {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.get_mut(),
+                    #(#occupied_get_mut,)*
+                }
+            }
+
+            #[inline]
+            fn into_mut(self) -> &'this mut V {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.into_mut(),
+                    #(#occupied_into_mut,)*
+                }
+            }
+
+            #[inline]
+            fn insert(&mut self, value: V) -> V {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.insert(value),
+                    #(#occupied_insert,)*
+                }
+            }
+
+            #[inline]
+            fn remove(self) -> V {
+                match self {
+                    OccupiedEntry::Simple(entry) => entry.remove(),
+                    #(#occupied_remove,)*
+                }
+            }
+        }
+
+        #[inline]
+        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<OccupiedEntry<'_, V>, VacantEntry<'_, V>> {
+            match #option_bucket_option::new(opt) {
+                #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry::Simple(SimpleOccupiedEntry { key, inner })),
+                #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry::Simple(SimpleVacantEntry { key, inner })),
+            }
+        }
+
+        #[automatically_derived]
+        impl<'this, V> #storage_entry_trait<'this, #ident, V> for Storage<V>
+        where Self: 'this
+        {
+            type Occupied = OccupiedEntry<'this, V>;
+            type Vacant = VacantEntry<'this, V>;
+
+            #[inline]
+            fn entry(
+                &'this mut self,
+                key: #ident,
+            ) -> #entry_enum<Self::Occupied, Self::Vacant> {
+                match key {
+                    #(#init,)*
+                }
+            }
+        }
+    };
+
+    Ok(entry_impl)
 }

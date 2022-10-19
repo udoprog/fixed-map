@@ -20,7 +20,7 @@ all-features = true
 default = ["map", "std"]
 std = ["serde?/std"]
 map = ["hashbrown", "std"]
-entry = []
+entry = ["fixed-map-derive/entry"]
 
 [dependencies]
 option-bucket = { path = "option-bucket" }
