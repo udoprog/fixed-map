@@ -20,10 +20,10 @@ all-features = true
 default = ["map", "std"]
 std = ["serde?/std"]
 map = ["hashbrown", "std"]
-entry = ["fixed-map-derive/entry"]
+entry = ["fixed-map-derive/entry", "option-bucket"]
 
 [dependencies]
-option-bucket = { path = "option-bucket" }
+option-bucket = { path = "option-bucket", optional = true }
 fixed-map-derive = { version = "0.8.0-alpha.2", path = "fixed-map-derive" }
 hashbrown = { version = "0.12.3", optional = true }
 serde = { version = "1.0.145", optional = true, default_features = false }
