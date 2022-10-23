@@ -75,8 +75,9 @@
 //!
 //! # Unsafe Usage
 //!
-//! This crate uses `unsafe` to dereference raw pointers and to
-//! obtain mutable references to the inner value of `Some`s.
+//! This crate uses `unwrap_unchecked` to obtain
+//! mutable references to the inner value of `Some`s,
+//! and to skip `drop` when overwriting `None`s.
 
 #![no_std]
 #![deny(missing_docs)]
@@ -121,8 +122,6 @@
 // `clippy::pedantic` exceptions
 #![allow(clippy::should_implement_trait, clippy::must_use_candidate)]
 
-use core::marker::PhantomData;
-
 /// Abstraction for an [`&mut Option`][Option] that's known to be [`Some`].
 ///
 /// # Size
@@ -131,11 +130,7 @@ use core::marker::PhantomData;
 /// twice the size of `&mut Option`. One points to the
 /// value inside, and the other points to the `Option` itself.
 pub struct SomeBucket<'a, T> {
-    /// Pointer to the `Option<T>::Some`
-    outer: *mut Option<T>,
-    /// Pointer to the value within the `Option<T>::Some`
-    inner: *mut T,
-    _life: PhantomData<&'a mut Option<T>>,
+    outer: &'a mut Option<T>,
 }
 impl<'a, T> SomeBucket<'a, T> {
     /// Creates a new [`SomeBucket`], without checking that
@@ -153,16 +148,7 @@ impl<'a, T> SomeBucket<'a, T> {
             "Undefined Behavior: `None` value passed to `SomeBucket::new_unchecked`."
         );
 
-        let outer: *mut Option<T> = opt;
-
-        // SAFETY: Caller guarantees that `opt` is `Some`
-        let inner: *mut T = unsafe { opt.as_mut().unwrap_unchecked() };
-
-        SomeBucket {
-            outer,
-            inner,
-            _life: PhantomData,
-        }
+        SomeBucket { outer: opt }
     }
 
     /// Creates a new [`SomeBucket`]. Returns `Some(SomeBucket<T>)`
@@ -194,12 +180,9 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(length, 13);
     /// ```
     pub fn as_ref(&self) -> &T {
-        // SAFETY:
-        // `inner` is a valid pointer to `T`, as guaranteed
-        // by invariants of `new`. This can not alias a
-        // mutable reference, because any way to produce one
-        // requires a unique reference to self
-        unsafe { &(*self.inner) }
+        // SAFETY: `outer` is guaranteed to be `Some`
+        // by the invariants of `new_unchecked`
+        unsafe { self.outer.as_ref().unwrap_unchecked() }
     }
 
     /// Converts from `&mut Option<T>::Some` to `&mut T`,
@@ -217,12 +200,9 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(some.as_ref(), "Hello, world! Happy to be here.");
     /// ```
     pub fn as_mut(&mut self) -> &mut T {
-        // SAFETY:
-        // `inner` is a valid pointer to `T`, as guaranteed
-        // be invariants of `new`. This can not alias another
-        // mutable reference, because any way to produce one
-        // requires a unique reference to self
-        unsafe { &mut (*self.inner) }
+        // SAFETY: `outer` is guaranteed to be `Some`
+        // by the invariants of `new_unchecked`
+        unsafe { self.outer.as_mut().unwrap_unchecked() }
     }
 
     /// Converts from `&mut Option<T>::Some` to `&mut T`,
@@ -252,12 +232,9 @@ impl<'a, T> SomeBucket<'a, T> {
     /// some.as_ref();
     /// ```
     pub fn into_mut(self) -> &'a mut T {
-        // SAFETY:
-        // `inner` is a valid pointer to `T`, as guaranteed
-        // be invariants of `new`. This can not alias another
-        // mutable reference, because any way to produce one
-        // requires a unique reference to self
-        unsafe { &mut (*self.inner) }
+        // SAFETY: `outer` is guaranteed to be `Some`
+        // by the invariants of `new_unchecked`
+        unsafe { self.outer.as_mut().unwrap_unchecked() }
     }
 
     /// Sets the value in the `Option<T>::Some`, and returns
@@ -293,16 +270,9 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(y, vec![1, 2]);
     /// ```
     pub fn take(self) -> T {
-        // SAFETY:
-        // `inner` is a valid pointer to `T`, as guaranteed
-        // be invariants of `new`. We set the original
-        // `Option` to `None`, ensuring that the original
-        // copy of the value will not be double-dropped
-        unsafe {
-            let value = self.inner.read();
-            self.outer.write(None);
-            value
-        }
+        // SAFETY: `outer` is guaranteed to be `Some`
+        // by the invariants of `new_unchecked`
+        unsafe { self.outer.take().unwrap_unchecked() }
     }
 }
 
@@ -362,7 +332,7 @@ impl<'a, T> NoneBucket<'a, T> {
     /// assert_eq!(opt.unwrap(), 3);
     /// ```
     pub fn insert(self, value: T) -> &'a mut T {
-        // SAFETY: `outer` is `None`, so there is no old value to leak
+        // SAFETY: `outer` is `None`, so there is no old value to `drop`
         unsafe {
             let outer: *mut Option<T> = self.outer;
             outer.write(Some(value));
