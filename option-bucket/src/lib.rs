@@ -196,7 +196,7 @@ impl<'a, T> SomeBucket<'a, T> {
     pub fn as_ref(&self) -> &T {
         // SAFETY:
         // `inner` is a valid pointer to `T`, as guaranteed
-        // be invariants of `new`. This can not alias a
+        // by invariants of `new`. This can not alias a
         // mutable reference, because any way to produce one
         // requires a unique reference to self
         unsafe { &(*self.inner) }
@@ -379,7 +379,7 @@ impl<'a, T> NoneBucket<'a, T> {
 pub enum OptionBucket<'a, T> {
     /// An option known to be `Some`.
     Some(SomeBucket<'a, T>),
-    /// An option known to be `None.
+    /// An option known to be `None`.
     None(NoneBucket<'a, T>),
 }
 impl<'a, T> OptionBucket<'a, T> {

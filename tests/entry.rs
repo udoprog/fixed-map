@@ -20,8 +20,9 @@ fn simple() {
     );
 }
 
-#[cfg(feature = "entry")]
-const _: () = {
+#[cfg(feature = "map")]
+#[test]
+fn compound() {
     #[derive(Clone, Copy, Key)]
     enum Key {
         Simple,
@@ -30,4 +31,13 @@ const _: () = {
         Number(u32),
         Singleton(()),
     }
-};
+
+    let mut map: Map<Key, i32> = Map::new();
+
+    map.insert(Key::Composite(Part::One), 1);
+    assert_eq!(map.entry(Key::Composite(Part::Two)).or_default(), &0);
+    assert_eq!(
+        map.entry(Key::Composite(Part::One)).and_modify(|x| *x += 1).or_insert(12),
+        &2
+    );
+}
