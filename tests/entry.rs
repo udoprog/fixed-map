@@ -37,7 +37,9 @@ fn compound() {
     map.insert(Key::Composite(Part::One), 1);
     assert_eq!(map.entry(Key::Composite(Part::Two)).or_default(), &0);
     assert_eq!(
-        map.entry(Key::Composite(Part::One)).and_modify(|x| *x += 1).or_insert(12),
+        map.entry(Key::Composite(Part::One))
+            .and_modify(|x| *x += 1)
+            .or_insert(12),
         &2
     );
 }
