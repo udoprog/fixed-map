@@ -46,15 +46,12 @@ impl<'this, K: Copy + Eq + Hash, V> entry::VacantEntry<'this, K, V> for VacantEn
     }
 }
 
-impl<'this, K: Copy + Eq + Hash, V> entry::StorageEntry<'this, K, V> for MapStorage<K, V>
-where
-    Self: 'this,
-{
-    type Occupied = OccupiedEntry<'this, K, V>;
-    type Vacant = VacantEntry<'this, K, V>;
+impl<K: Copy + Eq + Hash, V> entry::StorageEntry<K, V> for MapStorage<K, V> {
+    type Occupied<'this> = OccupiedEntry<'this, K, V> where K: 'this, V: 'this;
+    type Vacant<'this> = VacantEntry<'this, K, V> where K: 'this, V: 'this;
 
     #[inline]
-    fn entry(&'this mut self, key: K) -> entry::Entry<Self::Occupied, Self::Vacant> {
+    fn entry(&mut self, key: K) -> entry::Entry<Self::Occupied<'_>, Self::Vacant<'_>> {
         match self.inner.entry(key) {
             HEntry::Occupied(entry) => entry::Entry::Occupied(entry),
             HEntry::Vacant(entry) => entry::Entry::Vacant(entry),

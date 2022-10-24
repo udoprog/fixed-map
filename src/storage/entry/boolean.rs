@@ -50,15 +50,12 @@ impl<'this, V> entry::OccupiedEntry<'this, bool, V> for OccupiedEntry<'this, V> 
     }
 }
 
-impl<'this, V> entry::StorageEntry<'this, bool, V> for BooleanStorage<V>
-where
-    Self: 'this,
-{
-    type Occupied = OccupiedEntry<'this, V>;
-    type Vacant = VacantEntry<'this, V>;
+impl<V> entry::StorageEntry<bool, V> for BooleanStorage<V> {
+    type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
+    type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
 
     #[inline]
-    fn entry(&'this mut self, key: bool) -> entry::Entry<Self::Occupied, Self::Vacant> {
+    fn entry(&mut self, key: bool) -> entry::Entry<Self::Occupied<'_>, Self::Vacant<'_>> {
         match key {
             true => match OptionBucket::new(&mut self.t) {
                 OptionBucket::Some(inner) => entry::Entry::Occupied(OccupiedEntry { key, inner }),

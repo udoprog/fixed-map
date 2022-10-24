@@ -1177,11 +1177,10 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
             FieldKind::Complex {
                 element, storage, ..
             } => {
-                let as_storage_entry =
-                    quote!(<#storage as #storage_entry_trait<'this, #element, V>>);
+                let as_storage_entry = quote!(<#storage as #storage_entry_trait<#element, V>>);
 
-                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied) ));
-                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant) ));
+                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied<'this>) ));
+                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant<'this>) ));
 
                 init.push(quote! {
                     #pattern(key) => match #storage_entry_trait::entry(&mut self.#name, key) {
@@ -1190,8 +1189,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                     }
                 });
 
-                let as_vacant_entry =
-                    quote!(<#as_storage_entry::Vacant as #vacant_entry_trait<'this, #element, V>>);
+                let as_vacant_entry = quote!(<#as_storage_entry::Vacant<'this> as #vacant_entry_trait<'this, #element, V>>);
 
                 vacant_key.push(
                     quote!( VacantEntry::#name(entry) => #pattern(#as_vacant_entry::key(entry)) ),
@@ -1200,7 +1198,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                     quote!( VacantEntry::#name(entry) => #as_vacant_entry::insert(entry, value) ),
                 );
 
-                let as_occupied_entry = quote!(<#as_storage_entry::Occupied as #occupied_entry_trait<'this, #element, V>>);
+                let as_occupied_entry = quote!(<#as_storage_entry::Occupied<'this> as #occupied_entry_trait<'this, #element, V>>);
 
                 occupied_key.push(quote!( OccupiedEntry::#name(entry) => #pattern(#as_occupied_entry::key(entry)) ));
                 occupied_get
@@ -1363,17 +1361,12 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
         }
 
         #[automatically_derived]
-        impl<'this, V> #storage_entry_trait<'this, #ident, V> for Storage<V>
-        where Self: 'this
-        {
-            type Occupied = OccupiedEntry<'this, V>;
-            type Vacant = VacantEntry<'this, V>;
+        impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
+            type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
+            type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
 
             #[inline]
-            fn entry(
-                &'this mut self,
-                key: #ident,
-            ) -> #entry_enum<Self::Occupied, Self::Vacant> {
+            fn entry(&mut self, key: #ident) -> #entry_enum<Self::Occupied<'_>, Self::Vacant<'_>> {
                 match key {
                     #(#init,)*
                 }

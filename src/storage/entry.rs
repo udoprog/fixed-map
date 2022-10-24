@@ -101,14 +101,13 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     }
 }
 
-pub trait StorageEntry<'this, K, V>: Storage<K, V>
-where
-    Self: 'this,
-    Self::Occupied: OccupiedEntry<'this, K, V>,
-    Self::Vacant: VacantEntry<'this, K, V>,
-{
-    type Occupied;
-    type Vacant;
+pub trait StorageEntry<K, V>: Storage<K, V> {
+    type Occupied<'this>: OccupiedEntry<'this, K, V>
+    where
+        Self: 'this;
+    type Vacant<'this>: VacantEntry<'this, K, V>
+    where
+        Self: 'this;
 
-    fn entry(&'this mut self, key: K) -> Entry<Self::Occupied, Self::Vacant>;
+    fn entry(&mut self, key: K) -> Entry<Self::Occupied<'_>, Self::Vacant<'_>>;
 }
