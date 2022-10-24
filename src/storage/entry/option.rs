@@ -161,14 +161,10 @@ where
             },
             None => match OptionBucket::new(&mut self.none) {
                 OptionBucket::Some(some) => entry::Entry::Occupied(OccupiedEntry {
-                    either: OccupiedEntryEither::None(OccupiedEntryNone {
-                        none: some,
-                    }),
+                    either: OccupiedEntryEither::None(OccupiedEntryNone { none: some }),
                 }),
                 OptionBucket::None(none) => entry::Entry::Vacant(VacantEntry {
-                    either: VacantEntryEither::None(VacantEntryNone {
-                        none,
-                    }),
+                    either: VacantEntryEither::None(VacantEntryNone { none }),
                 }),
             },
         }
