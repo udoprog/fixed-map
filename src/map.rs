@@ -780,47 +780,47 @@ where
     }
 
     /// Gets the given key’s corresponding [`Entry`] in the [`Map`] for in-place manipulation.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// use fixed_map::{Key, Map};
-    /// 
+    ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     Even,
     ///     Odd,
     /// }
-    /// 
+    ///
     /// let mut map: Map<Key, u32> = Map::new();
-    /// 
+    ///
     /// for n in [3, 45, 3, 23, 2, 10, 59, 11, 51, 70] {
     ///     map
     ///         .entry(if n % 2 == 0 { Key::Even } else { Key::Odd })
     ///         .and_modify(|x| *x += 1)
     ///         .or_insert(1);
     /// }
-    /// 
+    ///
     /// assert_eq!(map.get(Key::Even), Some(&3));
     /// assert_eq!(map.get(Key::Odd), Some(&7));
     /// ```
     ///
     /// Using a composite key:
-    /// 
+    ///
     /// ```
     /// use fixed_map::{Key, Map};
-    /// 
+    ///
     /// #[derive(Clone, Copy, Key)]
     /// enum Key {
     ///     First(bool),
     ///     Second,
     /// }
-    /// 
+    ///
     /// let mut map: Map<Key, Vec<i32>> = Map::new();
-    /// 
+    ///
     /// map.entry(Key::First(true)).or_default().push(1);
     /// map.entry(Key::Second).or_insert_with(|| vec![2; 8]).truncate(4);
-    /// 
+    ///
     /// assert_eq!(map.get(Key::First(true)), Some(&vec![1]));
     /// assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
     /// ```

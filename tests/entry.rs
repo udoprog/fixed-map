@@ -36,8 +36,7 @@ fn other() {
     let mut map: Map<Key, u32> = Map::new();
 
     for n in [3, 45, 3, 23, 2, 10, 59, 11, 51, 70] {
-        map
-            .entry(if n % 2 == 0 { Key::Even } else { Key::Odd })
+        map.entry(if n % 2 == 0 { Key::Even } else { Key::Odd })
             .and_modify(|x| *x += 1)
             .or_insert(1);
     }
@@ -49,7 +48,7 @@ fn other() {
 #[test]
 fn composite() {
     use fixed_map::{Key, Map};
-    
+
     #[derive(Clone, Copy, Key)]
     enum Key {
         First(bool),
@@ -59,7 +58,9 @@ fn composite() {
     let mut map: Map<Key, Vec<i32>> = Map::new();
 
     map.entry(Key::First(true)).or_default().push(1);
-    map.entry(Key::Second).or_insert_with(|| vec![2; 8]).truncate(4);
+    map.entry(Key::Second)
+        .or_insert_with(|| vec![2; 8])
+        .truncate(4);
 
     assert_eq!(map.get(Key::First(true)), Some(&vec![1]));
     assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
