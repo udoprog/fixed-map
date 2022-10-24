@@ -58,9 +58,9 @@ impl Toks {
             occupied_entry_trait: quote!(#krate::storage::entry::OccupiedEntry),
             vacant_entry_trait: quote!(#krate::storage::entry::VacantEntry),
             entry_enum: quote!(#krate::storage::entry::Entry),
-            option_bucket_option: quote!(::option_bucket::OptionBucket),
-            option_bucket_some: quote!(::option_bucket::SomeBucket),
-            option_bucket_none: quote!(::option_bucket::NoneBucket),
+            option_bucket_option: quote!(#krate::storage::entry::option_bucket::OptionBucket),
+            option_bucket_some: quote!(#krate::storage::entry::option_bucket::SomeBucket),
+            option_bucket_none: quote!(#krate::storage::entry::option_bucket::NoneBucket),
         }
     }
 }

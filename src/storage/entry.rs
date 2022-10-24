@@ -6,6 +6,10 @@ mod map;
 mod option;
 mod singleton;
 
+// Re-export the option bucket types
+// for use in `derive(Key)`
+pub use option_bucket;
+
 pub trait OccupiedEntry<'this, K, V> {
     fn key(&self) -> K;
     fn get(&self) -> &V;
