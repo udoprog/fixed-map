@@ -320,8 +320,8 @@
 
 // Throw a compile error if `--cfg fixed_map_incomplete`
 // is not passed in `RUSTFLAGS`
-#[cfg(all(feature = "entry", not(fixed_map_incomplete)))]
-compile_error!("`entry` feature is incomplete, and requires `--cfg fixed_map_incomplete` in `RUSTFLAGS` to enable.");
+// #[cfg(all(feature = "entry", not(fixed_map_incomplete)))]
+// compile_error!("`entry` feature is incomplete, and requires `--cfg fixed_map_incomplete` in `RUSTFLAGS` to enable.");
 
 pub mod key;
 pub use self::Key;

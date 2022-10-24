@@ -150,17 +150,12 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<'this, V> #storage_entry_trait<'this, #ident, V> for Storage<V>
-            where Self: 'this
-            {
-                type Occupied = OccupiedEntry<'this, V>;
-                type Vacant = VacantEntry<'this, V>;
+            impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
+                type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
+                type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
 
                 #[inline]
-                fn entry(
-                    &'this mut self,
-                    key: #ident,
-                ) -> #entry_enum<Self::Occupied, Self::Vacant> {
+                fn entry(&mut self, key: #ident) -> #entry_enum<Self::Occupied<'_>, Self::Vacant<'_>> {
                     let [#(#names),*] = &mut self.data;
 
                     match key {
