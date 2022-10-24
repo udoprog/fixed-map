@@ -17,7 +17,7 @@ keywords = ["container", "data-structure", "map", "no_std"]
 categories = ["data-structures"]
 
 [features]
-entry = []
+entry = ["fixed-map/entry"]
 
 [dependencies]
 syn = "1.0.8"
