@@ -35,9 +35,9 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal }
     # Test all relevant feature combos:
-    # features: std, map, serde, entry
+    # features: std, map, entry, serde
     - run: cargo test --all-features
-    # features: -std, -map, -serde, -entry
+    # features: -std, -map, -entry, -serde
     - run: cargo test --no-default-features
     # features: -std, -map, -entry, serde
     - run: cargo test --no-default-features --features serde
