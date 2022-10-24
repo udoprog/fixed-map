@@ -17,7 +17,7 @@ categories = ["data-structures"]
 all-features = true
 
 [features]
-default = ["map", "std"]
+default = ["map", "std", "entry"]
 std = ["serde?/std"]
 map = ["hashbrown", "std"]
 entry = ["fixed-map-derive/entry", "option-bucket"]

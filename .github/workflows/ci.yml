@@ -2,11 +2,6 @@ name: CI
 
 on: [push, pull_request]
 
-# Enable incomplete features - they should still pass tests
-env:
-  RUSTFLAGS: --cfg fixed_map_incomplete
-  RUSTDOCFLAGS: --cfg fixed_map_incomplete
-
 jobs:
   clippy:
     runs-on: ubuntu-latest
@@ -40,9 +35,9 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with: { toolchain: beta, override: true, profile: minimal }
     # Test all relevant feature combos:
-    # features: std, map, serde
+    # features: std, map, serde, entry
     - run: cargo test --all-features
-    # features: -std, -map, -serde
+    # features: -std, -map, -serde, -entry
     - run: cargo test --no-default-features
-    # features: -std, -map, serde
+    # features: -std, -map, -entry, serde
     - run: cargo test --no-default-features --features serde
