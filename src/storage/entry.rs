@@ -8,8 +8,8 @@ mod map;
 mod option;
 mod singleton;
 
-// Re-export the option bucket types
-// for use in `derive(Key)`
+// Re-export the option bucket types for use in `derive(Key)`
+#[doc(hidden)]
 pub use option_bucket;
 
 /// A view into an occupied entry in a [`Map`][crate::Map].
