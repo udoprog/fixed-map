@@ -1,16 +1,12 @@
-use core::marker::PhantomData;
-
 use crate::storage::entry;
 use crate::{key::Key, storage::OptionStorage};
 use option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
-struct VacantEntryNone<'this, K: Key, V> {
-    _key: PhantomData<K>,
+struct VacantEntryNone<'this, V> {
     none: NoneBucket<'this, V>,
 }
 
-struct OccupiedEntryNone<'this, K: Key, V> {
-    _key: PhantomData<K>,
+struct OccupiedEntryNone<'this, V> {
     none: SomeBucket<'this, V>,
 }
 
@@ -19,7 +15,7 @@ where
     K: Key,
     K::Storage<V>: 'this + entry::StorageEntry<K, V>,
 {
-    None(VacantEntryNone<'this, K, V>),
+    None(VacantEntryNone<'this, V>),
     Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>),
 }
 
@@ -36,7 +32,7 @@ where
     K: Key,
     K::Storage<V>: 'this + entry::StorageEntry<K, V>,
 {
-    None(OccupiedEntryNone<'this, K, V>),
+    None(OccupiedEntryNone<'this, V>),
     Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>),
 }
 
@@ -48,12 +44,7 @@ where
     either: OccupiedEntryEither<'this, K, V>,
 }
 
-impl<'this, K: Key, V> VacantEntryNone<'this, K, V> {
-    #[allow(clippy::unused_self)]
-    fn key(&self) -> Option<K> {
-        None
-    }
-
+impl<'this, V> VacantEntryNone<'this, V> {
     fn insert(self, value: V) -> &'this mut V {
         self.none.insert(value)
     }
@@ -66,7 +57,7 @@ where
 {
     fn key(&self) -> Option<K> {
         match &self.either {
-            VacantEntryEither::None(entry) => entry.key(),
+            VacantEntryEither::None(_) => None,
             VacantEntryEither::Some(entry) => Some(entry.key()),
         }
     }
@@ -79,12 +70,7 @@ where
     }
 }
 
-impl<'this, K: Key, V> OccupiedEntryNone<'this, K, V> {
-    #[allow(clippy::unused_self)]
-    fn key(&self) -> Option<K> {
-        None
-    }
-
+impl<'this, V> OccupiedEntryNone<'this, V> {
     fn get(&self) -> &V {
         self.none.as_ref()
     }
@@ -113,7 +99,7 @@ where
 {
     fn key(&self) -> Option<K> {
         match &self.either {
-            OccupiedEntryEither::None(entry) => entry.key(),
+            OccupiedEntryEither::None(_) => None,
             OccupiedEntryEither::Some(entry) => Some(entry.key()),
         }
     }
@@ -176,13 +162,11 @@ where
             None => match OptionBucket::new(&mut self.none) {
                 OptionBucket::Some(some) => entry::Entry::Occupied(OccupiedEntry {
                     either: OccupiedEntryEither::None(OccupiedEntryNone {
-                        _key: PhantomData,
                         none: some,
                     }),
                 }),
                 OptionBucket::None(none) => entry::Entry::Vacant(VacantEntry {
                     either: VacantEntryEither::None(VacantEntryNone {
-                        _key: PhantomData,
                         none,
                     }),
                 }),
