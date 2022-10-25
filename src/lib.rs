@@ -63,11 +63,12 @@
 //!
 //! The following features are available:
 //!
-//! * `std` - Disabling this feature enables causes this crate to be no-std.
+//! * `std` - Disabling this feature causes this crate to be no-std.
 //!   This means that dynamic types cannot be used in keys, like ones enabled by
 //!   the `map` feature (default).
 //! * `map` - Causes [`Storage`] to be implemented by dynamic types such as
 //!   `&'static str` or `u32`. These are backed by a `hashbrown` (default).
+//! * `entry` - Enables an [`entry`] API similar to that found on [`HashMap`].
 //! * `serde` - Causes [`Map`] and [`Set`] to implement [`Serialize`] and
 //!   [`Deserialize`] if it's implemented by the key and value.
 //!
@@ -180,6 +181,12 @@
 //! }
 //! ```
 //!
+//! ## Unsafe use
+//!
+//! The Entry API uses `unwrap_unchecked` to obtain
+//! mutable references to the inner value of `Some`s,
+//! and to skip `drop` when overwriting `None`s.
+//!
 //! <br>
 //!
 //! ## Benchmarks
@@ -267,13 +274,15 @@
 //! [`Key` derive]: https://docs.rs/fixed-map/latest/fixed_map/derive.Key.html
 //! [`Key`]: https://docs.rs/fixed-map/latest/fixed_map/derive.Key.html
 //! [`Map`]: https://docs.rs/fixed-map/latest/fixed_map/map/struct.Map.html
+//! [`entry`]: https://docs.rs/fixed-map/latest/fixed_map/map/struct.Map.html#method.entry
+//! [`HashMap`]: https://doc.rust-lang.org/stable/std/collections/hash_map/struct.HashMap.html#method.entry
 //! [`Serialize`]: https://docs.rs/serde/1/serde/trait.Serialize.html
 //! [`Set`]: https://docs.rs/fixed-map/latest/fixed_map/set/struct.Set.html
 //! [`Storage`]: https://docs.rs/fixed-map/latest/fixed_map/storage/trait.Storage.html
 //! [documentation]: https://docs.rs/fixed-map
 
 #![no_std]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![deny(missing_docs)]
 // Enable pedantic lints as warnings so we don't break builds when
 // lints are modified or new lints are added to clippy.

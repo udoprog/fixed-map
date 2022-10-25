@@ -12,6 +12,9 @@ pub use self::map::MapStorage;
 pub use self::option::OptionStorage;
 pub use self::singleton::SingletonStorage;
 
+#[cfg(feature = "entry")]
+pub mod entry;
+
 /// The trait defining how storage works.
 ///
 /// # Type Arguments
@@ -95,6 +98,6 @@ pub trait Storage<K, V>: Default {
     /// This is the storage abstraction for [`Map::values_mut`][crate::Map::values_mut].
     fn values_mut(&mut self) -> Self::ValuesMut<'_>;
 
-    /// This is the storage abstraction for [`Map::into_iter`][crate::Map::into_iter])
+    /// This is the storage abstraction for [`Map::into_iter`][crate::Map::into_iter].
     fn into_iter(self) -> Self::IntoIter;
 }

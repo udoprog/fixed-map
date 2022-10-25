@@ -6,7 +6,7 @@ use crate::storage::Storage;
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 pub struct SingletonStorage<V> {
-    inner: Option<V>,
+    pub(in crate::storage) inner: Option<V>,
 }
 
 impl<V> Default for SingletonStorage<V> {

@@ -27,7 +27,7 @@ use crate::storage::Storage;
 /// ```
 #[repr(transparent)]
 pub struct MapStorage<K, V> {
-    inner: ::hashbrown::HashMap<K, V>,
+    pub(in crate::storage) inner: ::hashbrown::HashMap<K, V>,
 }
 
 impl<K, V> Clone for MapStorage<K, V>

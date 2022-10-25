@@ -5,7 +5,7 @@ use syn::{DataEnum, Ident};
 use crate::context::Ctxt;
 
 /// Every variant is a unit variant.
-pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
+pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
@@ -25,6 +25,13 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let array_into_iter = &cx.toks.array_into_iter;
     let storage_trait = &cx.toks.storage_trait;
     let iterator_flat_map = &cx.toks.iterator_flat_map;
+    let storage_entry_trait = &cx.toks.storage_entry_trait;
+    let occupied_entry_trait = &cx.toks.occupied_entry_trait;
+    let vacant_entry_trait = &cx.toks.vacant_entry_trait;
+    let entry_enum = &cx.toks.entry_enum;
+    let option_bucket_option = &cx.toks.option_bucket_option;
+    let option_bucket_some = &cx.toks.option_bucket_some;
+    let option_bucket_none = &cx.toks.option_bucket_none;
 
     let const_wrapper = Ident::new(
         &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
@@ -45,6 +52,7 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
     let mut retain = Vec::new();
     let mut keys_iter_init = Vec::new();
     let mut iter_init = Vec::new();
+    let mut entry = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
@@ -70,9 +78,95 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
         keys_iter_init.push(quote!(if #name.is_some() { Some(#ident::#var) } else { None }));
         iter_init.push(quote!((#ident::#var, #name)));
         names.push(name.clone());
+        entry.push(quote!(option_to_entry(#name, key)));
     }
 
     let count = en.variants.len();
+
+    let entry_impl = if cfg!(feature = "entry") {
+        quote! {
+            #vis struct VacantEntry<'this, V> {
+                key: #ident,
+                inner: #option_bucket_none<'this, V>,
+            }
+
+            #vis struct OccupiedEntry<'this, V> {
+                key: #ident,
+                inner: #option_bucket_some<'this, V>,
+            }
+
+            #[automatically_derived]
+            impl<'this, V> #vacant_entry_trait<'this, #ident, V> for VacantEntry<'this, V> {
+                #[inline]
+                fn key(&self) -> #ident {
+                    self.key
+                }
+
+                #[inline]
+                fn insert(self, value: V) -> &'this mut V {
+                    self.inner.insert(value)
+                }
+            }
+
+            #[automatically_derived]
+            impl<'this, V> #occupied_entry_trait<'this, #ident, V> for OccupiedEntry<'this, V> {
+                #[inline]
+                fn key(&self) -> #ident {
+                    self.key
+                }
+
+                #[inline]
+                fn get(&self) -> &V {
+                    self.inner.as_ref()
+                }
+
+                #[inline]
+                fn get_mut(&mut self) -> &mut V {
+                    self.inner.as_mut()
+                }
+
+                #[inline]
+                fn into_mut(self) -> &'this mut V {
+                    self.inner.into_mut()
+                }
+
+                #[inline]
+                fn insert(&mut self, value: V) -> V {
+                    self.inner.replace(value)
+                }
+
+                #[inline]
+                fn remove(self) -> V {
+                    self.inner.take()
+                }
+            }
+
+            #[inline]
+            fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<OccupiedEntry<'_, V>, VacantEntry<'_, V>> {
+                match #option_bucket_option::new(opt) {
+                    #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry { key, inner }),
+                    #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry { key, inner }),
+                }
+            }
+
+            #[automatically_derived]
+            impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
+                type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
+                type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
+
+                #[inline]
+                fn entry(&mut self, key: #ident) -> #entry_enum<Self::Occupied<'_>, Self::Vacant<'_>> {
+                    let [#(#names),*] = &mut self.data;
+
+                    match key {
+                        #(#pattern => #entry,)*
+                    }
+                }
+            }
+        }
+    } else {
+        quote!()
+    };
 
     Ok(quote! {
         const #const_wrapper: () = {
@@ -247,6 +341,8 @@ pub(crate) fn implement(cx: &Ctxt, en: &DataEnum) -> Result<TokenStream, ()> {
             impl #key_trait for #ident {
                 type Storage<V> = Storage<V>;
             }
+
+            #entry_impl
         };
     })
 }

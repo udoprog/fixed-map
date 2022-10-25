@@ -70,8 +70,8 @@ type IntoIter<V> = iter::Chain<
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BooleanStorage<V> {
-    t: Option<V>,
-    f: Option<V>,
+    pub(in crate::storage) t: Option<V>,
+    pub(in crate::storage) f: Option<V>,
 }
 
 impl<V> Default for BooleanStorage<V> {

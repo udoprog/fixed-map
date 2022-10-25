@@ -17,9 +17,10 @@ categories = ["data-structures"]
 all-features = true
 
 [features]
-default = ["map", "std"]
+default = ["map", "std", "entry"]
 std = ["serde?/std"]
 map = ["hashbrown", "std"]
+entry = ["fixed-map-derive/entry"]
 
 [dependencies]
 fixed-map-derive = { version = "0.8.0-alpha.2", path = "fixed-map-derive" }
@@ -39,4 +40,6 @@ name = "simple"
 harness = false
 
 [workspace]
-members = ["fixed-map-derive"]
+members = [
+  "fixed-map-derive"
+]

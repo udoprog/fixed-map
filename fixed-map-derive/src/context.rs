@@ -24,6 +24,13 @@ pub(crate) struct Toks {
     pub(crate) slice_iter: TokenStream,
     pub(crate) storage_trait: TokenStream,
     pub(crate) iterator_flat_map: TokenStream,
+    pub(crate) storage_entry_trait: TokenStream,
+    pub(crate) occupied_entry_trait: TokenStream,
+    pub(crate) vacant_entry_trait: TokenStream,
+    pub(crate) entry_enum: TokenStream,
+    pub(crate) option_bucket_option: TokenStream,
+    pub(crate) option_bucket_some: TokenStream,
+    pub(crate) option_bucket_none: TokenStream,
 }
 
 impl Toks {
@@ -47,6 +54,13 @@ impl Toks {
             slice_iter: quote!(::core::slice::Iter),
             storage_trait: quote!(#krate::storage::Storage),
             iterator_flat_map: quote!(::core::iter::FlatMap),
+            storage_entry_trait: quote!(#krate::storage::entry::StorageEntry),
+            occupied_entry_trait: quote!(#krate::storage::entry::OccupiedEntry),
+            vacant_entry_trait: quote!(#krate::storage::entry::VacantEntry),
+            entry_enum: quote!(#krate::storage::entry::Entry),
+            option_bucket_option: quote!(#krate::storage::entry::option_bucket::OptionBucket),
+            option_bucket_some: quote!(#krate::storage::entry::option_bucket::SomeBucket),
+            option_bucket_none: quote!(#krate::storage::entry::option_bucket::NoneBucket),
         }
     }
 }
@@ -103,7 +117,9 @@ impl<'a> Ctxt<'a> {
 pub(crate) struct FieldSpec<'a> {
     pub(crate) span: Span,
     pub(crate) index: usize,
+    /// Index-based name (`f1`, `f2`)
     pub(crate) name: syn::Ident,
+    /// Variant name
     pub(crate) var: &'a syn::Ident,
     pub(crate) kind: FieldKind,
 }
@@ -112,7 +128,11 @@ pub(crate) struct FieldSpec<'a> {
 pub(crate) enum FieldKind {
     Simple,
     Complex {
-        as_storage: TokenStream,
+        /// Type of variant field
+        element: TokenStream,
+        /// <E as Key>::Storage::<V> (E = type of variant field)
         storage: TokenStream,
+        /// <<E as Key>::Storage::<V> as Storage<E, V>> (E = type of variant field)
+        as_storage: TokenStream,
     },
 }
