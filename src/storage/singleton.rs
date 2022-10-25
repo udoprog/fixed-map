@@ -34,11 +34,11 @@ impl<K, V> Storage<K, V> for SingletonStorage<V>
 where
     K: Copy + Default,
 {
-    type Iter<'this> = ::core::option::IntoIter<(K, &'this V)> where Self: 'this, V: 'this;
-    type Keys<'this> = ::core::option::IntoIter<K> where Self: 'this;
-    type Values<'this> = ::core::option::Iter<'this, V> where Self: 'this, V: 'this;
-    type IterMut<'this> = ::core::option::IntoIter<(K, &'this mut V)> where Self: 'this, V: 'this;
-    type ValuesMut<'this> = ::core::option::IterMut<'this, V> where Self: 'this, V: 'this;
+    type Iter<'this> = ::core::option::IntoIter<(K, &'this V)> where V: 'this;
+    type Keys<'this> = ::core::option::IntoIter<K> where V: 'this;
+    type Values<'this> = ::core::option::Iter<'this, V> where V: 'this;
+    type IterMut<'this> = ::core::option::IntoIter<(K, &'this mut V)> where V: 'this;
+    type ValuesMut<'this> = ::core::option::IterMut<'this, V> where V: 'this;
     type IntoIter = ::core::option::IntoIter<(K, V)>;
 
     #[inline]

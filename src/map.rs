@@ -825,10 +825,7 @@ where
     /// assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
     /// ```
     #[cfg(feature = "entry")]
-    pub fn entry(
-        &mut self,
-        key: K,
-    ) -> Entry<impl OccupiedEntry<'_, K, V>, impl VacantEntry<'_, K, V>>
+    pub fn entry(&mut self, key: K) -> Entry<'_, K::Storage<V>, K, V>
     where
         K::Storage<V>: entry::StorageEntry<K, V>,
     {

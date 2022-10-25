@@ -295,7 +295,6 @@
     macro_use_extern_crate,
     meta_variable_misuse,
     missing_copy_implementations,
-    missing_docs,
     non_ascii_idents,
     noop_method_call,
     pointer_structural_match,
@@ -341,3 +340,8 @@ pub mod set;
 pub use self::set::Set;
 
 pub mod storage;
+
+// Re-export the option bucket types for use in `derive(Key)`
+#[doc(hidden)]
+#[cfg(feature = "entry")]
+pub mod option_bucket;

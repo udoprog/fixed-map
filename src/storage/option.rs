@@ -130,11 +130,11 @@ impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key,
 {
-    type Iter<'this> = Iter<'this, K, V> where Self: 'this;
-    type Keys<'this> = Keys<'this, K, V> where Self: 'this;
-    type Values<'this> = Values<'this, K, V> where Self: 'this;
-    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
-    type ValuesMut<'this> = ValuesMut<'this, K, V> where Self: 'this;
+    type Iter<'this> = Iter<'this, K, V> where K: 'this, V: 'this;
+    type Keys<'this> = Keys<'this, K, V> where K: 'this, V: 'this;
+    type Values<'this> = Values<'this, K, V> where K: 'this, V: 'this;
+    type IterMut<'this> = IterMut<'this, K, V> where K: 'this, V: 'this;
+    type ValuesMut<'this> = ValuesMut<'this, K, V> where K: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
 
     #[inline]

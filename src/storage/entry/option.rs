@@ -1,60 +1,62 @@
+use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 use crate::storage::entry;
 use crate::{key::Key, storage::OptionStorage};
-use entry::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
-struct VacantEntryNone<'this, V> {
-    none: NoneBucket<'this, V>,
+struct VacantEntryNone<'a, V> {
+    none: NoneBucket<'a, V>,
 }
 
-struct OccupiedEntryNone<'this, V> {
-    none: SomeBucket<'this, V>,
+struct OccupiedEntryNone<'a, V> {
+    none: SomeBucket<'a, V>,
 }
 
-enum VacantEntryEither<'this, K, V>
-where
-    K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
-{
-    None(VacantEntryNone<'this, V>),
-    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'this>),
-}
-
-pub struct VacantEntry<'this, K, V>
+enum VacantEntryEither<'a, K: 'a, V>
 where
     K: Key,
     K::Storage<V>: entry::StorageEntry<K, V>,
 {
-    either: VacantEntryEither<'this, K, V>,
+    None(VacantEntryNone<'a, V>),
+    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Vacant<'a>),
 }
 
-enum OccupiedEntryEither<'this, K, V>
-where
-    K: Key,
-    K::Storage<V>: 'this + entry::StorageEntry<K, V>,
-{
-    None(OccupiedEntryNone<'this, V>),
-    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'this>),
-}
-
-pub struct OccupiedEntry<'this, K, V>
+pub struct VacantEntry<'a, K, V>
 where
     K: Key,
     K::Storage<V>: entry::StorageEntry<K, V>,
 {
-    either: OccupiedEntryEither<'this, K, V>,
+    either: VacantEntryEither<'a, K, V>,
 }
 
-impl<'this, V> VacantEntryNone<'this, V> {
-    fn insert(self, value: V) -> &'this mut V {
+enum OccupiedEntryEither<'a, K: 'a, V>
+where
+    K: Key,
+    K::Storage<V>: entry::StorageEntry<K, V>,
+{
+    None(OccupiedEntryNone<'a, V>),
+    Some(<K::Storage<V> as entry::StorageEntry<K, V>>::Occupied<'a>),
+}
+
+pub struct OccupiedEntry<'a, K, V>
+where
+    K: Key,
+    K::Storage<V>: entry::StorageEntry<K, V>,
+{
+    either: OccupiedEntryEither<'a, K, V>,
+}
+
+impl<'a, V> VacantEntryNone<'a, V> {
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
         self.none.insert(value)
     }
 }
 
-impl<'this, K, V> entry::VacantEntry<'this, Option<K>, V> for VacantEntry<'this, K, V>
+impl<'a, K, V> entry::VacantEntry<'a, Option<K>, V> for VacantEntry<'a, K, V>
 where
     K: Key,
     K::Storage<V>: entry::StorageEntry<K, V>,
 {
+    #[inline]
     fn key(&self) -> Option<K> {
         match &self.either {
             VacantEntryEither::None(_) => None,
@@ -62,7 +64,8 @@ where
         }
     }
 
-    fn insert(self, value: V) -> &'this mut V {
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
         match self.either {
             VacantEntryEither::None(entry) => entry.insert(value),
             VacantEntryEither::Some(entry) => entry.insert(value),
@@ -70,33 +73,39 @@ where
     }
 }
 
-impl<'this, V> OccupiedEntryNone<'this, V> {
+impl<'a, V> OccupiedEntryNone<'a, V> {
+    #[inline]
     fn get(&self) -> &V {
         self.none.as_ref()
     }
 
+    #[inline]
     fn get_mut(&mut self) -> &mut V {
         self.none.as_mut()
     }
 
-    fn into_mut(self) -> &'this mut V {
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
         self.none.into_mut()
     }
 
+    #[inline]
     fn insert(&mut self, value: V) -> V {
         self.none.replace(value)
     }
 
+    #[inline]
     fn remove(self) -> V {
         self.none.take()
     }
 }
 
-impl<'this, K, V> entry::OccupiedEntry<'this, Option<K>, V> for OccupiedEntry<'this, K, V>
+impl<'a, K, V> entry::OccupiedEntry<'a, Option<K>, V> for OccupiedEntry<'a, K, V>
 where
     K: Key,
     K::Storage<V>: entry::StorageEntry<K, V>,
 {
+    #[inline]
     fn key(&self) -> Option<K> {
         match &self.either {
             OccupiedEntryEither::None(_) => None,
@@ -104,6 +113,7 @@ where
         }
     }
 
+    #[inline]
     fn get(&self) -> &V {
         match &self.either {
             OccupiedEntryEither::None(entry) => entry.get(),
@@ -111,6 +121,7 @@ where
         }
     }
 
+    #[inline]
     fn get_mut(&mut self) -> &mut V {
         match &mut self.either {
             OccupiedEntryEither::None(entry) => entry.get_mut(),
@@ -118,13 +129,15 @@ where
         }
     }
 
-    fn into_mut(self) -> &'this mut V {
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
         match self.either {
             OccupiedEntryEither::None(entry) => entry.into_mut(),
             OccupiedEntryEither::Some(entry) => entry.into_mut(),
         }
     }
 
+    #[inline]
     fn insert(&mut self, value: V) -> V {
         match &mut self.either {
             OccupiedEntryEither::None(entry) => entry.insert(value),
@@ -132,6 +145,7 @@ where
         }
     }
 
+    #[inline]
     fn remove(self) -> V {
         match self.either {
             OccupiedEntryEither::None(entry) => entry.remove(),
@@ -149,7 +163,7 @@ where
     type Vacant<'this> = VacantEntry<'this, K, V> where K: 'this, V: 'this;
 
     #[inline]
-    fn entry(&mut self, key: Option<K>) -> entry::Entry<Self::Occupied<'_>, Self::Vacant<'_>> {
+    fn entry(&mut self, key: Option<K>) -> entry::Entry<'_, Self, Option<K>, V> {
         match key {
             Some(key) => match self.some.entry(key) {
                 entry::Entry::Occupied(entry) => entry::Entry::Occupied(OccupiedEntry {
