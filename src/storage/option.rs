@@ -75,8 +75,8 @@ where
 impl<K, V> Clone for OptionStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: Clone,
     V: Clone,
+    K::Storage<V>: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -89,8 +89,8 @@ where
 impl<K, V> Copy for OptionStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: Copy,
     V: Copy,
+    K::Storage<V>: Copy,
 {
 }
 
@@ -130,11 +130,11 @@ impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key,
 {
-    type Iter<'this> = Iter<'this, K, V> where Self: 'this;
-    type Keys<'this> = Keys<'this, K, V> where Self: 'this;
-    type Values<'this> = Values<'this, K, V> where Self: 'this;
-    type IterMut<'this> = IterMut<'this, K, V> where Self: 'this;
-    type ValuesMut<'this> = ValuesMut<'this, K, V> where Self: 'this;
+    type Iter<'this> = Iter<'this, K, V> where K: 'this, V: 'this;
+    type Keys<'this> = Keys<'this, K, V> where K: 'this, V: 'this;
+    type Values<'this> = Values<'this, K, V> where K: 'this, V: 'this;
+    type IterMut<'this> = IterMut<'this, K, V> where K: 'this, V: 'this;
+    type ValuesMut<'this> = ValuesMut<'this, K, V> where K: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
 
     #[inline]

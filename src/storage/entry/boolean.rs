@@ -1,50 +1,58 @@
 #![allow(clippy::match_bool)]
 
+use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 use crate::storage::entry;
 use crate::storage::BooleanStorage;
-use entry::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
-pub struct VacantEntry<'this, V> {
+pub struct VacantEntry<'a, V> {
     key: bool,
-    inner: NoneBucket<'this, V>,
+    inner: NoneBucket<'a, V>,
 }
 
-pub struct OccupiedEntry<'this, V> {
+pub struct OccupiedEntry<'a, V> {
     key: bool,
-    inner: SomeBucket<'this, V>,
+    inner: SomeBucket<'a, V>,
 }
 
-impl<'this, V> entry::VacantEntry<'this, bool, V> for VacantEntry<'this, V> {
+impl<'a, V> entry::VacantEntry<'a, bool, V> for VacantEntry<'a, V> {
+    #[inline]
     fn key(&self) -> bool {
         self.key
     }
 
-    fn insert(self, value: V) -> &'this mut V {
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
         self.inner.insert(value)
     }
 }
 
-impl<'this, V> entry::OccupiedEntry<'this, bool, V> for OccupiedEntry<'this, V> {
+impl<'a, V> entry::OccupiedEntry<'a, bool, V> for OccupiedEntry<'a, V> {
+    #[inline]
     fn key(&self) -> bool {
         self.key
     }
 
+    #[inline]
     fn get(&self) -> &V {
         self.inner.as_ref()
     }
 
+    #[inline]
     fn get_mut(&mut self) -> &mut V {
         self.inner.as_mut()
     }
 
-    fn into_mut(self) -> &'this mut V {
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
         self.inner.into_mut()
     }
 
+    #[inline]
     fn insert(&mut self, value: V) -> V {
         self.inner.replace(value)
     }
 
+    #[inline]
     fn remove(self) -> V {
         self.inner.take()
     }
@@ -55,7 +63,7 @@ impl<V> entry::StorageEntry<bool, V> for BooleanStorage<V> {
     type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
 
     #[inline]
-    fn entry(&mut self, key: bool) -> entry::Entry<Self::Occupied<'_>, Self::Vacant<'_>> {
+    fn entry(&mut self, key: bool) -> entry::Entry<'_, Self, bool, V> {
         match key {
             true => match OptionBucket::new(&mut self.t) {
                 OptionBucket::Some(inner) => entry::Entry::Occupied(OccupiedEntry { key, inner }),

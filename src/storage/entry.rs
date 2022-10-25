@@ -8,13 +8,9 @@ mod map;
 mod option;
 mod singleton;
 
-// Re-export the option bucket types for use in `derive(Key)`
-#[doc(hidden)]
-pub mod option_bucket;
-
-/// A view into an occupied entry in a [`Map`][crate::Map].
-/// It is part of the [`Entry`] enum.
-pub trait OccupiedEntry<'this, K, V> {
+/// A view into an occupied entry in a [`Map`][crate::Map]. It is part of the
+/// [`Entry`] enum.
+pub trait OccupiedEntry<'a, K, V> {
     /// Gets a copy of the key in the entry.
     ///
     /// # Examples
@@ -217,7 +213,7 @@ pub trait OccupiedEntry<'this, K, V> {
     ///
     /// assert_eq!(map.get(Key::First(false)), Some(&22));
     /// ```
-    fn into_mut(self) -> &'this mut V;
+    fn into_mut(self) -> &'a mut V;
 
     /// Sets the value of the entry, and returns the entry's old value.
     ///
@@ -316,7 +312,7 @@ pub trait OccupiedEntry<'this, K, V> {
 
 /// A view into a vacant entry in a [`Map`][crate::Map].
 /// It is part of the [`Entry`] enum.
-pub trait VacantEntry<'this, K, V> {
+pub trait VacantEntry<'a, K, V> {
     /// Gets a copy of the key that would be used
     /// when inserting a value through the `VacantEntry`.
     ///
@@ -362,6 +358,7 @@ pub trait VacantEntry<'this, K, V> {
     /// assert_eq!(vacant.key(), Key::First(false));
     /// ```
     fn key(&self) -> K;
+
     /// Sets the value of the entry with the `VacantEntry`’s key,
     /// and returns a mutable reference to it.
     ///
@@ -406,20 +403,26 @@ pub trait VacantEntry<'this, K, V> {
     ///
     /// assert_eq!(map.get(Key::First(false)), Some(&37));
     /// ```
-    fn insert(self, value: V) -> &'this mut V;
+    fn insert(self, value: V) -> &'a mut V;
 }
 
 /// A view into a single entry in a map, which may either be vacant or occupied.
 ///
 /// This enum is constructed from the [`entry`][crate::Map::entry] method on [`Map`][crate::Map].
-pub enum Entry<Occupied, Vacant> {
+pub enum Entry<'a, S: 'a, K, V>
+where
+    S: StorageEntry<K, V>,
+{
     /// An occupied entry.
-    Occupied(Occupied),
+    Occupied(S::Occupied<'a>),
     /// A vacant entry.
-    Vacant(Vacant),
+    Vacant(S::Vacant<'a>),
 }
 
-impl<Occupied, Vacant> Entry<Occupied, Vacant> {
+impl<'a, S: 'a, K, V> Entry<'a, S, K, V>
+where
+    S: StorageEntry<K, V>,
+{
     /// Ensures a value is in the entry by inserting the default if empty,
     /// and returns a mutable reference to the value in the entry.
     ///
@@ -462,11 +465,8 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     /// *map.entry(Key::First(false)).or_insert(10) *= 2;
     /// assert_eq!(map.get(Key::First(false)), Some(&6));
     /// ```
-    pub fn or_insert<'this, K, V>(self, default: V) -> &'this mut V
-    where
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
-    {
+    #[inline]
+    pub fn or_insert(self, default: V) -> &'a mut V {
         match self {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => entry.insert(default),
@@ -509,10 +509,10 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     /// map.entry(Key::First(false)).or_insert_with(|| format!("{}", 3));
     /// assert_eq!(map.get(Key::First(false)), Some(&"3".to_string()));
     /// ```
-    pub fn or_insert_with<'this, K, V, F: FnOnce() -> V>(self, default: F) -> &'this mut V
+    #[inline]
+    pub fn or_insert_with<F>(self, default: F) -> &'a mut V
     where
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
+        F: FnOnce() -> V,
     {
         match self {
             Entry::Occupied(entry) => entry.into_mut(),
@@ -557,10 +557,10 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     /// map.entry(Key::First(false)).or_insert_with_key(|k| format!("{:?} = {}", k, 3));
     /// assert_eq!(map.get(Key::First(false)), Some(&"First(false) = 3".to_string()));
     /// ```
-    pub fn or_insert_with_key<'this, K, V, F: FnOnce(K) -> V>(self, default: F) -> &'this mut V
+    #[inline]
+    pub fn or_insert_with_key<F>(self, default: F) -> &'a mut V
     where
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
+        F: FnOnce(K) -> V,
     {
         match self {
             Entry::Occupied(entry) => entry.into_mut(),
@@ -602,11 +602,8 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     /// let mut map: Map<Key, i32> = Map::new();
     /// assert_eq!(map.entry(Key::First(false)).key(), Key::First(false));
     /// ```
-    pub fn key<'this, K, V>(&self) -> K
-    where
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
-    {
+    #[inline]
+    pub fn key(&self) -> K {
         match self {
             Entry::Occupied(entry) => entry.key(),
             Entry::Vacant(entry) => entry.key(),
@@ -663,11 +660,11 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     ///    .or_insert(42);
     /// assert_eq!(map.get(Key::First(true)), Some(&43));
     /// ```
-    #[allow(clippy::return_self_not_must_use)]
-    pub fn and_modify<'this, K, V, F: FnOnce(&mut V)>(self, f: F) -> Self
+    #[inline]
+    #[must_use]
+    pub fn and_modify<F>(self, f: F) -> Self
     where
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
+        F: FnOnce(&mut V),
     {
         match self {
             Entry::Occupied(mut entry) => {
@@ -714,11 +711,10 @@ impl<Occupied, Vacant> Entry<Occupied, Vacant> {
     /// map.entry(Key::First(false)).or_default();
     /// assert_eq!(map.get(Key::First(false)), Some(&0));
     /// ```
-    pub fn or_default<'this, K, V>(self) -> &'this mut V
+    #[inline]
+    pub fn or_default(self) -> &'a mut V
     where
         V: Default,
-        Occupied: OccupiedEntry<'this, K, V>,
-        Vacant: VacantEntry<'this, K, V>,
     {
         match self {
             Entry::Occupied(entry) => entry.into_mut(),
@@ -738,11 +734,12 @@ pub trait StorageEntry<K, V>: Storage<K, V> {
     type Occupied<'this>: OccupiedEntry<'this, K, V>
     where
         Self: 'this;
+
     /// A vacant entry.
     type Vacant<'this>: VacantEntry<'this, K, V>
     where
         Self: 'this;
 
     /// This is the storage abstraction for [`Map::entry`][crate::Map::entry].
-    fn entry(&mut self, key: K) -> Entry<Self::Occupied<'_>, Self::Vacant<'_>>;
+    fn entry(&mut self, key: K) -> Entry<'_, Self, K, V>;
 }

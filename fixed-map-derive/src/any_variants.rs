@@ -8,6 +8,7 @@ use crate::context::{Ctxt, FieldKind, FieldSpec};
 pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
+    let lt = cx.lt;
 
     let clone = &cx.toks.clone;
     let copy = &cx.toks.copy;
@@ -192,11 +193,11 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
             #[automatically_derived]
             impl<V> #storage_trait<#ident, V> for Storage<V> {
-                type Iter<'this> = Iter<'this, V> where Self: 'this;
-                type Keys<'this> = Keys<'this, V> where Self: 'this;
-                type Values<'this> = Values<'this, V> where Self: 'this;
-                type IterMut<'this> = IterMut<'this, V> where Self: 'this;
-                type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
+                type Iter<#lt> = Iter<#lt, V> where V: #lt;
+                type Keys<#lt> = Keys<#lt, V> where V: #lt;
+                type Values<#lt> = Values<#lt, V> where V: #lt;
+                type IterMut<#lt> = IterMut<#lt, V> where V: #lt;
+                type ValuesMut<#lt> = ValuesMut<#lt, V> where V: #lt;
                 type IntoIter = IntoIter<V>;
 
                 #[inline]
@@ -356,7 +357,7 @@ fn build_iter_next(
             FieldKind::Simple => {
                 step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = self.#name.take() {
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
                             return #option::Some((#ident::#var, value));
                         }
                     }
@@ -364,7 +365,7 @@ fn build_iter_next(
 
                 step_backward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = self.#name.take() {
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
                             return #option::Some((#ident::#var, value));
                         }
                     }
@@ -681,7 +682,7 @@ fn build_values_impl(
 
                 step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = self.#name.take() {
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
                             return #option::Some(value);
                         }
                     }
@@ -689,7 +690,7 @@ fn build_values_impl(
 
                 step_backward.next.push(quote! {
                     #index => {
-                        if let #option::Some(value) = self.#name.take() {
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
                             return #option::Some(value);
                         }
                     }
@@ -900,16 +901,16 @@ fn build_values_mut_impl(
 
                 step_forward.next.push(quote! {
                     #index => {
-                        if let #option::Some(v) = self.#name.take() {
-                            return #option::Some(v);
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
+                            return #option::Some(value);
                         }
                     }
                 });
 
                 step_backward.next.push(quote! {
                     #index => {
-                        if let #option::Some(v) = self.#name.take() {
-                            return #option::Some(v);
+                        if let #option::Some(value) = #option::take(&mut self.#name) {
+                            return #option::Some(value);
                         }
                     }
                 });
@@ -1141,6 +1142,7 @@ impl ToTokens for IteratorNextBack {
 fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<TokenStream, ()> {
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
+    let lt = cx.lt;
     let option = &cx.toks.option;
     let storage_entry_trait = &cx.toks.storage_entry_trait;
     let occupied_entry_trait = &cx.toks.occupied_entry_trait;
@@ -1179,8 +1181,8 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
             } => {
                 let as_storage_entry = quote!(<#storage as #storage_entry_trait<#element, V>>);
 
-                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied<'this>) ));
-                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant<'this>) ));
+                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied<#lt>) ));
+                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant<#lt>) ));
 
                 init.push(quote! {
                     #pattern(key) => match #storage_entry_trait::entry(&mut self.#name, key) {
@@ -1189,7 +1191,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                     }
                 });
 
-                let as_vacant_entry = quote!(<#as_storage_entry::Vacant<'this> as #vacant_entry_trait<'this, #element, V>>);
+                let as_vacant_entry = quote!(<#as_storage_entry::Vacant<#lt> as #vacant_entry_trait<#lt, #element, V>>);
 
                 vacant_key.push(
                     quote!( VacantEntry::#name(entry) => #pattern(#as_vacant_entry::key(entry)) ),
@@ -1198,7 +1200,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                     quote!( VacantEntry::#name(entry) => #as_vacant_entry::insert(entry, value) ),
                 );
 
-                let as_occupied_entry = quote!(<#as_storage_entry::Occupied<'this> as #occupied_entry_trait<'this, #element, V>>);
+                let as_occupied_entry = quote!(<#as_storage_entry::Occupied<#lt> as #occupied_entry_trait<#lt, #element, V>>);
 
                 occupied_key.push(quote!( OccupiedEntry::#name(entry) => #pattern(#as_occupied_entry::key(entry)) ));
                 occupied_get
@@ -1218,82 +1220,72 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
     }
 
     let entry_impl = quote! {
-        #vis struct SimpleVacantEntry<'this, V> {
+        #vis struct SimpleVacantEntry<#lt, V> {
             key: #ident,
-            inner: #option_bucket_none<'this, V>,
+            inner: #option_bucket_none<#lt, V>,
         }
 
-        #vis struct SimpleOccupiedEntry<'this, V> {
+        impl<#lt, V> SimpleVacantEntry<#lt, V> {
+            #[inline]
+            fn insert(self, value: V) -> &#lt mut V {
+                #option_bucket_none::insert(self.inner, value)
+            }
+        }
+
+        #vis struct SimpleOccupiedEntry<#lt, V> {
             key: #ident,
-            inner: #option_bucket_some<'this, V>,
+            inner: #option_bucket_some<#lt, V>,
         }
 
-        #vis enum VacantEntry<'this, V> {
-            Simple(SimpleVacantEntry<'this, V>),
-            #(#vacant_variant,)*
-        }
-
-        #vis enum OccupiedEntry<'this, V> {
-            Simple(SimpleOccupiedEntry<'this, V>),
-            #(#occupied_variant,)*
-        }
-
-        impl<'this, V> SimpleVacantEntry<'this, V> {
-            #[inline]
-            fn key(&self) -> #ident {
-                self.key
-            }
-
-            #[inline]
-            fn insert(self, value: V) -> &'this mut V {
-                self.inner.insert(value)
-            }
-        }
-
-        impl<'this, V> SimpleOccupiedEntry<'this, V> {
-            #[inline]
-            fn key(&self) -> #ident {
-                self.key
-            }
-
+        impl<#lt, V> SimpleOccupiedEntry<#lt, V> {
             #[inline]
             fn get(&self) -> &V {
-                self.inner.as_ref()
+                #option_bucket_some::as_ref(&self.inner)
             }
 
             #[inline]
             fn get_mut(&mut self) -> &mut V {
-                self.inner.as_mut()
+                #option_bucket_some::as_mut(&mut self.inner)
             }
 
             #[inline]
-            fn into_mut(self) -> &'this mut V {
-                self.inner.into_mut()
+            fn into_mut(self) -> &#lt mut V {
+                #option_bucket_some::into_mut(self.inner)
             }
 
             #[inline]
             fn insert(&mut self, value: V) -> V {
-                self.inner.replace(value)
+                #option_bucket_some::replace(&mut self.inner, value)
             }
 
             #[inline]
             fn remove(self) -> V {
-                self.inner.take()
+                #option_bucket_some::take(self.inner)
             }
         }
 
+        #vis enum VacantEntry<#lt, V> {
+            Simple(SimpleVacantEntry<#lt, V>),
+            #(#vacant_variant,)*
+        }
+
+        #vis enum OccupiedEntry<#lt, V> {
+            Simple(SimpleOccupiedEntry<#lt, V>),
+            #(#occupied_variant,)*
+        }
+
         #[automatically_derived]
-        impl<'this, V> #vacant_entry_trait<'this, #ident, V> for VacantEntry<'this, V> {
+        impl<#lt, V> #vacant_entry_trait<#lt, #ident, V> for VacantEntry<#lt, V> {
             #[inline]
             fn key(&self) -> #ident {
                 match self {
-                    VacantEntry::Simple(entry) => entry.key(),
+                    VacantEntry::Simple(entry) => entry.key,
                     #(#vacant_key,)*
                 }
             }
 
             #[inline]
-            fn insert(self, value: V) -> &'this mut V {
+            fn insert(self, value: V) -> &#lt mut V {
                 match self {
                     VacantEntry::Simple(entry) => entry.insert(value),
                     #(#vacant_insert,)*
@@ -1302,11 +1294,11 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
         }
 
         #[automatically_derived]
-        impl<'this, V> #occupied_entry_trait<'this, #ident, V> for OccupiedEntry<'this, V> {
+        impl<#lt, V> #occupied_entry_trait<#lt, #ident, V> for OccupiedEntry<#lt, V> {
             #[inline]
             fn key(&self) -> #ident {
                 match self {
-                    OccupiedEntry::Simple(entry) => entry.key(),
+                    OccupiedEntry::Simple(entry) => entry.key,
                     #(#occupied_key,)*
                 }
             }
@@ -1328,7 +1320,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
             }
 
             #[inline]
-            fn into_mut(self) -> &'this mut V {
+            fn into_mut(self) -> &#lt mut V {
                 match self {
                     OccupiedEntry::Simple(entry) => entry.into_mut(),
                     #(#occupied_into_mut,)*
@@ -1353,7 +1345,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
         }
 
         #[inline]
-        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<OccupiedEntry<'_, V>, VacantEntry<'_, V>> {
+        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<'_, Storage<V>, #ident, V> {
             match #option_bucket_option::new(opt) {
                 #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry::Simple(SimpleOccupiedEntry { key, inner })),
                 #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry::Simple(SimpleVacantEntry { key, inner })),
@@ -1362,11 +1354,11 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
 
         #[automatically_derived]
         impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
-            type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
-            type Vacant<'this> = VacantEntry<'this, V> where V: 'this;
+            type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
+            type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
 
             #[inline]
-            fn entry(&mut self, key: #ident) -> #entry_enum<Self::Occupied<'_>, Self::Vacant<'_>> {
+            fn entry(&mut self, key: #ident) -> #entry_enum<'_, Self, #ident, V> {
                 match key {
                     #(#init,)*
                 }

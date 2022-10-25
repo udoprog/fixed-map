@@ -146,11 +146,11 @@ impl ExactSizeIterator for Keys {
 }
 
 impl<V> Storage<bool, V> for BooleanStorage<V> {
-    type Iter<'this> = Iter<'this, V> where Self: 'this;
-    type Keys<'this> = Keys where Self: 'this;
-    type Values<'this> = Values<'this, V> where Self: 'this;
-    type IterMut<'this> = IterMut<'this, V> where Self: 'this;
-    type ValuesMut<'this> = ValuesMut<'this, V> where Self: 'this;
+    type Iter<'this> = Iter<'this, V> where V: 'this;
+    type Keys<'this> = Keys where V: 'this;
+    type Values<'this> = Values<'this, V> where V: 'this;
+    type IterMut<'this> = IterMut<'this, V> where V: 'this;
+    type ValuesMut<'this> = ValuesMut<'this, V> where V: 'this;
     type IntoIter = IntoIter<V>;
 
     #[inline]
