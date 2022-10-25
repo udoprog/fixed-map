@@ -1,4 +1,4 @@
-use core::hash;
+use core::hash::Hash;
 use core::iter;
 
 use crate::storage::Storage;
@@ -45,7 +45,7 @@ where
 
 impl<K, V> Default for MapStorage<K, V>
 where
-    K: Eq + hash::Hash,
+    K: Hash,
 {
     #[inline]
     fn default() -> Self {
@@ -57,25 +57,25 @@ where
 
 impl<K, V> PartialEq for MapStorage<K, V>
 where
-    K: Eq + hash::Hash,
+    K: Eq + Hash,
     V: PartialEq,
 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        self.inner == other.inner
+        self.inner.eq(&other.inner)
     }
 }
 
 impl<K, V> Eq for MapStorage<K, V>
 where
-    K: Eq + hash::Hash,
+    K: Eq + Hash,
     V: Eq,
 {
 }
 
 impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
-    K: Copy + Eq + hash::Hash,
+    K: Copy + Eq + Hash,
 {
     type Iter<'this> = iter::Map<::hashbrown::hash_map::Iter<'this, K, V>, fn((&'this K, &'this V)) -> (K, &'this V)> where K: 'this, V: 'this;
     type Keys<'this> = iter::Copied<::hashbrown::hash_map::Keys<'this, K, V>> where K: 'this, V: 'this;

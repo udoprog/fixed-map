@@ -12,7 +12,7 @@ pub struct OccupiedEntry<'a, V> {
 
 impl<'a, K, V> entry::VacantEntry<'a, K, V> for VacantEntry<'a, V>
 where
-    K: Copy + Default,
+    K: Default,
 {
     #[inline]
     fn key(&self) -> K {
@@ -25,7 +25,10 @@ where
     }
 }
 
-impl<'a, K: Copy + Default, V> entry::OccupiedEntry<'a, K, V> for OccupiedEntry<'a, V> {
+impl<'a, K, V> entry::OccupiedEntry<'a, K, V> for OccupiedEntry<'a, V>
+where
+    K: Default,
+{
     #[inline]
     fn key(&self) -> K {
         K::default()
@@ -59,7 +62,7 @@ impl<'a, K: Copy + Default, V> entry::OccupiedEntry<'a, K, V> for OccupiedEntry<
 
 impl<K, V> entry::StorageEntry<K, V> for SingletonStorage<V>
 where
-    K: Copy + Default,
+    K: Default,
 {
     type Occupied<'this> = OccupiedEntry<'this, V> where V: 'this;
     type Vacant<'this> = VacantEntry<'this, V> where V: 'this;

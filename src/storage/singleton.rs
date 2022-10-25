@@ -32,7 +32,7 @@ impl<V> Eq for SingletonStorage<V> where V: Eq {}
 
 impl<K, V> Storage<K, V> for SingletonStorage<V>
 where
-    K: Copy + Default,
+    K: Default,
 {
     type Iter<'this> = ::core::option::IntoIter<(K, &'this V)> where V: 'this;
     type Keys<'this> = ::core::option::IntoIter<K> where V: 'this;

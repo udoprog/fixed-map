@@ -4,13 +4,13 @@ use crate::storage::entry;
 use crate::storage::MapStorage;
 
 type S = ::hashbrown::hash_map::DefaultHashBuilder;
-type OccupiedEntry<'this, K, V> = ::hashbrown::hash_map::OccupiedEntry<'this, K, V, S>;
-type VacantEntry<'this, K, V> = ::hashbrown::hash_map::VacantEntry<'this, K, V, S>;
-type HEntry<'this, K, V> = ::hashbrown::hash_map::Entry<'this, K, V, S>;
+type OccupiedEntry<'a, K, V> = ::hashbrown::hash_map::OccupiedEntry<'a, K, V, S>;
+type VacantEntry<'a, K, V> = ::hashbrown::hash_map::VacantEntry<'a, K, V, S>;
+type HEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 
-impl<'this, K, V> entry::OccupiedEntry<'this, K, V> for OccupiedEntry<'this, K, V>
+impl<'a, K, V> entry::OccupiedEntry<'a, K, V> for OccupiedEntry<'a, K, V>
 where
-    K: Copy + Eq + Hash,
+    K: Copy,
 {
     #[inline]
     fn key(&self) -> K {
@@ -28,7 +28,7 @@ where
     }
 
     #[inline]
-    fn into_mut(self) -> &'this mut V {
+    fn into_mut(self) -> &'a mut V {
         self.into_mut()
     }
 
@@ -45,7 +45,7 @@ where
 
 impl<'this, K, V> entry::VacantEntry<'this, K, V> for VacantEntry<'this, K, V>
 where
-    K: Copy + Eq + Hash,
+    K: Copy + Hash,
 {
     #[inline]
     fn key(&self) -> K {

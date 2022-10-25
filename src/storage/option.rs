@@ -75,8 +75,8 @@ where
 impl<K, V> Clone for OptionStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: Clone,
     V: Clone,
+    K::Storage<V>: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -89,8 +89,8 @@ where
 impl<K, V> Copy for OptionStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: Copy,
     V: Copy,
+    K::Storage<V>: Copy,
 {
 }
 
