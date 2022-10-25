@@ -1,6 +1,6 @@
 use crate::storage::entry;
 use crate::{key::Key, storage::OptionStorage};
-use option_bucket::{NoneBucket, OptionBucket, SomeBucket};
+use entry::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 struct VacantEntryNone<'this, V> {
     none: NoneBucket<'this, V>,

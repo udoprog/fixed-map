@@ -181,6 +181,12 @@
 //! }
 //! ```
 //!
+//! ## Unsafe use
+//!
+//! The Entry API uses `unwrap_unchecked` to obtain
+//! mutable references to the inner value of `Some`s,
+//! and to skip `drop` when overwriting `None`s.
+//!
 //! <br>
 //!
 //! ## Benchmarks
@@ -276,7 +282,7 @@
 //! [documentation]: https://docs.rs/fixed-map
 
 #![no_std]
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 #![deny(missing_docs)]
 // Enable pedantic lints as warnings so we don't break builds when
 // lints are modified or new lints are added to clippy.

@@ -10,7 +10,7 @@ mod singleton;
 
 // Re-export the option bucket types for use in `derive(Key)`
 #[doc(hidden)]
-pub use option_bucket;
+pub mod option_bucket;
 
 /// A view into an occupied entry in a [`Map`][crate::Map].
 /// It is part of the [`Entry`] enum.

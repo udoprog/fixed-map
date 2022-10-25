@@ -177,6 +177,11 @@ if let Some(item) = map.get(Dir::North) {
 }
 ```
 
+## Unsafe use
+The Entry API uses `unwrap_unchecked` to obtain
+mutable references to the inner value of `Some`s,
+and to skip `drop` when overwriting `None`s.
+
 <br>
 
 ## Benchmarks

@@ -1,6 +1,6 @@
 use crate::storage::entry;
 use crate::storage::SingletonStorage;
-use option_bucket::{NoneBucket, OptionBucket, SomeBucket};
+use entry::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 pub struct VacantEntry<'this, V> {
     inner: NoneBucket<'this, V>,
