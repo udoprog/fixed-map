@@ -116,6 +116,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// # Safety
     ///
     /// Caller must guarantee that `opt` is NOT `None`.
+    #[inline]
     pub unsafe fn new_unchecked(opt: &'a mut Option<T>) -> Self {
         debug_assert!(
             opt.is_some(),
@@ -129,6 +130,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// if `opt` is [`Some`], otherwise returns `None`.
     ///
     /// For an unchecked version, see [`SomeBucket::new_unchecked`].
+    #[inline]
     pub fn new(opt: &'a mut Option<T>) -> Option<Self> {
         if opt.is_some() {
             // SAFETY: If conditional ensures that `opt` is `Some`
@@ -153,6 +155,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(hello, "Hello");
     /// assert_eq!(length, 13);
     /// ```
+    #[inline]
     pub fn as_ref(&self) -> &T {
         // SAFETY: `outer` is guaranteed to be `Some`
         // by the invariants of `new_unchecked`
@@ -173,6 +176,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// some.as_mut().push_str(" Happy to be here.");
     /// assert_eq!(some.as_ref(), "Hello, world! Happy to be here.");
     /// ```
+    #[inline]
     pub fn as_mut(&mut self) -> &mut T {
         // SAFETY: `outer` is guaranteed to be `Some`
         // by the invariants of `new_unchecked`
@@ -205,6 +209,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// // can not longer use `some`
     /// some.as_ref();
     /// ```
+    #[inline]
     pub fn into_mut(self) -> &'a mut T {
         // SAFETY: `outer` is guaranteed to be `Some`
         // by the invariants of `new_unchecked`
@@ -226,6 +231,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(old, 2);
     /// assert_eq!(x, Some(5));
     /// ```
+    #[inline]
     pub fn replace(&mut self, value: T) -> T {
         core::mem::replace(self.as_mut(), value)
     }
@@ -243,6 +249,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// assert_eq!(x, None);
     /// assert_eq!(y, vec![1, 2]);
     /// ```
+    #[inline]
     pub fn take(self) -> T {
         // SAFETY: `outer` is guaranteed to be `Some`
         // by the invariants of `new_unchecked`
@@ -269,6 +276,7 @@ impl<'a, T> NoneBucket<'a, T> {
     /// # Safety
     ///
     /// Caller must guarantee that `opt` is NOT [`Some`].
+    #[inline]
     pub unsafe fn new_unchecked(opt: &'a mut Option<T>) -> Self {
         debug_assert!(
             opt.is_none(),
@@ -282,6 +290,7 @@ impl<'a, T> NoneBucket<'a, T> {
     /// if `opt` is [`None`], otherwise returns `None`.
     ///
     /// For an unchecked version, see [`NoneBucket::new_unchecked`].
+    #[inline]
     pub fn new(opt: &'a mut Option<T>) -> Option<Self> {
         if opt.is_none() {
             // SAFETY: if conditional ensures that `opt` is `None`
@@ -306,6 +315,7 @@ impl<'a, T> NoneBucket<'a, T> {
     /// *val = 3;
     /// assert_eq!(opt.unwrap(), 3);
     /// ```
+    #[inline]
     pub fn insert(self, value: T) -> &'a mut T {
         // SAFETY: `outer` is `None`, so there is no old value to `drop`
         unsafe {
@@ -344,6 +354,7 @@ impl<'a, T> OptionBucket<'a, T> {
     /// let some_bucket = OptionBucket::new(&mut some);
     /// assert!(matches!(some_bucket, OptionBucket::Some(_)));
     /// ```
+    #[inline]
     pub fn new(opt: &'a mut Option<T>) -> Self {
         if opt.is_some() {
             // SAFETY: if conditional ensures that `opt` is `Some`

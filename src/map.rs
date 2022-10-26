@@ -775,6 +775,7 @@ where
     /// map.remove(Key::First(true));
     /// assert_eq!(map.len(), 1);
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.storage.len()
     }
@@ -825,6 +826,7 @@ where
     /// assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
     /// ```
     #[cfg(feature = "entry")]
+    #[inline]
     pub fn entry(&mut self, key: K) -> Entry<'_, K::Storage<V>, K, V>
     where
         K::Storage<V>: entry::StorageEntry<K, V>,
@@ -958,6 +960,7 @@ where
     K: Key + fmt::Debug,
     V: fmt::Debug,
 {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_map().entries(self.iter()).finish()
     }
@@ -1167,6 +1170,7 @@ where
     K: Key + serde::Serialize,
     V: serde::Serialize,
 {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -1189,6 +1193,7 @@ where
     K: Key + serde::de::Deserialize<'de>,
     V: serde::Deserialize<'de>,
 {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,

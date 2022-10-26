@@ -314,7 +314,9 @@
     // Useful clippy lints for no_std support
     clippy::std_instead_of_core,
     clippy::std_instead_of_alloc,
-    clippy::alloc_instead_of_core
+    clippy::alloc_instead_of_core,
+    // Useful extra perf lints
+    clippy::missing_inline_in_public_items
 )]
 // `clippy::pedantic` exceptions
 #![allow(

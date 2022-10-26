@@ -517,6 +517,7 @@ impl<K> fmt::Debug for Set<K>
 where
     K: Key + fmt::Debug,
 {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_set().entries(self.iter()).finish()
     }
@@ -674,6 +675,7 @@ impl<K> serde::Serialize for Set<K>
 where
     K: Key + serde::Serialize,
 {
+    #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -695,6 +697,7 @@ impl<'de, K> serde::de::Deserialize<'de> for Set<K>
 where
     K: Key + serde::de::Deserialize<'de>,
 {
+    #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
