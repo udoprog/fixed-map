@@ -78,6 +78,7 @@ where
     V: Clone,
     K::Storage<V>: Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         Self {
             some: self.some.clone(),
@@ -113,6 +114,7 @@ where
     K::Storage<V>: PartialEq,
     V: PartialEq,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.none == other.none && self.some == other.some
     }
