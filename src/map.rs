@@ -1,6 +1,8 @@
 //! Contains the fixed [`Map`] implementation.
 
+use core::cmp::{Ord, Ordering, PartialOrd};
 use core::fmt;
+use core::hash::{Hash, Hasher};
 
 use crate::{key::Key, storage::Storage};
 
@@ -1026,6 +1028,216 @@ where
     K: Key,
     K::Storage<V>: Eq,
 {
+}
+
+/// [`Hash`] implementation for a [`Set`].
+///
+/// # Examples
+///
+/// ```
+/// use std::collections::HashSet;
+///
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 1);
+///
+/// let mut set = HashSet::new();
+/// set.insert(a);
+/// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use std::collections::HashSet;
+///
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First(true), 1);
+///
+/// // TODO: support this
+/// // let mut set = HashSet::new();
+/// // set.insert(a);
+/// ```
+impl<K, V> Hash for Map<K, V>
+where
+    K: Key,
+    K::Storage<V>: Hash,
+{
+    #[inline]
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.storage.hash(state);
+    }
+}
+
+/// [`PartialOrd`] implementation for a [`Map`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 1);
+///
+/// let mut b = Map::new();
+/// b.insert(Key::Second, 1);
+///
+/// assert!(a > b);
+/// assert!(a >= b);
+/// assert!(!(a < b));
+/// assert!(!(a <= b));
+/// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First(true), 1);
+///
+/// let mut b = Map::new();
+/// b.insert(Key::Second, 1);
+///
+/// // TODO: support this
+/// // assert!(a > b);
+/// ```
+impl<K, V> PartialOrd for Map<K, V>
+where
+    K: Key,
+    K::Storage<V>: PartialOrd,
+{
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.storage.partial_cmp(&other.storage)
+    }
+
+    #[inline]
+    fn lt(&self, other: &Self) -> bool {
+        self.storage.lt(&other.storage)
+    }
+
+    #[inline]
+    fn le(&self, other: &Self) -> bool {
+        self.storage.le(&other.storage)
+    }
+
+    #[inline]
+    fn gt(&self, other: &Self) -> bool {
+        self.storage.gt(&other.storage)
+    }
+
+    #[inline]
+    fn ge(&self, other: &Self) -> bool {
+        self.storage.ge(&other.storage)
+    }
+}
+
+/// [`Ord`] implementation for a [`Map`].
+///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First,
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First, 1);
+///
+/// let mut b = Map::new();
+/// b.insert(Key::Second, 1);
+///
+/// let mut list = vec![a, b];
+/// list.sort();
+///
+/// assert_eq!(list, [b, a]);
+/// ```
+///
+/// Using a composite key:
+///
+/// ```
+/// use fixed_map::{Key, Map};
+///
+/// #[derive(Debug, Clone, Copy, Hash, Key)]
+/// enum Key {
+///     First(bool),
+///     Second,
+/// }
+///
+/// let mut a = Map::new();
+/// a.insert(Key::First(true), 1);
+///
+/// let mut b = Map::new();
+/// b.insert(Key::Second, 1);
+///
+/// // TODO: support this
+/// // let mut list = vec![a, b];
+/// // list.sort();
+/// ```
+impl<K, V> Ord for Map<K, V>
+where
+    K: Key,
+    K::Storage<V>: Ord,
+{
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.storage.cmp(&other.storage)
+    }
+
+    #[inline]
+    fn max(self, other: Self) -> Self {
+        Self {
+            storage: self.storage.max(other.storage),
+        }
+    }
+
+    #[inline]
+    fn min(self, other: Self) -> Self {
+        Self {
+            storage: self.storage.min(other.storage),
+        }
+    }
+
+    #[inline]
+    fn clamp(self, min: Self, max: Self) -> Self {
+        Self {
+            storage: self.storage.clamp(min.storage, max.storage),
+        }
+    }
 }
 
 impl<'a, K, V> IntoIterator for &'a Map<K, V>

@@ -14,6 +14,8 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let copy = &cx.toks.copy;
     let default = &cx.toks.default;
     let eq = &cx.toks.eq;
+    let hash = &cx.toks.hash;
+    let hasher = &cx.toks.hasher;
     let into_iter = &cx.toks.into_iter;
     let iterator = &cx.toks.iterator_t;
     let iterator_flatten = &cx.toks.iterator_flatten;
@@ -21,6 +23,9 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let mem = &cx.toks.mem;
     let option = &cx.toks.option;
     let partial_eq = &cx.toks.partial_eq;
+    let partial_ord = &cx.toks.partial_ord;
+    let ordering = &cx.toks.ordering;
+    let ord = &cx.toks.ord;
     let slice_iter = &cx.toks.slice_iter;
     let slice_iter_mut = &cx.toks.slice_iter_mut;
     let array_into_iter = &cx.toks.array_into_iter;
@@ -191,15 +196,85 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<V> #partial_eq for Storage<V> where V: #partial_eq{
+            impl<V> #partial_eq for Storage<V> where V: #partial_eq {
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
-                    self.data == other.data
+                    #partial_eq::eq(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn ne(&self, other: &Storage<V>) -> bool {
+                    #partial_eq::ne(&self.data, &other.data)
                 }
             }
 
             #[automatically_derived]
             impl<V> #eq for Storage<V> where V: #eq {}
+
+            #[automatically_derived]
+            impl<V> #hash for Storage<V> where V: #hash {
+                #[inline]
+                fn hash<H>(&self, state: &mut H)
+                where
+                    H: #hasher,
+                {
+                    #hash::hash(&self.data, state);
+                }
+            }
+
+            #[automatically_derived]
+            impl<V> #partial_ord for Storage<V> where V: #partial_ord {
+                #[inline]
+                fn partial_cmp(&self, other: &Self) -> Option<#ordering> {
+                    #partial_ord::partial_cmp(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn lt(&self, other: &Self) -> bool {
+                    #partial_ord::lt(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn le(&self, other: &Self) -> bool {
+                    #partial_ord::le(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn gt(&self, other: &Self) -> bool {
+                    #partial_ord::gt(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn ge(&self, other: &Self) -> bool {
+                    #partial_ord::ge(&self.data, &other.data)
+                }
+            }
+
+            #[automatically_derived]
+            impl<V> #ord for Storage<V> where V: #ord {
+                #[inline]
+                fn cmp(&self, other: &Self) -> #ordering {
+                    #ord::cmp(self, other)
+                }
+
+                #[inline]
+                fn max(self, other: Self) -> Self {
+                    Self { data: #ord::max(self.data, other.data) }
+                }
+
+                #[inline]
+                fn min(self, other: Self) -> Self {
+                    Self { data: #ord::min(self.data, other.data) }
+                }
+
+                #[inline]
+                fn clamp(self, min: Self, max: Self) -> Self
+                where
+                    Self: #partial_ord<Self>
+                {
+                    Self { data: #ord::clamp(self.data, min.data, max.data) }
+                }
+            }
 
             #[automatically_derived]
             impl<V> #default for Storage<V> {

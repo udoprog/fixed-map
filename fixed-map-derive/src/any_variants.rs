@@ -32,6 +32,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let mut field_inits = Vec::new();
     let mut field_clones = Vec::new();
     let mut field_partial_eqs = Vec::new();
+    let mut field_partial_not_eqs = Vec::new();
     let mut contains_key = Vec::new();
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
@@ -48,9 +49,16 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
         field_inits.push(quote!(#name: #default::default()));
         field_clones.push(quote!(#name: #clone::clone(&self.#name)));
+
         field_partial_eqs.push(quote! {
-            if self.#name != other.#name {
+            if #partial_eq::ne(&self.#name, &other.#name) {
                 return false;
+            }
+        });
+
+        field_partial_not_eqs.push(quote! {
+            if #partial_eq::ne(&self.#name, &other.#name) {
+                return true;
             }
         });
 
@@ -175,6 +183,12 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #(#field_partial_eqs;)*
                     true
+                }
+
+                #[inline]
+                fn ne(&self, other: &Storage<V>) -> bool {
+                    #(#field_partial_not_eqs;)*
+                    false
                 }
             }
 
