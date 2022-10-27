@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{DataEnum, Ident};
 
 use crate::context::Ctxt;
@@ -44,50 +44,16 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
         Span::call_site(),
     );
 
-    let mut len = Vec::new();
-    let mut is_empty = Vec::new();
-    let mut pattern = Vec::new();
-    let mut names = Vec::new();
-    let mut fields = Vec::new();
-    let mut field_inits = Vec::new();
-    let mut contains_key = Vec::new();
-    let mut get = Vec::new();
-    let mut get_mut = Vec::new();
-    let mut insert = Vec::new();
-    let mut remove = Vec::new();
-    let mut retain = Vec::new();
-    let mut keys_iter_init = Vec::new();
-    let mut iter_init = Vec::new();
-    let mut entry = Vec::new();
+    let count = en.variants.len();
+    let mut variants = Vec::with_capacity(count);
+    let mut names = Vec::with_capacity(count);
+    let mut field_inits = Vec::with_capacity(count);
 
     for (index, variant) in en.variants.iter().enumerate() {
-        let var = &variant.ident;
-        let name = Ident::new(&format!("f{}", index), Span::call_site());
-
-        len.push(quote!(usize::from(#option::is_some(#name))));
-        is_empty.push(quote!(#option::is_none(#name)));
         field_inits.push(quote!(#option::None));
-        fields.push(quote!(#option<V>));
-        pattern.push(quote!(#ident::#var));
-        contains_key.push(quote!(#option::is_some(#name)));
-        get.push(quote!(#option::as_ref(#name)));
-        get_mut.push(quote!(#option::as_mut(#name)));
-        insert.push(quote!(#mem::replace(#name, #option::Some(value))));
-        remove.push(quote!(#mem::take(#name)));
-        retain.push(quote! {
-            if let Some(val) = #option::as_mut(#name) {
-                if !func(#ident::#var, val) {
-                    *#name = None;
-                }
-            }
-        });
-        keys_iter_init.push(quote!(if #name.is_some() { Some(#ident::#var) } else { None }));
-        iter_init.push(quote!((#ident::#var, #name)));
-        names.push(name.clone());
-        entry.push(quote!(option_to_entry(#name, key)));
+        variants.push(&variant.ident);
+        names.push(format_ident!("_{}", index));
     }
-
-    let count = en.variants.len();
 
     let entry_impl = if cfg!(feature = "entry") {
         quote! {
@@ -165,7 +131,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match key {
-                        #(#pattern => #entry,)*
+                        #(#ident::#variants => option_to_entry(#names, key),)*
                     }
                 }
             }
@@ -310,13 +276,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn len(&self) -> usize {
                     let [#(#names),*] = &self.data;
-                    0 #(+ #len)*
+                    0 #(+ usize::from(#option::is_some(#names)))*
                 }
 
                 #[inline]
                 fn is_empty(&self) -> bool {
                     let [#(#names),*] = &self.data;
-                    true #(&& #is_empty)*
+                    true #(&& #option::is_none(#names))*
                 }
 
                 #[inline]
@@ -324,7 +290,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match key {
-                        #(#pattern => #insert,)*
+                        #(#ident::#variants => #mem::replace(#names, #option::Some(value)),)*
                     }
                 }
 
@@ -333,7 +299,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &self.data;
 
                     match value {
-                        #(#pattern => #contains_key,)*
+                        #(#ident::#variants => #option::is_some(#names),)*
                     }
                 }
 
@@ -342,7 +308,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &self.data;
 
                     match value {
-                        #(#pattern => #get,)*
+                        #(#ident::#variants => #option::as_ref(#names),)*
                     }
                 }
 
@@ -351,7 +317,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match value {
-                        #(#pattern => #get_mut,)*
+                        #(#ident::#variants => #option::as_mut(#names),)*
                     }
                 }
 
@@ -360,7 +326,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match value {
-                        #(#pattern => #remove,)*
+                        #(#ident::#variants => #mem::take(#names),)*
                     }
                 }
 
@@ -370,7 +336,12 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     F: FnMut(#ident, &mut V) -> bool
                 {
                     let [#(#names),*] = &mut self.data;
-                    #(#retain)*
+
+                    #(if let Some(val) = #option::as_mut(#names) {
+                        if !func(#ident::#variants, val) {
+                            *#names = None;
+                        }
+                    })*
                 }
 
                 #[inline]
@@ -381,13 +352,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn iter(&self) -> Self::Iter<'_> {
                     let [#(#names),*] = &self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
+                    #iterator::flat_map(#into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
                 }
 
                 #[inline]
                 fn keys(&self) -> Self::Keys<'_> {
                     let [#(#names),*] = &self.data;
-                    #iterator::flatten(#into_iter([#(#keys_iter_init),*]))
+                    #iterator::flatten(#into_iter([#(if #names.is_some() { Some(#ident::#variants) } else { None }),*]))
                 }
 
                 #[inline]
@@ -398,7 +369,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn iter_mut(&mut self) -> Self::IterMut<'_> {
                     let [#(#names),*] = &mut self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, #option::as_mut(v)?)))
+                    #iterator::flat_map(#into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, #option::as_mut(v)?)))
                 }
 
                 #[inline]
@@ -409,7 +380,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn into_iter(self) -> Self::IntoIter {
                     let [#(#names),*] = self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, v?)))
+                    #iterator::flat_map(#into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, v?)))
                 }
             }
 
