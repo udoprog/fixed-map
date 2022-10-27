@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{DataEnum, Ident};
 
 use crate::context::Ctxt;
@@ -8,81 +8,52 @@ use crate::context::Ctxt;
 pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
-
     let lt = cx.lt;
-    let clone = &cx.toks.clone;
-    let copy = &cx.toks.copy;
-    let default = &cx.toks.default;
-    let eq = &cx.toks.eq;
-    let into_iter = &cx.toks.into_iter;
-    let iterator = &cx.toks.iterator_t;
-    let iterator_flatten = &cx.toks.iterator_flatten;
-    let key_trait = &cx.toks.key_trait;
-    let mem = &cx.toks.mem;
-    let option = &cx.toks.option;
-    let partial_eq = &cx.toks.partial_eq;
-    let slice_iter = &cx.toks.slice_iter;
-    let slice_iter_mut = &cx.toks.slice_iter_mut;
-    let array_into_iter = &cx.toks.array_into_iter;
-    let storage_trait = &cx.toks.storage_trait;
-    let iterator_flat_map = &cx.toks.iterator_flat_map;
-    let storage_entry_trait = &cx.toks.storage_entry_trait;
-    let occupied_entry_trait = &cx.toks.occupied_entry_trait;
-    let vacant_entry_trait = &cx.toks.vacant_entry_trait;
-    let entry_enum = &cx.toks.entry_enum;
-    let option_bucket_option = &cx.toks.option_bucket_option;
-    let option_bucket_some = &cx.toks.option_bucket_some;
-    let option_bucket_none = &cx.toks.option_bucket_none;
+
+    let array_into_iter = cx.toks.array_into_iter();
+    let clone_t = cx.toks.clone_t();
+    let copy_t = cx.toks.copy_t();
+    let default = cx.toks.default_t();
+    let entry_enum = cx.toks.entry_enum();
+    let eq = cx.toks.eq_t();
+    let hash = cx.toks.hash_t();
+    let hasher = cx.toks.hasher_t();
+    let into_iterator_t = cx.toks.into_iterator_t();
+    let iterator_flat_map = cx.toks.iterator_flat_map();
+    let iterator_flatten = cx.toks.iterator_flatten();
+    let iterator_t = cx.toks.iterator_t();
+    let key_trait = cx.toks.key_t();
+    let mem = cx.toks.mem();
+    let occupied_entry_t = cx.toks.occupied_entry_t();
+    let option = cx.toks.option();
+    let option_bucket_none = cx.toks.option_bucket_none();
+    let option_bucket_option = cx.toks.option_bucket_option();
+    let option_bucket_some = cx.toks.option_bucket_some();
+    let ord_t = cx.toks.ord_t();
+    let ordering = cx.toks.ordering();
+    let partial_eq_t = cx.toks.partial_eq_t();
+    let partial_ord_t = cx.toks.partial_ord_t();
+    let slice_iter = cx.toks.slice_iter();
+    let slice_iter_mut = cx.toks.slice_iter_mut();
+    let storage_entry_t = cx.toks.storage_entry_t();
+    let storage_trait = cx.toks.storage_t();
+    let vacant_entry_t = cx.toks.vacant_entry_t();
 
     let const_wrapper = Ident::new(
         &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
         Span::call_site(),
     );
 
-    let mut len = Vec::new();
-    let mut is_empty = Vec::new();
-    let mut pattern = Vec::new();
-    let mut names = Vec::new();
-    let mut fields = Vec::new();
-    let mut field_inits = Vec::new();
-    let mut contains_key = Vec::new();
-    let mut get = Vec::new();
-    let mut get_mut = Vec::new();
-    let mut insert = Vec::new();
-    let mut remove = Vec::new();
-    let mut retain = Vec::new();
-    let mut keys_iter_init = Vec::new();
-    let mut iter_init = Vec::new();
-    let mut entry = Vec::new();
+    let count = en.variants.len();
+    let mut variants = Vec::with_capacity(count);
+    let mut names = Vec::with_capacity(count);
+    let mut field_inits = Vec::with_capacity(count);
 
     for (index, variant) in en.variants.iter().enumerate() {
-        let var = &variant.ident;
-        let name = Ident::new(&format!("f{}", index), Span::call_site());
-
-        len.push(quote!(usize::from(#option::is_some(#name))));
-        is_empty.push(quote!(#option::is_none(#name)));
         field_inits.push(quote!(#option::None));
-        fields.push(quote!(#option<V>));
-        pattern.push(quote!(#ident::#var));
-        contains_key.push(quote!(#option::is_some(#name)));
-        get.push(quote!(#option::as_ref(#name)));
-        get_mut.push(quote!(#option::as_mut(#name)));
-        insert.push(quote!(#mem::replace(#name, #option::Some(value))));
-        remove.push(quote!(#mem::take(#name)));
-        retain.push(quote! {
-            if let Some(val) = #option::as_mut(#name) {
-                if !func(#ident::#var, val) {
-                    *#name = None;
-                }
-            }
-        });
-        keys_iter_init.push(quote!(if #name.is_some() { Some(#ident::#var) } else { None }));
-        iter_init.push(quote!((#ident::#var, #name)));
-        names.push(name.clone());
-        entry.push(quote!(option_to_entry(#name, key)));
+        variants.push(&variant.ident);
+        names.push(format_ident!("_{}", index));
     }
-
-    let count = en.variants.len();
 
     let entry_impl = if cfg!(feature = "entry") {
         quote! {
@@ -92,7 +63,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<#lt, V> #vacant_entry_trait<#lt, #ident, V> for VacantEntry<#lt, V> {
+            impl<#lt, V> #vacant_entry_t<#lt, #ident, V> for VacantEntry<#lt, V> {
                 #[inline]
                 fn key(&self) -> #ident {
                     self.key
@@ -110,7 +81,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<#lt, V> #occupied_entry_trait<#lt, #ident, V> for OccupiedEntry<#lt, V> {
+            impl<#lt, V> #occupied_entry_t<#lt, #ident, V> for OccupiedEntry<#lt, V> {
                 #[inline]
                 fn key(&self) -> #ident {
                     self.key
@@ -151,7 +122,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
+            impl<V> #storage_entry_t<#ident, V> for Storage<V> {
                 type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
                 type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
 
@@ -160,7 +131,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match key {
-                        #(#pattern => #entry,)*
+                        #(#ident::#variants => option_to_entry(#names, key),)*
                     }
                 }
             }
@@ -177,29 +148,99 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<V> #clone for Storage<V> where V: #clone {
+            impl<V> #clone_t for Storage<V> where V: #clone_t {
                 #[inline]
                 fn clone(&self) -> Storage<V> {
                     Storage {
-                        data: #clone::clone(&self.data),
+                        data: #clone_t::clone(&self.data),
                     }
                 }
             }
 
             #[automatically_derived]
-            impl<V> #copy for Storage<V> where V: #copy {
+            impl<V> #copy_t for Storage<V> where V: #copy_t {
             }
 
             #[automatically_derived]
-            impl<V> #partial_eq for Storage<V> where V: #partial_eq{
+            impl<V> #partial_eq_t for Storage<V> where V: #partial_eq_t {
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
-                    self.data == other.data
+                    #partial_eq_t::eq(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn ne(&self, other: &Storage<V>) -> bool {
+                    #partial_eq_t::ne(&self.data, &other.data)
                 }
             }
 
             #[automatically_derived]
             impl<V> #eq for Storage<V> where V: #eq {}
+
+            #[automatically_derived]
+            impl<V> #hash for Storage<V> where V: #hash {
+                #[inline]
+                fn hash<H>(&self, state: &mut H)
+                where
+                    H: #hasher,
+                {
+                    #hash::hash(&self.data, state);
+                }
+            }
+
+            #[automatically_derived]
+            impl<V> #partial_ord_t for Storage<V> where V: #partial_ord_t {
+                #[inline]
+                fn partial_cmp(&self, other: &Self) -> Option<#ordering> {
+                    #partial_ord_t::partial_cmp(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn lt(&self, other: &Self) -> bool {
+                    #partial_ord_t::lt(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn le(&self, other: &Self) -> bool {
+                    #partial_ord_t::le(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn gt(&self, other: &Self) -> bool {
+                    #partial_ord_t::gt(&self.data, &other.data)
+                }
+
+                #[inline]
+                fn ge(&self, other: &Self) -> bool {
+                    #partial_ord_t::ge(&self.data, &other.data)
+                }
+            }
+
+            #[automatically_derived]
+            impl<V> #ord_t for Storage<V> where V: #ord_t {
+                #[inline]
+                fn cmp(&self, other: &Self) -> #ordering {
+                    #ord_t::cmp(self, other)
+                }
+
+                #[inline]
+                fn max(self, other: Self) -> Self {
+                    Self { data: #ord_t::max(self.data, other.data) }
+                }
+
+                #[inline]
+                fn min(self, other: Self) -> Self {
+                    Self { data: #ord_t::min(self.data, other.data) }
+                }
+
+                #[inline]
+                fn clamp(self, min: Self, max: Self) -> Self
+                where
+                    Self: #partial_ord_t<Self>
+                {
+                    Self { data: #ord_t::clamp(self.data, min.data, max.data) }
+                }
+            }
 
             #[automatically_derived]
             impl<V> #default for Storage<V> {
@@ -235,13 +276,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn len(&self) -> usize {
                     let [#(#names),*] = &self.data;
-                    0 #(+ #len)*
+                    0 #(+ usize::from(#option::is_some(#names)))*
                 }
 
                 #[inline]
                 fn is_empty(&self) -> bool {
                     let [#(#names),*] = &self.data;
-                    true #(&& #is_empty)*
+                    true #(&& #option::is_none(#names))*
                 }
 
                 #[inline]
@@ -249,7 +290,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match key {
-                        #(#pattern => #insert,)*
+                        #(#ident::#variants => #mem::replace(#names, #option::Some(value)),)*
                     }
                 }
 
@@ -258,7 +299,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &self.data;
 
                     match value {
-                        #(#pattern => #contains_key,)*
+                        #(#ident::#variants => #option::is_some(#names),)*
                     }
                 }
 
@@ -267,7 +308,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &self.data;
 
                     match value {
-                        #(#pattern => #get,)*
+                        #(#ident::#variants => #option::as_ref(#names),)*
                     }
                 }
 
@@ -276,7 +317,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match value {
-                        #(#pattern => #get_mut,)*
+                        #(#ident::#variants => #option::as_mut(#names),)*
                     }
                 }
 
@@ -285,7 +326,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = &mut self.data;
 
                     match value {
-                        #(#pattern => #remove,)*
+                        #(#ident::#variants => #mem::take(#names),)*
                     }
                 }
 
@@ -295,7 +336,12 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     F: FnMut(#ident, &mut V) -> bool
                 {
                     let [#(#names),*] = &mut self.data;
-                    #(#retain)*
+
+                    #(if let #option::Some(val) = #option::as_mut(#names) {
+                        if !func(#ident::#variants, val) {
+                            *#names = None;
+                        }
+                    })*
                 }
 
                 #[inline]
@@ -306,35 +352,35 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn iter(&self) -> Self::Iter<'_> {
                     let [#(#names),*] = &self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
+                    #iterator_t::flat_map(#into_iterator_t::into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
                 }
 
                 #[inline]
                 fn keys(&self) -> Self::Keys<'_> {
                     let [#(#names),*] = &self.data;
-                    #iterator::flatten(#into_iter([#(#keys_iter_init),*]))
+                    #iterator_t::flatten(#into_iterator_t::into_iter([#(if #names.is_some() { Some(#ident::#variants) } else { None }),*]))
                 }
 
                 #[inline]
                 fn values(&self) -> Self::Values<'_> {
-                    #iterator::flatten(#into_iter(&self.data))
+                    #iterator_t::flatten(#into_iterator_t::into_iter(&self.data))
                 }
 
                 #[inline]
                 fn iter_mut(&mut self) -> Self::IterMut<'_> {
                     let [#(#names),*] = &mut self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, #option::as_mut(v)?)))
+                    #iterator_t::flat_map(#into_iterator_t::into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, #option::as_mut(v)?)))
                 }
 
                 #[inline]
                 fn values_mut(&mut self) -> Self::ValuesMut<'_> {
-                    #iterator::flatten(#into_iter(&mut self.data))
+                    #iterator_t::flatten(#into_iterator_t::into_iter(&mut self.data))
                 }
 
                 #[inline]
                 fn into_iter(self) -> Self::IntoIter {
                     let [#(#names),*] = self.data;
-                    #iterator::flat_map(#into_iter([#(#iter_init),*]), |(k, v)| #option::Some((k, v?)))
+                    #iterator_t::flat_map(#into_iterator_t::into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, v?)))
                 }
             }
 

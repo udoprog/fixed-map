@@ -144,7 +144,8 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let ast = syn::parse_macro_input!(input as DeriveInput);
 
     let lt = syn::Lifetime::new("'a", ast.span());
-    let tokens = context::Toks::new(&quote!(fixed_map));
+    let crate_prefix = context::leading_path(["fixed_map"]);
+    let tokens = context::Toks::new(&crate_prefix);
     let cx = context::Ctxt::new(&tokens, &ast, &lt);
 
     let result = impl_storage(&cx);
