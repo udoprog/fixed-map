@@ -30,6 +30,7 @@ macro_rules! toks {
 
             $(
                 #[inline]
+                #[allow(clippy::wrong_self_convention)]
                 $vis fn $field(&self) -> Path {
                     let f = self.$field;
                     f(self)
