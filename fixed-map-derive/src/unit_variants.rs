@@ -59,7 +59,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let mut keys_iter_init = Vec::new();
     let mut iter_init = Vec::new();
     let mut entry = Vec::new();
-    let mut cmp_init = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
@@ -86,7 +85,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
         iter_init.push(quote!((#ident::#var, #name)));
         names.push(name.clone());
         entry.push(quote!(option_to_entry(#name, key)));
-        cmp_init.push(quote!((#index, #name)));
     }
 
     let count = en.variants.len();
@@ -176,18 +174,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
         quote!()
     };
 
-    let self_cmp_iter_init = quote! {{
-        let [#(#names),*] = &self.data;
-        let init: [(usize, &Option<V>); #count] = [#(#cmp_init),*];
-        #iterator::flat_map(#into_iter(init), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
-    }};
-
-    let other_cmp_iter_init = quote! {{
-        let [#(#names),*] = &other.data;
-        let init: [(usize, &Option<V>); #count] = [#(#cmp_init),*];
-        #iterator::flat_map(#into_iter(init), |(k, v)| #option::Some((k, #option::as_ref(v)?)))
-    }};
-
     Ok(quote! {
         const #const_wrapper: () = {
             #[repr(transparent)]
@@ -240,27 +226,27 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             impl<V> #partial_ord for Storage<V> where V: #partial_ord {
                 #[inline]
                 fn partial_cmp(&self, other: &Self) -> Option<#ordering> {
-                    #iterator::partial_cmp(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #partial_ord::partial_cmp(&self.data, &other.data)
                 }
 
                 #[inline]
                 fn lt(&self, other: &Self) -> bool {
-                    #iterator::lt(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #partial_ord::lt(&self.data, &other.data)
                 }
 
                 #[inline]
                 fn le(&self, other: &Self) -> bool {
-                    #iterator::le(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #partial_ord::le(&self.data, &other.data)
                 }
 
                 #[inline]
                 fn gt(&self, other: &Self) -> bool {
-                    #iterator::gt(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #partial_ord::gt(&self.data, &other.data)
                 }
 
                 #[inline]
                 fn ge(&self, other: &Self) -> bool {
-                    #iterator::ge(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #partial_ord::ge(&self.data, &other.data)
                 }
             }
 
@@ -268,7 +254,25 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             impl<V> #ord for Storage<V> where V: #ord {
                 #[inline]
                 fn cmp(&self, other: &Self) -> #ordering {
-                    #iterator::cmp(#self_cmp_iter_init, #other_cmp_iter_init)
+                    #ord::cmp(self, other)
+                }
+
+                #[inline]
+                fn max(self, other: Self) -> Self {
+                    Self { data: #ord::max(self.data, other.data) }
+                }
+
+                #[inline]
+                fn min(self, other: Self) -> Self {
+                    Self { data: #ord::min(self.data, other.data) }
+                }
+
+                #[inline]
+                fn clamp(self, min: Self, max: Self) -> Self
+                where
+                    Self: #partial_ord<Self>
+                {
+                    Self { data: #ord::clamp(self.data, min.data, max.data) }
                 }
             }
 

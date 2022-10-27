@@ -662,10 +662,10 @@ where
 /// let mut b = Set::new();
 /// b.insert(Key::Second);
 ///
-/// assert!(a < b);
-/// assert!(a <= b);
-/// assert!(!(a > b));
-/// assert!(!(a >= b));
+/// assert!(a > b);
+/// assert!(a >= b);
+/// assert!(!(a < b));
+/// assert!(!(a <= b));
 /// ```
 ///
 /// Using a composite key:
@@ -738,10 +738,10 @@ where
 /// let mut b = Set::new();
 /// b.insert(Key::Second);
 ///
-/// let mut list = vec![b, a];
+/// let mut list = vec![a, b];
 /// list.sort();
 ///
-/// assert_eq!(list, [a, b]);
+/// assert_eq!(list, [b, a]);
 /// ```
 ///
 /// Using a composite key:
