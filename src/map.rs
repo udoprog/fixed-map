@@ -1105,10 +1105,10 @@ where
 /// let mut b = Map::new();
 /// b.insert(Key::Second, 1);
 ///
-/// assert!(a > b);
-/// assert!(a >= b);
-/// assert!(!(a < b));
-/// assert!(!(a <= b));
+/// assert!(a < b);
+/// assert!(a <= b);
+/// assert!(!(a > b));
+/// assert!(!(a >= b));
 /// ```
 ///
 /// Using a composite key:
@@ -1129,7 +1129,7 @@ where
 /// b.insert(Key::Second, 1);
 ///
 /// // TODO: support this
-/// // assert!(a > b);
+/// // assert!(a < b);
 /// ```
 impl<K, V> PartialOrd for Map<K, V>
 where
@@ -1181,10 +1181,10 @@ where
 /// let mut b = Map::new();
 /// b.insert(Key::Second, 1);
 ///
-/// let mut list = vec![a, b];
+/// let mut list = vec![b, a];
 /// list.sort();
 ///
-/// assert_eq!(list, [b, a]);
+/// assert_eq!(list, [a, b]);
 /// ```
 ///
 /// Using a composite key:
