@@ -19,8 +19,10 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let hash = cx.toks.hash_t();
     let hasher = cx.toks.hasher_t();
     let into_iterator_t = cx.toks.into_iterator_t();
+    let iterator_cmp = cx.toks.iterator_cmp();
     let iterator_flat_map = cx.toks.iterator_flat_map();
     let iterator_flatten = cx.toks.iterator_flatten();
+    let iterator_partial_cmp = cx.toks.iterator_partial_cmp();
     let iterator_t = cx.toks.iterator_t();
     let key_trait = cx.toks.key_t();
     let mem = cx.toks.mem();
@@ -192,27 +194,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             impl<V> #partial_ord_t for Storage<V> where V: #partial_ord_t {
                 #[inline]
                 fn partial_cmp(&self, other: &Self) -> Option<#ordering> {
-                    #partial_ord_t::partial_cmp(&self.data, &other.data)
-                }
-
-                #[inline]
-                fn lt(&self, other: &Self) -> bool {
-                    #partial_ord_t::lt(&self.data, &other.data)
-                }
-
-                #[inline]
-                fn le(&self, other: &Self) -> bool {
-                    #partial_ord_t::le(&self.data, &other.data)
-                }
-
-                #[inline]
-                fn gt(&self, other: &Self) -> bool {
-                    #partial_ord_t::gt(&self.data, &other.data)
-                }
-
-                #[inline]
-                fn ge(&self, other: &Self) -> bool {
-                    #partial_ord_t::ge(&self.data, &other.data)
+                    #iterator_partial_cmp(&self.data, &other.data)
                 }
             }
 
@@ -220,25 +202,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             impl<V> #ord_t for Storage<V> where V: #ord_t {
                 #[inline]
                 fn cmp(&self, other: &Self) -> #ordering {
-                    #ord_t::cmp(self, other)
-                }
-
-                #[inline]
-                fn max(self, other: Self) -> Self {
-                    Self { data: #ord_t::max(self.data, other.data) }
-                }
-
-                #[inline]
-                fn min(self, other: Self) -> Self {
-                    Self { data: #ord_t::min(self.data, other.data) }
-                }
-
-                #[inline]
-                fn clamp(self, min: Self, max: Self) -> Self
-                where
-                    Self: #partial_ord_t<Self>
-                {
-                    Self { data: #ord_t::clamp(self.data, min.data, max.data) }
+                    #iterator_cmp(&self.data, &other.data)
                 }
             }
 

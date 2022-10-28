@@ -347,3 +347,6 @@ pub mod storage;
 #[doc(hidden)]
 #[cfg(feature = "entry")]
 pub mod option_bucket;
+
+#[doc(hidden)]
+pub mod macro_support;

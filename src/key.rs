@@ -52,6 +52,73 @@ use crate::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
 ///     Second,
 /// }
 /// ```
+///
+/// ## Ordering
+///
+/// Keys provide their own ordering semantics instead of relying on the
+/// [`PartialOrd`] and [`Ord`] traits.
+///
+/// Therefore keys when stored in a collection such as [`Map`] and [`Set`] are
+/// always ordered in *declaration order*. This allows those containers
+/// themselves to be ordered if the underlying key supports, it similarly to how
+/// [`BTreeMap`] and [`BTreeSet`] works.
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Clone, Copy, Key)]
+/// enum Key {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// let mut a = Set::new();
+/// a.insert(Key::First);
+///
+/// let mut b = Set::new();
+/// b.insert(Key::Third);
+///
+/// let mut c = Set::new();
+/// c.insert(Key::First);
+/// c.insert(Key::Third);
+///
+/// assert!(a < b);
+/// assert!(c < b);
+/// assert!(a < c);
+/// ```
+///
+/// The same example with [`BTreeSet`]:
+///
+/// ```
+/// use std::collections::BTreeSet;
+///
+/// #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// enum Key {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// let mut a = BTreeSet::new();
+/// a.insert(Key::First);
+///
+/// let mut b = BTreeSet::new();
+/// b.insert(Key::Third);
+///
+/// let mut c = BTreeSet::new();
+/// c.insert(Key::First);
+/// c.insert(Key::Third);
+///
+/// assert!(a < b);
+/// assert!(c < b);
+/// assert!(a < c);
+/// ```
+///
+/// [`BTreeMap`]: std::collections::BTreeMap
+/// [`BTreeSet`]: std::collections::BTreeSet
+/// [`Map`]: crate::Map
+/// [`Set`]: crate::Set
 pub trait Key: Copy {
     /// The `Storage` implementation to use for the key implementing this trait.
     type Storage<V>: Storage<Self, V>;

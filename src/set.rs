@@ -645,6 +645,8 @@ where
 
 /// [`PartialOrd`] implementation for a [`Set`].
 ///
+/// For more details on ordering, see the [`Key`] documentation.
+///
 /// # Examples
 ///
 /// ```
@@ -654,18 +656,20 @@ where
 /// enum Key {
 ///     First,
 ///     Second,
+///     Third,
 /// }
 ///
 /// let mut a = Set::new();
 /// a.insert(Key::First);
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Second);
+/// b.insert(Key::Third);
 ///
-/// assert!(a > b);
-/// assert!(a >= b);
-/// assert!(!(a < b));
-/// assert!(!(a <= b));
+/// assert!(a < b);
+///
+/// let mut empty = Set::new();
+/// assert!(empty < a);
+/// assert!(empty < b);
 /// ```
 ///
 /// Using a composite key:
@@ -686,7 +690,7 @@ where
 /// b.insert(Key::Second);
 ///
 /// // TODO: support this
-/// // assert!(a > b);
+/// // assert!(a < b);
 /// ```
 impl<K> PartialOrd for Set<K>
 where
@@ -721,6 +725,8 @@ where
 
 /// [`Ord`] implementation for a [`Set`].
 ///
+/// For more details on ordering, see the [`Key`] documentation.
+///
 /// # Examples
 ///
 /// ```
@@ -738,10 +744,10 @@ where
 /// let mut b = Set::new();
 /// b.insert(Key::Second);
 ///
-/// let mut list = vec![a, b];
+/// let mut list = vec![b, a];
 /// list.sort();
 ///
-/// assert_eq!(list, [b, a]);
+/// assert_eq!(list, [a, b]);
 /// ```
 ///
 /// Using a composite key:
