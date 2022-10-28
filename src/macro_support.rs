@@ -1,3 +1,9 @@
+//! ## PRIVATE API
+//!
+//! This API is private, for use only in the `derive(Key)` macro. Usage for
+//! other purposes is not supported, and this API will not abide by semver
+//! stability guarantees.
+
 use core::cmp::Ordering;
 
 #[inline]
@@ -10,7 +16,6 @@ fn flatten<T>(value: (usize, &Option<T>)) -> Option<(usize, &T)> {
 
 /// `partial_cmp` implementation over iterators which ensures that storage
 /// ordering between `None` and `Some` is handled in a reasonable manner.
-#[doc(hidden)]
 #[allow(clippy::missing_inline_in_public_items)]
 pub fn __storage_iterator_partial_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Option<Ordering>
 where
@@ -25,7 +30,6 @@ where
 
 /// `cmp` implementation over iterators which ensures that storage ordering
 /// between `None` and `Some` is handled in a reasonable manner.
-#[doc(hidden)]
 #[allow(clippy::missing_inline_in_public_items)]
 pub fn __storage_iterator_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Ordering
 where
