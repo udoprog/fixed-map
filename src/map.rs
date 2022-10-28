@@ -1097,18 +1097,20 @@ where
 /// enum Key {
 ///     First,
 ///     Second,
+///     Third,
 /// }
 ///
 /// let mut a = Map::new();
 /// a.insert(Key::First, 1);
 ///
 /// let mut b = Map::new();
-/// b.insert(Key::Second, 1);
+/// b.insert(Key::Third, 1);
 ///
 /// assert!(a < b);
-/// assert!(a <= b);
-/// assert!(!(a > b));
-/// assert!(!(a >= b));
+///
+/// let mut empty = Map::new();
+/// assert!(empty < a);
+/// assert!(empty < b);
 /// ```
 ///
 /// Using a composite key:
@@ -1129,7 +1131,7 @@ where
 /// b.insert(Key::Second, 1);
 ///
 /// // TODO: support this
-/// // assert!(a > b);
+/// // assert!(a < b);
 /// ```
 impl<K, V> PartialOrd for Map<K, V>
 where

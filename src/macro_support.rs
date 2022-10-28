@@ -1,30 +1,10 @@
 use core::cmp::Ordering;
 
-/// `partial_cmp` implementation for a single `Option<T>` field.
 #[inline]
-fn __storage_option_partial_cmp<T>(x: &Option<T>, y: &Option<T>) -> Option<Ordering>
-where
-    T: PartialOrd<T>,
-{
-    match (x, y) {
-        (Some(x), Some(y)) => x.partial_cmp(y),
-        (None, Some(_)) => Some(Ordering::Greater),
-        (Some(_), None) => Some(Ordering::Less),
-        _ => Some(Ordering::Equal),
-    }
-}
-
-/// `cmp` implementation for a single `Option<T>` field.
-#[inline]
-fn __storage_option_cmp<T>(x: &Option<T>, y: &Option<T>) -> Ordering
-where
-    T: Ord,
-{
-    match (x, y) {
-        (Some(x), Some(y)) => x.cmp(y),
-        (None, Some(_)) => Ordering::Greater,
-        (Some(_), None) => Ordering::Less,
-        _ => Ordering::Equal,
+fn flatten<T>(value: (usize, &Option<T>)) -> Option<(usize, &T)> {
+    match value {
+        (index, Some(value)) => Some((index, value)),
+        _ => None,
     }
 }
 
@@ -32,68 +12,28 @@ where
 /// ordering between `None` and `Some` is handled in a reasonable manner.
 #[doc(hidden)]
 #[allow(clippy::missing_inline_in_public_items)]
-pub fn __storage_iterator_partial_cmp<T>(a: &[Option<T>], b: &[Option<T>]) -> Option<Ordering>
+pub fn __storage_iterator_partial_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Option<Ordering>
 where
+    A: IntoIterator<Item = &'a Option<T>>,
+    B: IntoIterator<Item = &'a Option<T>>,
     T: PartialOrd<T>,
 {
-    let mut a = a.iter();
-    let mut b = b.iter();
-
-    loop {
-        let x = match a.next() {
-            None => {
-                if b.next().is_none() {
-                    return Some(Ordering::Equal);
-                }
-
-                return Some(Ordering::Less);
-            }
-            Some(x) => x,
-        };
-
-        let y = match b.next() {
-            None => return Some(Ordering::Greater),
-            Some(y) => y,
-        };
-
-        match __storage_option_partial_cmp(x, y) {
-            Some(Ordering::Equal) => (),
-            ordering => return ordering,
-        }
-    }
+    let a = a.into_iter().enumerate().filter_map(flatten);
+    let b = b.into_iter().enumerate().filter_map(flatten);
+    a.partial_cmp(b)
 }
 
 /// `cmp` implementation over iterators which ensures that storage ordering
 /// between `None` and `Some` is handled in a reasonable manner.
 #[doc(hidden)]
 #[allow(clippy::missing_inline_in_public_items)]
-pub fn __storage_iterator_cmp<T>(a: &[Option<T>], b: &[Option<T>]) -> Ordering
+pub fn __storage_iterator_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Ordering
 where
+    A: IntoIterator<Item = &'a Option<T>>,
+    B: IntoIterator<Item = &'a Option<T>>,
     T: Ord,
 {
-    let mut a = a.iter();
-    let mut b = b.iter();
-
-    loop {
-        let x = match a.next() {
-            None => {
-                if b.next().is_none() {
-                    return Ordering::Equal;
-                }
-
-                return Ordering::Less;
-            }
-            Some(x) => x,
-        };
-
-        let y = match b.next() {
-            None => return Ordering::Greater,
-            Some(y) => y,
-        };
-
-        match __storage_option_cmp(x, y) {
-            Ordering::Equal => (),
-            ordering => return ordering,
-        }
-    }
+    let a = a.into_iter().enumerate().filter_map(flatten);
+    let b = b.into_iter().enumerate().filter_map(flatten);
+    a.cmp(b)
 }

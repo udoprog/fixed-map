@@ -654,18 +654,20 @@ where
 /// enum Key {
 ///     First,
 ///     Second,
+///     Third,
 /// }
 ///
 /// let mut a = Set::new();
 /// a.insert(Key::First);
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Second);
+/// b.insert(Key::Third);
 ///
 /// assert!(a < b);
-/// assert!(a <= b);
-/// assert!(!(a > b));
-/// assert!(!(a >= b));
+///
+/// let mut empty = Set::new();
+/// assert!(empty < a);
+/// assert!(empty < b);
 /// ```
 ///
 /// Using a composite key:
@@ -686,7 +688,7 @@ where
 /// b.insert(Key::Second);
 ///
 /// // TODO: support this
-/// // assert!(a > b);
+/// // assert!(a < b);
 /// ```
 impl<K> PartialOrd for Set<K>
 where
