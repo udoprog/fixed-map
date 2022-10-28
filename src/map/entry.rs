@@ -1,0 +1,318 @@
+use crate::map::{OccupiedEntry, Storage, VacantEntry};
+
+/// A view into a single entry in a map, which may either be vacant or occupied.
+///
+/// This enum is constructed from the [`entry`][crate::Map::entry] method on [`Map`][crate::Map].
+pub enum Entry<'a, S: 'a, K, V>
+where
+    S: Storage<K, V>,
+{
+    /// An occupied entry.
+    Occupied(S::Occupied<'a>),
+    /// A vacant entry.
+    Vacant(S::Vacant<'a>),
+}
+
+impl<'a, S: 'a, K, V> Entry<'a, S, K, V>
+where
+    S: Storage<K, V>,
+{
+    /// Ensures a value is in the entry by inserting the default if empty,
+    /// and returns a mutable reference to the value in the entry.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First).or_insert(3);
+    /// assert_eq!(map.get(Key::First), Some(&3));
+    ///
+    /// *map.entry(Key::First).or_insert(10) *= 2;
+    /// assert_eq!(map.get(Key::First), Some(&6));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First(false)).or_insert(3);
+    /// assert_eq!(map.get(Key::First(false)), Some(&3));
+    ///
+    /// *map.entry(Key::First(false)).or_insert(10) *= 2;
+    /// assert_eq!(map.get(Key::First(false)), Some(&6));
+    /// ```
+    #[inline]
+    pub fn or_insert(self, default: V) -> &'a mut V {
+        match self {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(default),
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting the result of the default function if empty,
+    /// and returns a mutable reference to the value in the entry.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, String> = Map::new();
+    ///
+    /// map.entry(Key::First).or_insert_with(|| format!("{}", 3));
+    /// assert_eq!(map.get(Key::First), Some(&"3".to_string()));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, String> = Map::new();
+    ///
+    /// map.entry(Key::First(false)).or_insert_with(|| format!("{}", 3));
+    /// assert_eq!(map.get(Key::First(false)), Some(&"3".to_string()));
+    /// ```
+    #[inline]
+    pub fn or_insert_with<F>(self, default: F) -> &'a mut V
+    where
+        F: FnOnce() -> V,
+    {
+        match self {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(default()),
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting, if empty, the result of the default function.
+    /// This method allows for generating key-derived values for insertion by providing the default
+    /// function a copy of the key that was passed to the `.entry(key)` method call.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key, Debug)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, String> = Map::new();
+    ///
+    /// map.entry(Key::First).or_insert_with_key(|k| format!("{:?} = {}", k, 3));
+    /// assert_eq!(map.get(Key::First), Some(&"First = 3".to_string()));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key, Debug)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, String> = Map::new();
+    ///
+    /// map.entry(Key::First(false)).or_insert_with_key(|k| format!("{:?} = {}", k, 3));
+    /// assert_eq!(map.get(Key::First(false)), Some(&"First(false) = 3".to_string()));
+    /// ```
+    #[inline]
+    pub fn or_insert_with_key<F>(self, default: F) -> &'a mut V
+    where
+        F: FnOnce(K) -> V,
+    {
+        match self {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let value = default(entry.key());
+                entry.insert(value)
+            }
+        }
+    }
+
+    /// Returns a copy of this entry's key.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    /// assert_eq!(map.entry(Key::First).key(), Key::First);
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    /// assert_eq!(map.entry(Key::First(false)).key(), Key::First(false));
+    /// ```
+    #[inline]
+    pub fn key(&self) -> K {
+        match self {
+            Entry::Occupied(entry) => entry.key(),
+            Entry::Vacant(entry) => entry.key(),
+        }
+    }
+
+    /// Provides in-place mutable access to an occupied entry before any
+    /// potential inserts into the map.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First)
+    ///    .and_modify(|e| { *e += 1 })
+    ///    .or_insert(42);
+    /// assert_eq!(map.get(Key::First), Some(&42));
+    ///
+    /// map.entry(Key::First)
+    ///    .and_modify(|e| { *e += 1 })
+    ///    .or_insert(42);
+    /// assert_eq!(map.get(Key::First), Some(&43));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First(true))
+    ///    .and_modify(|e| { *e += 1 })
+    ///    .or_insert(42);
+    /// assert_eq!(map.get(Key::First(true)), Some(&42));
+    ///
+    /// map.entry(Key::First(true))
+    ///    .and_modify(|e| { *e += 1 })
+    ///    .or_insert(42);
+    /// assert_eq!(map.get(Key::First(true)), Some(&43));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn and_modify<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&mut V),
+    {
+        match self {
+            Entry::Occupied(mut entry) => {
+                f(entry.get_mut());
+                Entry::Occupied(entry)
+            }
+            Entry::Vacant(entry) => Entry::Vacant(entry),
+        }
+    }
+
+    /// Ensures a value is in the entry by inserting the default value if empty,
+    /// and returns a mutable reference to the value in the entry.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First).or_default();
+    /// assert_eq!(map.get(Key::First), Some(&0));
+    /// ```
+    ///
+    /// Using a composite key:
+    ///
+    /// ```
+    /// use fixed_map::{Key, Map};
+    ///
+    /// #[derive(Clone, Copy, Key)]
+    /// enum Key {
+    ///     First(bool),
+    ///     Second,
+    /// }
+    ///
+    /// let mut map: Map<Key, i32> = Map::new();
+    ///
+    /// map.entry(Key::First(false)).or_default();
+    /// assert_eq!(map.get(Key::First(false)), Some(&0));
+    /// ```
+    #[inline]
+    pub fn or_default(self) -> &'a mut V
+    where
+        V: Default,
+    {
+        match self {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => entry.insert(Default::default()),
+        }
+    }
+}

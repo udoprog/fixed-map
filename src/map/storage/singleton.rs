@@ -1,21 +1,13 @@
 use core::mem;
 
-use crate::storage::Storage;
+use crate::map::{Entry, Storage};
+use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 /// Storage types that can only inhabit a single value (like `()`).
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 pub struct SingletonStorage<V> {
-    pub(in crate::storage) inner: Option<V>,
-}
-
-impl<V> Default for SingletonStorage<V> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: Option::default(),
-        }
-    }
+    inner: Option<V>,
 }
 
 impl<V> PartialEq for SingletonStorage<V>
@@ -40,6 +32,15 @@ where
     type IterMut<'this> = ::core::option::IntoIter<(K, &'this mut V)> where V: 'this;
     type ValuesMut<'this> = ::core::option::IterMut<'this, V> where V: 'this;
     type IntoIter = ::core::option::IntoIter<(K, V)>;
+    type Occupied<'this> = SomeBucket<'this, V> where V: 'this;
+    type Vacant<'this> = NoneBucket<'this, V> where V: 'this;
+
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            inner: Option::default(),
+        }
+    }
 
     #[inline]
     fn len(&self) -> usize {
@@ -121,5 +122,13 @@ where
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.inner.map(|v| (K::default(), v)).into_iter()
+    }
+
+    #[inline]
+    fn entry(&mut self, _key: K) -> Entry<'_, Self, K, V> {
+        match OptionBucket::new(&mut self.inner) {
+            OptionBucket::Some(some) => Entry::Occupied(some),
+            OptionBucket::None(none) => Entry::Vacant(none),
+        }
     }
 }

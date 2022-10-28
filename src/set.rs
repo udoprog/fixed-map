@@ -6,7 +6,7 @@ use core::hash::{Hash, Hasher};
 use core::iter;
 
 use crate::key::Key;
-use crate::storage::Storage;
+use crate::map::Storage;
 
 /// The iterator produced by [`Set::into_iter`].
 pub type IntoIter<K> =
@@ -145,7 +145,7 @@ where
     #[must_use]
     pub fn new() -> Set<K> {
         Set {
-            storage: K::Storage::default(),
+            storage: K::Storage::empty(),
         }
     }
 

@@ -13,7 +13,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let array_into_iter = cx.toks.array_into_iter();
     let clone_t = cx.toks.clone_t();
     let copy_t = cx.toks.copy_t();
-    let default = cx.toks.default_t();
     let entry_enum = cx.toks.entry_enum();
     let eq = cx.toks.eq_t();
     let hash = cx.toks.hash_t();
@@ -24,7 +23,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let iterator_flatten = cx.toks.iterator_flatten();
     let iterator_partial_cmp = cx.toks.iterator_partial_cmp();
     let iterator_t = cx.toks.iterator_t();
-    let key_trait = cx.toks.key_t();
+    let key_t = cx.toks.key_t();
     let mem = cx.toks.mem();
     let occupied_entry_t = cx.toks.occupied_entry_t();
     let option = cx.toks.option();
@@ -37,8 +36,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let partial_ord_t = cx.toks.partial_ord_t();
     let slice_iter = cx.toks.slice_iter();
     let slice_iter_mut = cx.toks.slice_iter_mut();
-    let storage_entry_t = cx.toks.storage_entry_t();
-    let storage_trait = cx.toks.storage_t();
+    let storage_t = cx.toks.storage_t();
     let vacant_entry_t = cx.toks.vacant_entry_t();
 
     let const_wrapper = Ident::new(
@@ -57,89 +55,70 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
         names.push(format_ident!("_{}", index));
     }
 
-    let entry_impl = if cfg!(feature = "entry") {
-        quote! {
-            #vis struct VacantEntry<#lt, V> {
-                key: #ident,
-                inner: #option_bucket_none<#lt, V>,
-            }
+    let entry_impl = quote! {
+        #vis struct VacantEntry<#lt, V> {
+            key: #ident,
+            inner: #option_bucket_none<#lt, V>,
+        }
 
-            #[automatically_derived]
-            impl<#lt, V> #vacant_entry_t<#lt, #ident, V> for VacantEntry<#lt, V> {
-                #[inline]
-                fn key(&self) -> #ident {
-                    self.key
-                }
-
-                #[inline]
-                fn insert(self, value: V) -> &#lt mut V {
-                    #option_bucket_none::insert(self.inner, value)
-                }
-            }
-
-            #vis struct OccupiedEntry<#lt, V> {
-                key: #ident,
-                inner: #option_bucket_some<#lt, V>,
-            }
-
-            #[automatically_derived]
-            impl<#lt, V> #occupied_entry_t<#lt, #ident, V> for OccupiedEntry<#lt, V> {
-                #[inline]
-                fn key(&self) -> #ident {
-                    self.key
-                }
-
-                #[inline]
-                fn get(&self) -> &V {
-                    #option_bucket_some::as_ref(&self.inner)
-                }
-
-                #[inline]
-                fn get_mut(&mut self) -> &mut V {
-                    #option_bucket_some::as_mut(&mut self.inner)
-                }
-
-                #[inline]
-                fn into_mut(self) -> &#lt mut V {
-                    #option_bucket_some::into_mut(self.inner)
-                }
-
-                #[inline]
-                fn insert(&mut self, value: V) -> V {
-                    #option_bucket_some::replace(&mut self.inner, value)
-                }
-
-                #[inline]
-                fn remove(self) -> V {
-                    #option_bucket_some::take(self.inner)
-                }
+        #[automatically_derived]
+        impl<#lt, V> #vacant_entry_t<#lt, #ident, V> for VacantEntry<#lt, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                self.key
             }
 
             #[inline]
-            fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<'_, Storage<V>, #ident, V> {
-                match #option_bucket_option::new(opt) {
-                    #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry { key, inner }),
-                    #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry { key, inner }),
-                }
-            }
-
-            #[automatically_derived]
-            impl<V> #storage_entry_t<#ident, V> for Storage<V> {
-                type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
-                type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
-
-                #[inline]
-                fn entry(&mut self, key: #ident) -> #entry_enum<'_, Self, #ident, V> {
-                    let [#(#names),*] = &mut self.data;
-
-                    match key {
-                        #(#ident::#variants => option_to_entry(#names, key),)*
-                    }
-                }
+            fn insert(self, value: V) -> &#lt mut V {
+                #option_bucket_none::insert(self.inner, value)
             }
         }
-    } else {
-        quote!()
+
+        #vis struct OccupiedEntry<#lt, V> {
+            key: #ident,
+            inner: #option_bucket_some<#lt, V>,
+        }
+
+        #[automatically_derived]
+        impl<#lt, V> #occupied_entry_t<#lt, #ident, V> for OccupiedEntry<#lt, V> {
+            #[inline]
+            fn key(&self) -> #ident {
+                self.key
+            }
+
+            #[inline]
+            fn get(&self) -> &V {
+                #option_bucket_some::as_ref(&self.inner)
+            }
+
+            #[inline]
+            fn get_mut(&mut self) -> &mut V {
+                #option_bucket_some::as_mut(&mut self.inner)
+            }
+
+            #[inline]
+            fn into_mut(self) -> &#lt mut V {
+                #option_bucket_some::into_mut(self.inner)
+            }
+
+            #[inline]
+            fn insert(&mut self, value: V) -> V {
+                #option_bucket_some::replace(&mut self.inner, value)
+            }
+
+            #[inline]
+            fn remove(self) -> V {
+                #option_bucket_some::take(self.inner)
+            }
+        }
+
+        #[inline]
+        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<'_, Storage<V>, #ident, V> {
+            match #option_bucket_option::new(opt) {
+                #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry { key, inner }),
+                #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry { key, inner }),
+            }
+        }
     };
 
     Ok(quote! {
@@ -168,11 +147,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #partial_eq_t::eq(&self.data, &other.data)
-                }
-
-                #[inline]
-                fn ne(&self, other: &Storage<V>) -> bool {
-                    #partial_eq_t::ne(&self.data, &other.data)
                 }
             }
 
@@ -207,17 +181,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<V> #default for Storage<V> {
-                #[inline]
-                fn default() -> Storage<V> {
-                    Storage {
-                        data: [#(#field_inits),*],
-                    }
-                }
-            }
-
-            #[automatically_derived]
-            impl<V> #storage_trait<#ident, V> for Storage<V> {
+            impl<V> #storage_t<#ident, V> for Storage<V> {
                 type Iter<#lt> = #iterator_flat_map<
                     #array_into_iter<(#ident, &#lt #option<V>), #count>,
                     #option<(#ident, &#lt V)>,
@@ -236,6 +200,15 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     #option<(#ident, V)>,
                     fn((#ident, #option<V>)) -> #option<(#ident, V)>
                 >;
+                type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
+                type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
+
+                #[inline]
+                fn empty() -> Self {
+                    Self {
+                        data: [#(#field_inits),*],
+                    }
+                }
 
                 #[inline]
                 fn len(&self) -> usize {
@@ -346,10 +319,19 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     let [#(#names),*] = self.data;
                     #iterator_t::flat_map(#into_iterator_t::into_iter([#((#ident::#variants, #names)),*]), |(k, v)| #option::Some((k, v?)))
                 }
+
+                #[inline]
+                fn entry(&mut self, key: #ident) -> #entry_enum<'_, Self, #ident, V> {
+                    let [#(#names),*] = &mut self.data;
+
+                    match key {
+                        #(#ident::#variants => option_to_entry(#names, key),)*
+                    }
+                }
             }
 
             #[automatically_derived]
-            impl #key_trait for #ident {
+            impl #key_t for #ident {
                 type Storage<V> = Storage<V>;
             }
 

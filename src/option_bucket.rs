@@ -92,6 +92,10 @@
 // `clippy::pedantic` exceptions
 #![allow(clippy::should_implement_trait, clippy::must_use_candidate)]
 
+use core::mem;
+
+use crate::map::{OccupiedEntry, VacantEntry};
+
 #[cfg(test)]
 mod tests;
 
@@ -233,7 +237,7 @@ impl<'a, T> SomeBucket<'a, T> {
     /// ```
     #[inline]
     pub fn replace(&mut self, value: T) -> T {
-        core::mem::replace(self.as_mut(), value)
+        mem::replace(self.as_mut(), value)
     }
 
     /// Takes the value out of the option, leaving a `None` in its place,
@@ -254,6 +258,41 @@ impl<'a, T> SomeBucket<'a, T> {
         // SAFETY: `outer` is guaranteed to be `Some`
         // by the invariants of `new_unchecked`
         unsafe { self.outer.take().unwrap_unchecked() }
+    }
+}
+
+impl<'a, K, V> OccupiedEntry<'a, K, V> for SomeBucket<'a, V>
+where
+    K: Default,
+{
+    #[inline]
+    fn key(&self) -> K {
+        K::default()
+    }
+
+    #[inline]
+    fn get(&self) -> &V {
+        SomeBucket::as_ref(self)
+    }
+
+    #[inline]
+    fn get_mut(&mut self) -> &mut V {
+        SomeBucket::as_mut(self)
+    }
+
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
+        SomeBucket::into_mut(self)
+    }
+
+    #[inline]
+    fn insert(&mut self, value: V) -> V {
+        SomeBucket::replace(self, value)
+    }
+
+    #[inline]
+    fn remove(self) -> V {
+        SomeBucket::take(self)
     }
 }
 
@@ -325,6 +364,21 @@ impl<'a, T> NoneBucket<'a, T> {
 
         // SAFETY: the code above just filled the option
         unsafe { self.outer.as_mut().unwrap_unchecked() }
+    }
+}
+
+impl<'a, K, V> VacantEntry<'a, K, V> for NoneBucket<'a, V>
+where
+    K: Default,
+{
+    #[inline]
+    fn key(&self) -> K {
+        K::default()
+    }
+
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
+        NoneBucket::insert(self, value)
     }
 }
 

@@ -54,9 +54,8 @@ toks! {
         bool_type = [::core::primitive::bool],
         clone_t = [::core::clone::Clone],
         copy_t = [::core::marker::Copy],
-        default_t = [::core::default::Default],
         double_ended_iterator_t = [::core::iter::DoubleEndedIterator],
-        entry_enum = [crate::storage::entry::Entry],
+        entry_enum = [crate::map::Entry],
         eq_t = [::core::cmp::Eq],
         hash_t = [::core::hash::Hash],
         hasher_t = [::core::hash::Hasher],
@@ -68,7 +67,7 @@ toks! {
         iterator_t = [::core::iter::Iterator],
         key_t = [crate::key::Key],
         mem = [::core::mem],
-        occupied_entry_t = [crate::storage::entry::OccupiedEntry],
+        occupied_entry_t = [crate::map::OccupiedEntry],
         option = [::core::option::Option],
         option_bucket_none = [crate::option_bucket::NoneBucket],
         option_bucket_option = [crate::option_bucket::OptionBucket],
@@ -79,9 +78,8 @@ toks! {
         partial_ord_t = [::core::cmp::PartialOrd],
         slice_iter = [::core::slice::Iter],
         slice_iter_mut = [::core::slice::IterMut],
-        storage_entry_t = [crate::storage::entry::StorageEntry],
-        storage_t = [crate::storage::Storage],
-        vacant_entry_t = [crate::storage::entry::VacantEntry],
+        storage_t = [crate::map::Storage],
+        vacant_entry_t = [crate::map::VacantEntry],
     }
 }
 
