@@ -1088,6 +1088,8 @@ where
 
 /// [`PartialOrd`] implementation for a [`Map`].
 ///
+/// For more details on ordering, see the [`Key`] documentation.
+///
 /// # Examples
 ///
 /// ```
@@ -1165,6 +1167,8 @@ where
 }
 
 /// [`Ord`] implementation for a [`Map`].
+///
+/// For more details on ordering, see the [`Key`] documentation.
 ///
 /// # Examples
 ///
