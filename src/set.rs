@@ -145,7 +145,7 @@ where
     #[must_use]
     pub fn new() -> Set<K> {
         Set {
-            storage: K::Storage::default(),
+            storage: K::Storage::empty(),
         }
     }
 

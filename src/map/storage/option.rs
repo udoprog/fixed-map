@@ -96,19 +96,6 @@ where
 {
 }
 
-impl<K, V> Default for OptionStorage<K, V>
-where
-    K: Key,
-{
-    #[inline]
-    fn default() -> Self {
-        Self {
-            some: K::Storage::default(),
-            none: Option::default(),
-        }
-    }
-}
-
 impl<K, V> PartialEq for OptionStorage<K, V>
 where
     K: Key,
@@ -231,6 +218,14 @@ where
     type IntoIter = IntoIter<K, V>;
     type Occupied<'this> = Occupied<'this, K, V> where K: 'this, V: 'this;
     type Vacant<'this> = Vacant<'this, K, V> where K: 'this, V: 'this;
+
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            some: K::Storage::empty(),
+            none: Option::default(),
+        }
+    }
 
     #[inline]
     fn len(&self) -> usize {

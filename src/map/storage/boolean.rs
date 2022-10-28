@@ -76,16 +76,6 @@ pub struct BooleanStorage<V> {
     f: Option<V>,
 }
 
-impl<V> Default for BooleanStorage<V> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            t: Option::default(),
-            f: Option::default(),
-        }
-    }
-}
-
 /// See [`BooleanStorage::keys`].
 pub struct Keys {
     bits: u8,
@@ -210,6 +200,14 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     type IntoIter = IntoIter<V>;
     type Occupied<'this> = Occupied<'this, V> where V: 'this;
     type Vacant<'this> = Vacant<'this, V> where V: 'this;
+
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            t: Option::default(),
+            f: Option::default(),
+        }
+    }
 
     #[inline]
     fn len(&self) -> usize {

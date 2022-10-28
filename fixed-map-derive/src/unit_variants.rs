@@ -13,7 +13,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let array_into_iter = cx.toks.array_into_iter();
     let clone_t = cx.toks.clone_t();
     let copy_t = cx.toks.copy_t();
-    let default = cx.toks.default_t();
     let entry_enum = cx.toks.entry_enum();
     let eq = cx.toks.eq_t();
     let hash = cx.toks.hash_t();
@@ -187,16 +186,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             }
 
             #[automatically_derived]
-            impl<V> #default for Storage<V> {
-                #[inline]
-                fn default() -> Storage<V> {
-                    Storage {
-                        data: [#(#field_inits),*],
-                    }
-                }
-            }
-
-            #[automatically_derived]
             impl<V> #storage_t<#ident, V> for Storage<V> {
                 type Iter<#lt> = #iterator_flat_map<
                     #array_into_iter<(#ident, &#lt #option<V>), #count>,
@@ -218,6 +207,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 >;
                 type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
                 type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
+
+                #[inline]
+                fn empty() -> Self {
+                    Self {
+                        data: [#(#field_inits),*],
+                    }
+                }
 
                 #[inline]
                 fn len(&self) -> usize {

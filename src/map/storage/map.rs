@@ -48,18 +48,6 @@ where
     }
 }
 
-impl<K, V> Default for MapStorage<K, V>
-where
-    K: Hash,
-{
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: ::hashbrown::HashMap::default(),
-        }
-    }
-}
-
 impl<K, V> PartialEq for MapStorage<K, V>
 where
     K: Eq + Hash,
@@ -140,6 +128,13 @@ where
     type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
     type Occupied<'this> = Occupied<'this, K, V> where K: 'this, V: 'this;
     type Vacant<'this> = Vacant<'this, K, V> where K: 'this, V: 'this;
+
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            inner: ::hashbrown::HashMap::new(),
+        }
+    }
 
     #[inline]
     fn len(&self) -> usize {

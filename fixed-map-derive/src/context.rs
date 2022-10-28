@@ -54,7 +54,6 @@ toks! {
         bool_type = [::core::primitive::bool],
         clone_t = [::core::clone::Clone],
         copy_t = [::core::marker::Copy],
-        default_t = [::core::default::Default],
         double_ended_iterator_t = [::core::iter::DoubleEndedIterator],
         entry_enum = [crate::map::Entry],
         eq_t = [::core::cmp::Eq],

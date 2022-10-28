@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{format_ident, quote, quote_spanned, ToTokens};
 use syn::spanned::Spanned;
 use syn::{DataEnum, Fields, Ident};
 
@@ -12,7 +12,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
     let clone_t = cx.toks.clone_t();
     let copy_t = cx.toks.copy_t();
-    let default_t = cx.toks.default_t();
     let eq_t = cx.toks.eq_t();
     let key_t = cx.toks.key_t();
     let mem = cx.toks.mem();
@@ -30,9 +29,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let mut pattern = Vec::new();
     let mut fields = Vec::new();
     let mut field_inits = Vec::new();
-    let mut field_clones = Vec::new();
-    let mut field_partial_eqs = Vec::new();
-    let mut field_partial_not_eqs = Vec::new();
     let mut contains_key = Vec::new();
     let mut get = Vec::new();
     let mut get_mut = Vec::new();
@@ -42,31 +38,19 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let mut clear = Vec::new();
     let mut copy_bounds = Vec::new();
     let mut field_specs = Vec::new();
+    let mut names = Vec::new();
 
     for (index, variant) in en.variants.iter().enumerate() {
         let var = &variant.ident;
-        let name = Ident::new(&format!("f{}", index), Span::call_site());
-
-        field_inits.push(quote!(#name: #default_t::default()));
-        field_clones.push(quote!(#name: #clone_t::clone(&self.#name)));
-
-        field_partial_eqs.push(quote! {
-            if #partial_eq_t::ne(&self.#name, &other.#name) {
-                return false;
-            }
-        });
-
-        field_partial_not_eqs.push(quote! {
-            if #partial_eq_t::ne(&self.#name, &other.#name) {
-                return true;
-            }
-        });
+        let name = format_ident!("_{}", index);
+        names.push(name.clone());
 
         let kind = match &variant.fields {
             Fields::Unit => {
+                field_inits.push(quote!(#option::None));
                 len.push(quote!(usize::from(#option::is_some(&self.#name))));
                 is_empty.push(quote!(#option::is_none(&self.#name)));
-                fields.push(quote!(#name: #option<V>));
+                fields.push(quote!(#option<V>));
                 pattern.push(quote!(#ident::#var));
                 clear.push(quote!(self.#name = #option::None));
                 contains_key.push(quote!(#option::is_some(&self.#name)));
@@ -97,13 +81,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 let storage = quote!(<#element as #key_t>::Storage::<V>);
                 let as_storage = quote!(<#storage as #storage_t<#element, V>>);
 
+                field_inits.push(quote!(#as_storage::empty()));
                 len.push(quote!(#as_storage::len(&self.#name)));
                 is_empty.push(quote!(#as_storage::is_empty(&self.#name)));
 
-                fields.push(quote!(#name: #storage));
+                fields.push(quote!(#storage));
                 pattern.push(quote!(#ident::#var(v)));
                 clear.push(quote!(#as_storage::clear(&mut self.#name)));
-
                 contains_key.push(quote!(#as_storage::contains_key(&self.#name, v)));
                 get.push(quote!(#as_storage::get(&self.#name, v)));
                 get_mut.push(quote!(#as_storage::get_mut(&mut self.#name, v)));
@@ -113,7 +97,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     #as_storage::retain(&mut self.#name, |k, v| func(#ident::#var(k), v));
                 });
 
-                copy_bounds.push(quote!(#storage: #copy_t));
+                copy_bounds.push(storage.clone());
 
                 FieldKind::Complex {
                     element: quote!(#element),
@@ -157,7 +141,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     Ok(quote! {
         const #const_wrapper: () = {
             #vis struct Storage<V> {
-                #(#fields,)*
+                #(#names: #fields,)*
             }
 
             #[automatically_derived]
@@ -165,41 +149,35 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 #[inline]
                 fn clone(&self) -> Storage<V> {
                     Storage {
-                        #(#field_clones,)*
+                        #(#names: #clone_t::clone(&self.#names),)*
                     }
                 }
             }
 
             #[automatically_derived]
-            impl<V> #copy_t for Storage<V> where V: #copy_t, #(#copy_bounds,)* {}
+            impl<V> #copy_t for Storage<V> where V: #copy_t, #(#copy_bounds: #copy_t,)* {}
 
             #[automatically_derived]
             impl<V> #partial_eq_t for Storage<V> where V: #partial_eq_t {
                 #[inline]
                 fn eq(&self, other: &Storage<V>) -> bool {
-                    #(#field_partial_eqs;)*
+                    #(if #partial_eq_t::ne(&self.#names, &other.#names) {
+                        return false;
+                    })*
                     true
                 }
 
                 #[inline]
                 fn ne(&self, other: &Storage<V>) -> bool {
-                    #(#field_partial_not_eqs;)*
+                    #(if #partial_eq_t::ne(&self.#names, &other.#names) {
+                        return true;
+                    })*
                     false
                 }
             }
 
             #[automatically_derived]
             impl<V> #eq_t for Storage<V> where V: #eq_t {}
-
-            #[automatically_derived]
-            impl<V> #default_t for Storage<V> {
-                #[inline]
-                fn default() -> Self {
-                    Self {
-                        #(#field_inits,)*
-                    }
-                }
-            }
 
             #[automatically_derived]
             impl<V> #storage_t<#ident, V> for Storage<V> {
@@ -209,6 +187,13 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 type IterMut<#lt> = IterMut<#lt, V> where V: #lt;
                 type ValuesMut<#lt> = ValuesMut<#lt, V> where V: #lt;
                 type IntoIter = IntoIter<V>;
+
+                #[inline]
+                fn empty() -> Self {
+                    Self {
+                        #(#names: #field_inits,)*
+                    }
+                }
 
                 #[inline]
                 fn len(&self) -> usize {

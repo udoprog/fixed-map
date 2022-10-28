@@ -180,7 +180,7 @@ where
     #[must_use]
     pub fn new() -> Map<K, V> {
         Map {
-            storage: K::Storage::default(),
+            storage: K::Storage::empty(),
         }
     }
 

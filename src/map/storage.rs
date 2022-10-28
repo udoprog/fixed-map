@@ -22,7 +22,7 @@ use crate::map::Entry;
 ///
 /// - `K` is the key being stored.
 /// - `V` is the value being stored.
-pub trait Storage<K, V>: Default {
+pub trait Storage<K, V>: Sized {
     /// Immutable iterator over storage.
     type Iter<'this>: Iterator<Item = (K, &'this V)>
     where
@@ -64,6 +64,9 @@ pub trait Storage<K, V>: Default {
     type Vacant<'this>: VacantEntry<'this, K, V>
     where
         Self: 'this;
+
+    /// Construct empty storage.
+    fn empty() -> Self;
 
     /// Get the length of storage.
     fn len(&self) -> usize;

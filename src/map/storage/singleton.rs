@@ -10,15 +10,6 @@ pub struct SingletonStorage<V> {
     inner: Option<V>,
 }
 
-impl<V> Default for SingletonStorage<V> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            inner: Option::default(),
-        }
-    }
-}
-
 impl<V> PartialEq for SingletonStorage<V>
 where
     V: PartialEq,
@@ -43,6 +34,13 @@ where
     type IntoIter = ::core::option::IntoIter<(K, V)>;
     type Occupied<'this> = SomeBucket<'this, V> where V: 'this;
     type Vacant<'this> = NoneBucket<'this, V> where V: 'this;
+
+    #[inline]
+    fn empty() -> Self {
+        Self {
+            inner: Option::default(),
+        }
+    }
 
     #[inline]
     fn len(&self) -> usize {
