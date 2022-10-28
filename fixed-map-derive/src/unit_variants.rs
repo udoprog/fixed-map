@@ -148,11 +148,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 fn eq(&self, other: &Storage<V>) -> bool {
                     #partial_eq_t::eq(&self.data, &other.data)
                 }
-
-                #[inline]
-                fn ne(&self, other: &Storage<V>) -> bool {
-                    #partial_eq_t::ne(&self.data, &other.data)
-                }
             }
 
             #[automatically_derived]

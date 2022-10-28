@@ -166,14 +166,6 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                     })*
                     true
                 }
-
-                #[inline]
-                fn ne(&self, other: &Storage<V>) -> bool {
-                    #(if #partial_eq_t::ne(&self.#names, &other.#names) {
-                        return true;
-                    })*
-                    false
-                }
             }
 
             #[automatically_derived]
