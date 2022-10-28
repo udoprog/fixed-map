@@ -1,8 +1,8 @@
 //! Module for the trait to define a `Key`.
 
 #[cfg(feature = "map")]
-use crate::storage::MapStorage;
-use crate::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
+use crate::map::storage::MapStorage;
+use crate::map::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
 
 /// The trait for a key that can be used to store values in a
 /// [`Map`][crate::Set] or [`Set`][crate::Set].
@@ -115,8 +115,8 @@ use crate::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
 /// assert!(a < c);
 /// ```
 ///
-/// [`BTreeMap`]: std::collections::BTreeMap
-/// [`BTreeSet`]: std::collections::BTreeSet
+/// [`BTreeMap`]: https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+/// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 /// [`Map`]: crate::Map
 /// [`Set`]: crate::Set
 pub trait Key: Copy {

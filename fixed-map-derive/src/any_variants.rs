@@ -150,11 +150,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let (iter_mut_impl, iter_mut_init) = build_iter_mut_impl(cx, "IterMut", &field_specs)?;
     let (values_mut_impl, values_mut_init) = build_values_mut_impl(cx, "ValuesMut", &field_specs)?;
     let (into_iter_impl, into_iter_init) = build_into_iter_impl(cx, "IntoIter", &field_specs)?;
-    let entry_impl = if cfg!(feature = "entry") {
-        build_entry_impl(cx, &field_specs)?
-    } else {
-        quote!()
-    };
+    let (entry_impl, entry_items_impl) = build_entry_impl(cx, &field_specs)?;
 
     let end = field_specs.len();
 
@@ -325,6 +321,8 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                         #(#into_iter_init,)*
                     }
                 }
+
+                #entry_items_impl
             }
 
             #[automatically_derived]
@@ -1159,19 +1157,22 @@ impl ToTokens for IteratorNextBack {
 }
 
 /// Construct `StorageEntry` implementation.
-fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<TokenStream, ()> {
+fn build_entry_impl(
+    cx: &Ctxt<'_>,
+    field_specs: &[FieldSpec<'_>],
+) -> Result<(TokenStream, TokenStream), ()> {
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
     let lt = cx.lt;
 
     let entry_enum = cx.toks.entry_enum();
-    let occupied_entry_trait = cx.toks.occupied_entry_t();
+    let occupied_entry_t = cx.toks.occupied_entry_t();
     let option = cx.toks.option();
     let option_bucket_none = cx.toks.option_bucket_none();
     let option_bucket_option = cx.toks.option_bucket_option();
     let option_bucket_some = cx.toks.option_bucket_some();
-    let storage_entry_trait = cx.toks.storage_entry_t();
-    let vacant_entry_trait = cx.toks.vacant_entry_t();
+    let storage_t = cx.toks.storage_t();
+    let vacant_entry_t = cx.toks.vacant_entry_t();
 
     let mut init = Vec::new();
     let mut occupied_variant = Vec::new();
@@ -1200,19 +1201,20 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
             FieldKind::Complex {
                 element, storage, ..
             } => {
-                let as_storage_entry = quote!(<#storage as #storage_entry_trait<#element, V>>);
+                let as_storage = quote!(<#storage as #storage_t<#element, V>>);
 
-                occupied_variant.push(quote!( #name(#as_storage_entry::Occupied<#lt>) ));
-                vacant_variant.push(quote!( #name(#as_storage_entry::Vacant<#lt>) ));
+                occupied_variant.push(quote!( #name(#as_storage::Occupied<#lt>) ));
+                vacant_variant.push(quote!( #name(#as_storage::Vacant<#lt>) ));
 
                 init.push(quote! {
-                    #pattern(key) => match #storage_entry_trait::entry(&mut self.#name, key) {
+                    #pattern(key) => match #storage_t::entry(&mut self.#name, key) {
                         #entry_enum::Occupied(entry) => #entry_enum::Occupied(OccupiedEntry::#name(entry)),
                         #entry_enum::Vacant(entry) => #entry_enum::Vacant(VacantEntry::#name(entry)),
                     }
                 });
 
-                let as_vacant_entry = quote!(<#as_storage_entry::Vacant<#lt> as #vacant_entry_trait<#lt, #element, V>>);
+                let as_vacant_entry =
+                    quote!(<#as_storage::Vacant<#lt> as #vacant_entry_t<#lt, #element, V>>);
 
                 vacant_key.push(
                     quote!( VacantEntry::#name(entry) => #pattern(#as_vacant_entry::key(entry)) ),
@@ -1221,7 +1223,8 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                     quote!( VacantEntry::#name(entry) => #as_vacant_entry::insert(entry, value) ),
                 );
 
-                let as_occupied_entry = quote!(<#as_storage_entry::Occupied<#lt> as #occupied_entry_trait<#lt, #element, V>>);
+                let as_occupied_entry =
+                    quote!(<#as_storage::Occupied<#lt> as #occupied_entry_t<#lt, #element, V>>);
 
                 occupied_key.push(quote!( OccupiedEntry::#name(entry) => #pattern(#as_occupied_entry::key(entry)) ));
                 occupied_get
@@ -1296,7 +1299,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
         }
 
         #[automatically_derived]
-        impl<#lt, V> #vacant_entry_trait<#lt, #ident, V> for VacantEntry<#lt, V> {
+        impl<#lt, V> #vacant_entry_t<#lt, #ident, V> for VacantEntry<#lt, V> {
             #[inline]
             fn key(&self) -> #ident {
                 match self {
@@ -1315,7 +1318,7 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
         }
 
         #[automatically_derived]
-        impl<#lt, V> #occupied_entry_trait<#lt, #ident, V> for OccupiedEntry<#lt, V> {
+        impl<#lt, V> #occupied_entry_t<#lt, #ident, V> for OccupiedEntry<#lt, V> {
             #[inline]
             fn key(&self) -> #ident {
                 match self {
@@ -1372,20 +1375,19 @@ fn build_entry_impl(cx: &Ctxt<'_>, field_specs: &[FieldSpec<'_>]) -> Result<Toke
                 #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry::Simple(SimpleVacantEntry { key, inner })),
             }
         }
+    };
 
-        #[automatically_derived]
-        impl<V> #storage_entry_trait<#ident, V> for Storage<V> {
-            type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
-            type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
+    let entry_storage_impl = quote! {
+        type Occupied<#lt> = OccupiedEntry<#lt, V> where V: #lt;
+        type Vacant<#lt> = VacantEntry<#lt, V> where V: #lt;
 
-            #[inline]
-            fn entry(&mut self, key: #ident) -> #entry_enum<'_, Self, #ident, V> {
-                match key {
-                    #(#init,)*
-                }
+        #[inline]
+        fn entry(&mut self, key: #ident) -> #entry_enum<'_, Self, #ident, V> {
+            match key {
+                #(#init,)*
             }
         }
     };
 
-    Ok(entry_impl)
+    Ok((entry_impl, entry_storage_impl))
 }

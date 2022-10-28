@@ -1,10 +1,12 @@
-#![allow(missing_copy_implementations)] // Iterators are confusing if they impl `Copy`.
+// Iterators are confusing if they impl `Copy`.
+#![allow(missing_copy_implementations)]
 
 use core::iter;
 use core::mem;
 use core::option;
 
-use crate::storage::Storage;
+use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 const TRUE_BIT: u8 = 0b10;
 const FALSE_BIT: u8 = 0b01;
@@ -70,8 +72,8 @@ type IntoIter<V> = iter::Chain<
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BooleanStorage<V> {
-    pub(in crate::storage) t: Option<V>,
-    pub(in crate::storage) f: Option<V>,
+    t: Option<V>,
+    f: Option<V>,
 }
 
 impl<V> Default for BooleanStorage<V> {
@@ -145,6 +147,60 @@ impl ExactSizeIterator for Keys {
     }
 }
 
+pub struct Vacant<'a, V> {
+    key: bool,
+    inner: NoneBucket<'a, V>,
+}
+
+pub struct Occupied<'a, V> {
+    key: bool,
+    inner: SomeBucket<'a, V>,
+}
+
+impl<'a, V> VacantEntry<'a, bool, V> for Vacant<'a, V> {
+    #[inline]
+    fn key(&self) -> bool {
+        self.key
+    }
+
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
+        self.inner.insert(value)
+    }
+}
+
+impl<'a, V> OccupiedEntry<'a, bool, V> for Occupied<'a, V> {
+    #[inline]
+    fn key(&self) -> bool {
+        self.key
+    }
+
+    #[inline]
+    fn get(&self) -> &V {
+        self.inner.as_ref()
+    }
+
+    #[inline]
+    fn get_mut(&mut self) -> &mut V {
+        self.inner.as_mut()
+    }
+
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
+        self.inner.into_mut()
+    }
+
+    #[inline]
+    fn insert(&mut self, value: V) -> V {
+        self.inner.replace(value)
+    }
+
+    #[inline]
+    fn remove(self) -> V {
+        self.inner.take()
+    }
+}
+
 impl<V> Storage<bool, V> for BooleanStorage<V> {
     type Iter<'this> = Iter<'this, V> where V: 'this;
     type Keys<'this> = Keys where V: 'this;
@@ -152,6 +208,8 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
     type IterMut<'this> = IterMut<'this, V> where V: 'this;
     type ValuesMut<'this> = ValuesMut<'this, V> where V: 'this;
     type IntoIter = IntoIter<V>;
+    type Occupied<'this> = Occupied<'this, V> where V: 'this;
+    type Vacant<'this> = Vacant<'this, V> where V: 'this;
 
     #[inline]
     fn len(&self) -> usize {
@@ -274,5 +332,20 @@ impl<V> Storage<bool, V> for BooleanStorage<V> {
         let map: fn(_) -> _ = |v| (false, v);
         let b = self.f.into_iter().map(map);
         a.chain(b)
+    }
+
+    #[inline]
+    fn entry(&mut self, key: bool) -> Entry<'_, Self, bool, V> {
+        if key {
+            match OptionBucket::new(&mut self.t) {
+                OptionBucket::Some(inner) => Entry::Occupied(Occupied { key, inner }),
+                OptionBucket::None(inner) => Entry::Vacant(Vacant { key, inner }),
+            }
+        } else {
+            match OptionBucket::new(&mut self.f) {
+                OptionBucket::Some(inner) => Entry::Occupied(Occupied { key, inner }),
+                OptionBucket::None(inner) => Entry::Vacant(Vacant { key, inner }),
+            }
+        }
     }
 }

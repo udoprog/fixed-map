@@ -1,17 +1,16 @@
 //! Contains the fixed [`Map`] implementation.
 
+mod entry;
+pub use self::entry::Entry;
+
+pub(crate) mod storage;
+pub use self::storage::{OccupiedEntry, Storage, VacantEntry};
+
 use core::cmp::{Ord, Ordering, PartialOrd};
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
-use crate::{key::Key, storage::Storage};
-
-#[cfg(feature = "entry")]
-use crate::storage::entry;
-// Re-export them here, as if they are from the `map` module
-#[cfg(feature = "entry")]
-#[doc(inline)]
-pub use entry::{Entry, OccupiedEntry, VacantEntry};
+use crate::key::Key;
 
 /// The iterator produced by [`Map::iter`].
 pub type Iter<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Iter<'a>;
@@ -827,13 +826,9 @@ where
     /// assert_eq!(map.get(Key::First(true)), Some(&vec![1]));
     /// assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
     /// ```
-    #[cfg(feature = "entry")]
     #[inline]
-    pub fn entry(&mut self, key: K) -> Entry<'_, K::Storage<V>, K, V>
-    where
-        K::Storage<V>: entry::StorageEntry<K, V>,
-    {
-        entry::StorageEntry::entry(&mut self.storage, key)
+    pub fn entry(&mut self, key: K) -> Entry<'_, K::Storage<V>, K, V> {
+        K::Storage::entry(&mut self.storage, key)
     }
 }
 
@@ -1031,6 +1026,8 @@ where
 }
 
 /// [`Hash`] implementation for a [`Set`].
+///
+/// [`Set`]: crate::Set
 ///
 /// # Examples
 ///

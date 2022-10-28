@@ -3,7 +3,8 @@ use core::mem;
 use core::option;
 
 use crate::key::Key;
-use crate::storage::Storage;
+use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 type Iter<'a, K, V> = iter::Chain<
     iter::Map<
@@ -68,8 +69,8 @@ pub struct OptionStorage<K, V>
 where
     K: Key,
 {
-    pub(in crate::storage) some: K::Storage<V>,
-    pub(in crate::storage) none: Option<V>,
+    some: K::Storage<V>,
+    none: Option<V>,
 }
 
 impl<K, V> Clone for OptionStorage<K, V>
@@ -128,6 +129,96 @@ where
 {
 }
 
+pub enum Vacant<'a, K: 'a, V>
+where
+    K: Key,
+{
+    None(NoneBucket<'a, V>),
+    Some(<K::Storage<V> as Storage<K, V>>::Vacant<'a>),
+}
+
+pub enum Occupied<'a, K: 'a, V>
+where
+    K: Key,
+{
+    None(SomeBucket<'a, V>),
+    Some(<K::Storage<V> as Storage<K, V>>::Occupied<'a>),
+}
+
+impl<'a, K, V> VacantEntry<'a, Option<K>, V> for Vacant<'a, K, V>
+where
+    K: Key,
+{
+    #[inline]
+    fn key(&self) -> Option<K> {
+        match self {
+            Vacant::None(_) => None,
+            Vacant::Some(entry) => Some(entry.key()),
+        }
+    }
+
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
+        match self {
+            Vacant::None(entry) => entry.insert(value),
+            Vacant::Some(entry) => entry.insert(value),
+        }
+    }
+}
+
+impl<'a, K, V> OccupiedEntry<'a, Option<K>, V> for Occupied<'a, K, V>
+where
+    K: Key,
+{
+    #[inline]
+    fn key(&self) -> Option<K> {
+        match self {
+            Occupied::None(_) => None,
+            Occupied::Some(entry) => Some(entry.key()),
+        }
+    }
+
+    #[inline]
+    fn get(&self) -> &V {
+        match self {
+            Occupied::None(entry) => entry.as_ref(),
+            Occupied::Some(entry) => entry.get(),
+        }
+    }
+
+    #[inline]
+    fn get_mut(&mut self) -> &mut V {
+        match self {
+            Occupied::None(entry) => entry.as_mut(),
+            Occupied::Some(entry) => entry.get_mut(),
+        }
+    }
+
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
+        match self {
+            Occupied::None(entry) => entry.into_mut(),
+            Occupied::Some(entry) => entry.into_mut(),
+        }
+    }
+
+    #[inline]
+    fn insert(&mut self, value: V) -> V {
+        match self {
+            Occupied::None(entry) => entry.replace(value),
+            Occupied::Some(entry) => entry.insert(value),
+        }
+    }
+
+    #[inline]
+    fn remove(self) -> V {
+        match self {
+            Occupied::None(entry) => entry.take(),
+            Occupied::Some(entry) => entry.remove(),
+        }
+    }
+}
+
 impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
 where
     K: Key,
@@ -138,6 +229,8 @@ where
     type IterMut<'this> = IterMut<'this, K, V> where K: 'this, V: 'this;
     type ValuesMut<'this> = ValuesMut<'this, K, V> where K: 'this, V: 'this;
     type IntoIter = IntoIter<K, V>;
+    type Occupied<'this> = Occupied<'this, K, V> where K: 'this, V: 'this;
+    type Vacant<'this> = Vacant<'this, K, V> where K: 'this, V: 'this;
 
     #[inline]
     fn len(&self) -> usize {
@@ -252,5 +345,19 @@ where
         let map: fn(_) -> _ = |v| (None, v);
         let b = self.none.into_iter().map(map);
         a.chain(b)
+    }
+
+    #[inline]
+    fn entry(&mut self, key: Option<K>) -> Entry<'_, Self, Option<K>, V> {
+        match key {
+            Some(key) => match self.some.entry(key) {
+                Entry::Occupied(entry) => Entry::Occupied(Occupied::Some(entry)),
+                Entry::Vacant(entry) => Entry::Vacant(Vacant::Some(entry)),
+            },
+            None => match OptionBucket::new(&mut self.none) {
+                OptionBucket::Some(some) => Entry::Occupied(Occupied::None(some)),
+                OptionBucket::None(none) => Entry::Vacant(Vacant::None(none)),
+            },
+        }
     }
 }

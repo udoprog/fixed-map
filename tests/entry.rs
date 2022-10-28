@@ -1,5 +1,3 @@
-#![cfg(feature = "entry")]
-
 use fixed_map::{Key, Map};
 
 #[derive(Clone, Copy, Key)]

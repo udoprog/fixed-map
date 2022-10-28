@@ -1,7 +1,12 @@
 use core::hash::Hash;
 use core::iter;
 
-use crate::storage::Storage;
+use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+
+type S = ::hashbrown::hash_map::DefaultHashBuilder;
+type Occupied<'a, K, V> = ::hashbrown::hash_map::OccupiedEntry<'a, K, V, S>;
+type Vacant<'a, K, V> = ::hashbrown::hash_map::VacantEntry<'a, K, V, S>;
+type HashMapEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 
 /// Storage for dynamic types, using [`hashbrown::HashMap`].
 ///
@@ -27,7 +32,7 @@ use crate::storage::Storage;
 /// ```
 #[repr(transparent)]
 pub struct MapStorage<K, V> {
-    pub(in crate::storage) inner: ::hashbrown::HashMap<K, V>,
+    inner: ::hashbrown::HashMap<K, V>,
 }
 
 impl<K, V> Clone for MapStorage<K, V>
@@ -73,6 +78,56 @@ where
 {
 }
 
+impl<'a, K, V> OccupiedEntry<'a, K, V> for Occupied<'a, K, V>
+where
+    K: Copy,
+{
+    #[inline]
+    fn key(&self) -> K {
+        *self.key()
+    }
+
+    #[inline]
+    fn get(&self) -> &V {
+        self.get()
+    }
+
+    #[inline]
+    fn get_mut(&mut self) -> &mut V {
+        self.get_mut()
+    }
+
+    #[inline]
+    fn into_mut(self) -> &'a mut V {
+        self.into_mut()
+    }
+
+    #[inline]
+    fn insert(&mut self, value: V) -> V {
+        self.insert(value)
+    }
+
+    #[inline]
+    fn remove(self) -> V {
+        self.remove()
+    }
+}
+
+impl<'a, K, V> VacantEntry<'a, K, V> for Vacant<'a, K, V>
+where
+    K: Copy + Hash,
+{
+    #[inline]
+    fn key(&self) -> K {
+        *self.key()
+    }
+
+    #[inline]
+    fn insert(self, value: V) -> &'a mut V {
+        self.insert(value)
+    }
+}
+
 impl<K, V> Storage<K, V> for MapStorage<K, V>
 where
     K: Copy + Eq + Hash,
@@ -83,6 +138,8 @@ where
     type IterMut<'this> = iter::Map<::hashbrown::hash_map::IterMut<'this, K, V>, fn((&'this K, &'this mut V)) -> (K, &'this mut V)> where K: 'this, V: 'this;
     type ValuesMut<'this> = ::hashbrown::hash_map::ValuesMut<'this, K, V> where K: 'this, V: 'this;
     type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
+    type Occupied<'this> = Occupied<'this, K, V> where K: 'this, V: 'this;
+    type Vacant<'this> = Vacant<'this, K, V> where K: 'this, V: 'this;
 
     #[inline]
     fn len(&self) -> usize {
@@ -162,5 +219,13 @@ where
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()
+    }
+
+    #[inline]
+    fn entry(&mut self, key: K) -> Entry<'_, Self, K, V> {
+        match self.inner.entry(key) {
+            HashMapEntry::Occupied(entry) => Entry::Occupied(entry),
+            HashMapEntry::Vacant(entry) => Entry::Vacant(entry),
+        }
     }
 }

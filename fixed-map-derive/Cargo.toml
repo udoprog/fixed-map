@@ -16,9 +16,6 @@ license = "MIT/Apache-2.0"
 keywords = ["container", "data-structure", "map", "no_std"]
 categories = ["data-structures"]
 
-[features]
-entry = ["fixed-map/entry"]
-
 [dependencies]
 syn = "1.0.8"
 quote = "1.0.2"

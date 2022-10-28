@@ -329,7 +329,6 @@
 )]
 
 pub mod key;
-pub use self::Key;
 #[doc(inline)]
 pub use fixed_map_derive::*;
 
@@ -341,11 +340,8 @@ pub mod set;
 #[doc(inline)]
 pub use self::set::Set;
 
-pub mod storage;
-
 // Re-export the option bucket types for use in `derive(Key)`
 #[doc(hidden)]
-#[cfg(feature = "entry")]
 pub mod option_bucket;
 
 #[doc(hidden)]
