@@ -1,7 +1,7 @@
 use core::cell::RefCell;
 use core::fmt;
 
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::Span;
 use syn::{DeriveInput, Path};
 
 // Builder function to use when constructing token.
@@ -61,9 +61,11 @@ toks! {
         hasher_t = [::core::hash::Hasher],
         into_iterator_t = [::core::iter::IntoIterator],
         iterator_cmp = [crate::macro_support::__storage_iterator_cmp],
+        iterator_cmp_bool = [crate::macro_support::__storage_iterator_cmp_bool],
         iterator_flat_map = [::core::iter::FlatMap],
         iterator_flatten = [::core::iter::Flatten],
         iterator_partial_cmp = [crate::macro_support::__storage_iterator_partial_cmp],
+        iterator_partial_cmp_bool = [crate::macro_support::__storage_iterator_partial_cmp_bool],
         iterator_t = [::core::iter::Iterator],
         key_t = [crate::key::Key],
         mem = [::core::mem],
@@ -79,6 +81,7 @@ toks! {
         slice_iter = [::core::slice::Iter],
         slice_iter_mut = [::core::slice::IterMut],
         storage_t = [crate::map::Storage],
+        set_storage_t = [crate::set::SetStorage],
         vacant_entry_t = [crate::map::VacantEntry],
     }
 }
@@ -156,28 +159,4 @@ impl<'a> Ctxt<'a> {
             }
         }
     }
-}
-
-/// A field specification.
-pub(crate) struct FieldSpec<'a> {
-    pub(crate) span: Span,
-    pub(crate) index: usize,
-    /// Index-based name (`f1`, `f2`)
-    pub(crate) name: syn::Ident,
-    /// Variant name
-    pub(crate) var: &'a syn::Ident,
-    pub(crate) kind: FieldKind,
-}
-
-/// The kind of a field.
-pub(crate) enum FieldKind {
-    Simple,
-    Complex {
-        /// Type of variant field
-        element: TokenStream,
-        /// <E as Key>::Storage::<V> (E = type of variant field)
-        storage: TokenStream,
-        /// <<E as Key>::Storage::<V> as Storage<E, V>> (E = type of variant field)
-        as_storage: TokenStream,
-    },
 }

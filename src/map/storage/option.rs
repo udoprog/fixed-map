@@ -33,7 +33,7 @@ type IntoIter<K, V> = iter::Chain<
     iter::Map<option::IntoIter<V>, fn(V) -> (Option<K>, V)>,
 >;
 
-/// Storage for [`Option`] types.
+/// [`Storage`] for [`Option`] types.
 ///
 /// # Examples
 ///

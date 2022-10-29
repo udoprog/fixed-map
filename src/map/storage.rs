@@ -1,4 +1,4 @@
-//! Module for the trait to define [`Storage`].
+//! Module that defines the [`Storage`] trait.
 
 mod boolean;
 pub(crate) use self::boolean::BooleanStorage;

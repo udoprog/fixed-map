@@ -8,7 +8,7 @@ type Occupied<'a, K, V> = ::hashbrown::hash_map::OccupiedEntry<'a, K, V, S>;
 type Vacant<'a, K, V> = ::hashbrown::hash_map::VacantEntry<'a, K, V, S>;
 type HashMapEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 
-/// Storage for dynamic types, using [`hashbrown::HashMap`].
+/// [`Storage`] for dynamic types, using [`hashbrown::HashMap`].
 ///
 /// This allows for dynamic types such as `&'static str` or `u32` to be used as
 /// a [`Key`][crate::Key].

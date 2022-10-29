@@ -1,19 +1,19 @@
 //! Contains the fixed [`Set`] implementation.
 
+pub mod storage;
+pub use crate::set::storage::SetStorage;
+
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
-use core::iter;
 
 use crate::key::Key;
-use crate::map::Storage;
-
-/// The iterator produced by [`Set::into_iter`].
-pub type IntoIter<K> =
-    iter::Map<<<K as Key>::Storage<()> as Storage<K, ()>>::IntoIter, fn((K, ())) -> K>;
 
 /// The iterator produced by [`Set::iter`].
-pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
+pub type Iter<'a, T> = <<T as Key>::SetStorage as SetStorage<T>>::Iter<'a>;
+
+/// The iterator produced by [`Set::into_iter`].
+pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 
 /// A fixed set with storage specialized through the [`Key`] trait.
 ///
@@ -72,11 +72,11 @@ pub type Iter<'a, K> = <<K as Key>::Storage<()> as Storage<K, ()>>::Keys<'a>;
 /// assert!(set.contains(Key::Boolean(true)));
 /// assert!(!set.contains(Key::Boolean(false)));
 /// ```
-pub struct Set<K>
+pub struct Set<T>
 where
-    K: Key,
+    T: Key,
 {
-    storage: K::Storage<()>,
+    storage: T::SetStorage,
 }
 
 /// A set implementation that uses fixed storage.
@@ -88,15 +88,15 @@ where
 ///
 /// #[derive(Clone, Copy, Key)]
 /// enum Key {
-///     One,
-///     Two,
+///     First,
+///     Second,
 /// }
 ///
 /// let mut m = Set::new();
-/// m.insert(Key::One);
+/// m.insert(Key::First);
 ///
-/// assert_eq!(m.contains(Key::One), true);
-/// assert_eq!(m.contains(Key::Two), false);
+/// assert_eq!(m.contains(Key::First), true);
+/// assert_eq!(m.contains(Key::Second), false);
 /// ```
 ///
 /// ```rust
@@ -122,9 +122,9 @@ where
 /// assert_eq!(m.contains(Key::Composite(Part::A)), true);
 /// assert_eq!(m.contains(Key::Composite(Part::B)), false);
 /// ```
-impl<K> Set<K>
+impl<T> Set<T>
 where
-    K: Key,
+    T: Key,
 {
     /// Creates an empty [`Set`].
     ///
@@ -143,14 +143,14 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn new() -> Set<K> {
+    pub fn new() -> Set<T> {
         Set {
-            storage: K::Storage::empty(),
+            storage: T::SetStorage::empty(),
         }
     }
 
     /// An iterator visiting all values in arbitrary order.
-    /// The iterator element type is `K`.
+    /// The iterator element type is `T`.
     ///
     /// # Examples
     ///
@@ -171,8 +171,8 @@ where
     /// assert_eq!(set.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
     /// ```
     #[inline]
-    pub fn iter(&self) -> Iter<'_, K> {
-        self.storage.keys()
+    pub fn iter(&self) -> Iter<'_, T> {
+        self.storage.iter()
     }
 
     /// Returns `true` if the set currently contains the given value.
@@ -194,8 +194,8 @@ where
     /// assert_eq!(set.contains(Key::Two), false);
     /// ```
     #[inline]
-    pub fn contains(&self, value: K) -> bool {
-        self.storage.contains_key(value)
+    pub fn contains(&self, value: T) -> bool {
+        self.storage.contains(value)
     }
 
     /// Adds a value to the set.
@@ -216,16 +216,16 @@ where
     /// }
     ///
     /// let mut set = Set::new();
-    /// assert_eq!(set.insert(Key::One), true);
-    /// assert_eq!(set.is_empty(), false);
+    /// assert!(set.insert(Key::One));
+    /// assert!(!set.is_empty());
     ///
     /// set.insert(Key::Two);
-    /// assert_eq!(set.insert(Key::Two), false);
-    /// assert_eq!(set.contains(Key::Two), true);
+    /// assert!(!set.insert(Key::Two));
+    /// assert!(set.contains(Key::Two));
     /// ```
     #[inline]
-    pub fn insert(&mut self, value: K) -> bool {
-        self.storage.insert(value, ()).is_none()
+    pub fn insert(&mut self, value: T) -> bool {
+        self.storage.insert(value)
     }
 
     /// Removes a value from the set. Returns `true` if the value was
@@ -248,8 +248,8 @@ where
     /// assert_eq!(set.remove(Key::One), false);
     /// ```
     #[inline]
-    pub fn remove(&mut self, key: K) -> bool {
-        self.storage.remove(key).is_some()
+    pub fn remove(&mut self, value: T) -> bool {
+        self.storage.remove(value)
     }
 
     /// Retains only the elements specified by the predicate.
@@ -318,11 +318,11 @@ where
     /// assert_eq!(other.contains(Key::Second(false)), false);
     /// ```
     #[inline]
-    pub fn retain<F>(&mut self, mut f: F)
+    pub fn retain<F>(&mut self, f: F)
     where
-        F: FnMut(K) -> bool,
+        F: FnMut(T) -> bool,
     {
-        self.storage.retain(|k, _| f(k));
+        self.storage.retain(f);
     }
 
     /// Clears the set, removing all values.
@@ -421,13 +421,13 @@ where
 /// assert!(b.contains(Key::First(true)));
 /// assert!(b.contains(Key::Second));
 /// ```
-impl<K> Clone for Set<K>
+impl<T> Clone for Set<T>
 where
-    K: Key,
-    K::Storage<()>: Clone,
+    T: Key,
+    T::SetStorage: Clone,
 {
     #[inline]
-    fn clone(&self) -> Set<K> {
+    fn clone(&self) -> Set<T> {
         Set {
             storage: self.storage.clone(),
         }
@@ -462,10 +462,10 @@ where
 /// assert!(b.contains(Key::First));
 /// assert!(b.contains(Key::Second));
 /// ```
-impl<K> Copy for Set<K>
+impl<T> Copy for Set<T>
 where
-    K: Key,
-    K::Storage<()>: Copy,
+    T: Key,
+    T::SetStorage: Copy,
 {
 }
 
@@ -487,9 +487,9 @@ where
 ///
 /// assert_eq!(a, b);
 /// ```
-impl<K> Default for Set<K>
+impl<T> Default for Set<T>
 where
-    K: Key,
+    T: Key,
 {
     #[inline]
     fn default() -> Self {
@@ -515,9 +515,9 @@ where
 ///
 /// assert_eq!("{First}", format!("{:?}", a));
 /// ```
-impl<K> fmt::Debug for Set<K>
+impl<T> fmt::Debug for Set<T>
 where
-    K: Key + fmt::Debug,
+    T: Key + fmt::Debug,
 {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -569,10 +569,10 @@ where
 /// b.insert(Key::Second);
 /// assert_ne!(a, b);
 /// ```
-impl<K> PartialEq for Set<K>
+impl<T> PartialEq for Set<T>
 where
-    K: Key,
-    K::Storage<()>: PartialEq,
+    T: Key,
+    T::SetStorage: PartialEq,
 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -580,10 +580,10 @@ where
     }
 }
 
-impl<K> Eq for Set<K>
+impl<T> Eq for Set<T>
 where
-    K: Key,
-    K::Storage<()>: Eq,
+    T: Key,
+    T::SetStorage: Eq,
 {
 }
 
@@ -629,10 +629,10 @@ where
 /// // let mut set = HashSet::new();
 /// // set.insert(a);
 /// ```
-impl<K> Hash for Set<K>
+impl<T> Hash for Set<T>
 where
-    K: Key,
-    K::Storage<()>: Hash,
+    T: Key,
+    T::SetStorage: Hash,
 {
     #[inline]
     fn hash<H>(&self, state: &mut H)
@@ -692,10 +692,10 @@ where
 /// // TODO: support this
 /// // assert!(a < b);
 /// ```
-impl<K> PartialOrd for Set<K>
+impl<T> PartialOrd for Set<T>
 where
-    K: Key,
-    K::Storage<()>: PartialOrd,
+    T: Key,
+    T::SetStorage: PartialOrd,
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -771,10 +771,10 @@ where
 /// // let mut list = vec![a, b];
 /// // list.sort();
 /// ```
-impl<K> Ord for Set<K>
+impl<T> Ord for Set<T>
 where
-    K: Key,
-    K::Storage<()>: Ord,
+    T: Key,
+    T::SetStorage: Ord,
 {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
@@ -803,12 +803,12 @@ where
     }
 }
 
-impl<'a, K> IntoIterator for &'a Set<K>
+impl<'a, T> IntoIterator for &'a Set<T>
 where
-    K: Key,
+    T: Key,
 {
-    type Item = K;
-    type IntoIter = Iter<'a, K>;
+    type Item = T;
+    type IntoIter = Iter<'a, T>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
@@ -837,15 +837,15 @@ where
 ///
 /// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
 /// ```
-impl<K> IntoIterator for Set<K>
+impl<T> IntoIterator for Set<T>
 where
-    K: Key,
+    T: Key,
 {
-    type Item = K;
-    type IntoIter = IntoIter<K>;
+    type Item = T;
+    type IntoIter = IntoIter<T>;
 
     /// An iterator visiting all values in arbitrary order.
-    /// The iterator element type is `K`.
+    /// The iterator element type is `T`.
     ///
     /// # Examples
     ///
@@ -867,31 +867,33 @@ where
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        self.storage.into_iter().map(|(key, ())| key)
+        self.storage.into_iter()
     }
 }
 
-impl<K> FromIterator<K> for Set<K>
+impl<T> FromIterator<T> for Set<T>
 where
-    K: Key,
+    T: Key,
 {
     #[inline]
-    fn from_iter<T>(iter: T) -> Self
+    fn from_iter<I>(iter: I) -> Self
     where
-        T: IntoIterator<Item = K>,
+        I: IntoIterator<Item = T>,
     {
         let mut set = Self::new();
-        for k in iter {
-            set.insert(k);
+
+        for value in iter {
+            set.insert(value);
         }
+
         set
     }
 }
 
 #[cfg(feature = "serde")]
-impl<K> serde::Serialize for Set<K>
+impl<T> serde::Serialize for Set<T>
 where
-    K: Key + serde::Serialize,
+    T: Key + serde::Serialize,
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -911,22 +913,22 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, K> serde::de::Deserialize<'de> for Set<K>
+impl<'de, T> serde::de::Deserialize<'de> for Set<T>
 where
-    K: Key + serde::de::Deserialize<'de>,
+    T: Key + serde::de::Deserialize<'de>,
 {
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        struct SeqVisitor<K>(core::marker::PhantomData<K>);
+        struct SeqVisitor<T>(core::marker::PhantomData<T>);
 
-        impl<'de, K> serde::de::Visitor<'de> for SeqVisitor<K>
+        impl<'de, T> serde::de::Visitor<'de> for SeqVisitor<T>
         where
-            K: Key + serde::de::Deserialize<'de>,
+            T: Key + serde::de::Deserialize<'de>,
         {
-            type Value = Set<K>;
+            type Value = Set<T>;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("a sequence")

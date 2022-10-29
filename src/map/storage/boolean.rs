@@ -26,7 +26,7 @@ type IntoIter<V> = iter::Chain<
     iter::Map<option::IntoIter<V>, fn(V) -> (bool, V)>,
 >;
 
-/// Storage for [`bool`] types.
+/// [`Storage`] for [`bool`] types.
 ///
 /// # Examples
 ///

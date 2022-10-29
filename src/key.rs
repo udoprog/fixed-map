@@ -3,6 +3,9 @@
 #[cfg(feature = "map")]
 use crate::map::storage::MapStorage;
 use crate::map::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
+#[cfg(feature = "map")]
+use crate::set::storage::HashbrownSetStorage;
+use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, SingletonSetStorage};
 
 /// The trait for a key that can be used to store values in a
 /// [`Map`][crate::Set] or [`Set`][crate::Set].
@@ -120,12 +123,18 @@ use crate::map::storage::{BooleanStorage, OptionStorage, SingletonStorage, Stora
 /// [`Map`]: crate::Map
 /// [`Set`]: crate::Set
 pub trait Key: Copy {
-    /// The `Storage` implementation to use for the key implementing this trait.
+    /// The [`Map`] `Storage` implementation to use for the key implementing
+    /// this trait.
     type Storage<V>: Storage<Self, V>;
+
+    /// The [`Set`] `Storage` implementation to use for the key implementing
+    /// this trait.
+    type SetStorage: SetStorage<Self>;
 }
 
 impl Key for bool {
     type Storage<V> = BooleanStorage<V>;
+    type SetStorage = BooleanSetStorage;
 }
 
 impl<K> Key for Option<K>
@@ -133,6 +142,7 @@ where
     K: Key,
 {
     type Storage<V> = OptionStorage<K, V>;
+    type SetStorage = OptionSetStorage<K>;
 }
 
 macro_rules! map_key {
@@ -140,6 +150,7 @@ macro_rules! map_key {
         #[cfg(feature = "map")]
         impl Key for $ty {
             type Storage<V> = MapStorage<$ty, V>;
+            type SetStorage = HashbrownSetStorage<$ty>;
         }
     };
 }
@@ -148,6 +159,7 @@ macro_rules! singleton_key {
     ($ty:ty) => {
         impl Key for $ty {
             type Storage<V> = SingletonStorage<V>;
+            type SetStorage = SingletonSetStorage;
         }
     };
 }

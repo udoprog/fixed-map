@@ -3,7 +3,7 @@ use core::mem;
 use crate::map::{Entry, Storage};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
-/// Storage types that can only inhabit a single value (like `()`).
+/// [`Storage`] type that can only inhabit a single value (like `()`).
 #[repr(transparent)]
 #[derive(Clone, Copy)]
 pub struct SingletonStorage<V> {
