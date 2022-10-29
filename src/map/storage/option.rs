@@ -3,37 +3,42 @@ use core::mem;
 use core::option;
 
 use crate::key::Key;
-use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 type Iter<'a, K, V> = iter::Chain<
     iter::Map<
-        <<K as Key>::Storage<V> as Storage<K, V>>::Iter<'a>,
+        <<K as Key>::MapStorage<V> as MapStorage<K, V>>::Iter<'a>,
         fn((K, &'a V)) -> (Option<K>, &'a V),
     >,
     iter::Map<option::Iter<'a, V>, fn(&'a V) -> (Option<K>, &'a V)>,
 >;
 type Keys<'a, K, V> = iter::Chain<
-    iter::Map<<<K as Key>::Storage<V> as Storage<K, V>>::Keys<'a>, fn(K) -> Option<K>>,
+    iter::Map<<<K as Key>::MapStorage<V> as MapStorage<K, V>>::Keys<'a>, fn(K) -> Option<K>>,
     option::IntoIter<Option<K>>,
 >;
 type Values<'a, K, V> =
-    iter::Chain<<<K as Key>::Storage<V> as Storage<K, V>>::Values<'a>, option::Iter<'a, V>>;
+    iter::Chain<<<K as Key>::MapStorage<V> as MapStorage<K, V>>::Values<'a>, option::Iter<'a, V>>;
 type IterMut<'a, K, V> = iter::Chain<
     iter::Map<
-        <<K as Key>::Storage<V> as Storage<K, V>>::IterMut<'a>,
+        <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IterMut<'a>,
         fn((K, &'a mut V)) -> (Option<K>, &'a mut V),
     >,
     iter::Map<option::IterMut<'a, V>, fn(&'a mut V) -> (Option<K>, &'a mut V)>,
 >;
-type ValuesMut<'a, K, V> =
-    iter::Chain<<<K as Key>::Storage<V> as Storage<K, V>>::ValuesMut<'a>, option::IterMut<'a, V>>;
+type ValuesMut<'a, K, V> = iter::Chain<
+    <<K as Key>::MapStorage<V> as MapStorage<K, V>>::ValuesMut<'a>,
+    option::IterMut<'a, V>,
+>;
 type IntoIter<K, V> = iter::Chain<
-    iter::Map<<<K as Key>::Storage<V> as Storage<K, V>>::IntoIter, fn((K, V)) -> (Option<K>, V)>,
+    iter::Map<
+        <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IntoIter,
+        fn((K, V)) -> (Option<K>, V),
+    >,
     iter::Map<option::IntoIter<V>, fn(V) -> (Option<K>, V)>,
 >;
 
-/// [`Storage`] for [`Option`] types.
+/// [`MapStorage`] for [`Option`] types.
 ///
 /// # Examples
 ///
@@ -65,19 +70,19 @@ type IntoIter<K, V> = iter::Chain<
 /// assert!(a.values().copied().eq([2, 1]));
 /// assert!(a.keys().eq([Key::First(Some(Part::A)), Key::First(None)]));
 /// ```
-pub struct OptionStorage<K, V>
+pub struct OptionMapStorage<K, V>
 where
     K: Key,
 {
-    some: K::Storage<V>,
+    some: K::MapStorage<V>,
     none: Option<V>,
 }
 
-impl<K, V> Clone for OptionStorage<K, V>
+impl<K, V> Clone for OptionMapStorage<K, V>
 where
     K: Key,
     V: Clone,
-    K::Storage<V>: Clone,
+    K::MapStorage<V>: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
@@ -88,18 +93,18 @@ where
     }
 }
 
-impl<K, V> Copy for OptionStorage<K, V>
+impl<K, V> Copy for OptionMapStorage<K, V>
 where
     K: Key,
     V: Copy,
-    K::Storage<V>: Copy,
+    K::MapStorage<V>: Copy,
 {
 }
 
-impl<K, V> PartialEq for OptionStorage<K, V>
+impl<K, V> PartialEq for OptionMapStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: PartialEq,
+    K::MapStorage<V>: PartialEq,
     V: PartialEq,
 {
     #[inline]
@@ -108,10 +113,10 @@ where
     }
 }
 
-impl<K, V> Eq for OptionStorage<K, V>
+impl<K, V> Eq for OptionMapStorage<K, V>
 where
     K: Key,
-    K::Storage<V>: Eq,
+    K::MapStorage<V>: Eq,
     V: Eq,
 {
 }
@@ -121,7 +126,7 @@ where
     K: Key,
 {
     None(NoneBucket<'a, V>),
-    Some(<K::Storage<V> as Storage<K, V>>::Vacant<'a>),
+    Some(<K::MapStorage<V> as MapStorage<K, V>>::Vacant<'a>),
 }
 
 pub enum Occupied<'a, K: 'a, V>
@@ -129,7 +134,7 @@ where
     K: Key,
 {
     None(SomeBucket<'a, V>),
-    Some(<K::Storage<V> as Storage<K, V>>::Occupied<'a>),
+    Some(<K::MapStorage<V> as MapStorage<K, V>>::Occupied<'a>),
 }
 
 impl<'a, K, V> VacantEntry<'a, Option<K>, V> for Vacant<'a, K, V>
@@ -206,7 +211,7 @@ where
     }
 }
 
-impl<K, V> Storage<Option<K>, V> for OptionStorage<K, V>
+impl<K, V> MapStorage<Option<K>, V> for OptionMapStorage<K, V>
 where
     K: Key,
 {
@@ -222,7 +227,7 @@ where
     #[inline]
     fn empty() -> Self {
         Self {
-            some: K::Storage::empty(),
+            some: K::MapStorage::empty(),
             none: Option::default(),
         }
     }

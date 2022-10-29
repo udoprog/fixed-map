@@ -38,7 +38,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let partial_ord_t = cx.toks.partial_ord_t();
     let slice_iter = cx.toks.slice_iter();
     let slice_iter_mut = cx.toks.slice_iter_mut();
-    let storage_t = cx.toks.storage_t();
+    let map_storage_t = cx.toks.map_storage_t();
     let set_storage_t = cx.toks.set_storage_t();
     let vacant_entry_t = cx.toks.vacant_entry_t();
 
@@ -187,7 +187,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
         }
 
         #[automatically_derived]
-        impl<V> #storage_t<#ident, V> for #storage<V> {
+        impl<V> #map_storage_t<#ident, V> for #storage<V> {
             type Iter<#lt> = #iterator_flat_map<
                 #array_into_iter<(#ident, &#lt #option<V>), #count>,
                 #option<(#ident, &#lt V)>,
@@ -449,7 +449,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
             #[automatically_derived]
             impl #key_t for #ident {
-                type Storage<V> = #storage<V>;
+                type MapStorage<V> = #storage<V>;
                 type SetStorage = SetStorage;
             }
 

@@ -80,7 +80,7 @@ toks! {
         partial_ord_t = [::core::cmp::PartialOrd],
         slice_iter = [::core::slice::Iter],
         slice_iter_mut = [::core::slice::IterMut],
-        storage_t = [crate::map::Storage],
+        map_storage_t = [crate::map::MapStorage],
         set_storage_t = [crate::set::SetStorage],
         vacant_entry_t = [crate::map::VacantEntry],
     }

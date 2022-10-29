@@ -1,11 +1,11 @@
-use crate::map::{OccupiedEntry, Storage, VacantEntry};
+use crate::map::{MapStorage, OccupiedEntry, VacantEntry};
 
 /// A view into a single entry in a map, which may either be vacant or occupied.
 ///
 /// This enum is constructed from the [`entry`][crate::Map::entry] method on [`Map`][crate::Map].
 pub enum Entry<'a, S: 'a, K, V>
 where
-    S: Storage<K, V>,
+    S: MapStorage<K, V>,
 {
     /// An occupied entry.
     Occupied(S::Occupied<'a>),
@@ -15,7 +15,7 @@ where
 
 impl<'a, S: 'a, K, V> Entry<'a, S, K, V>
 where
-    S: Storage<K, V>,
+    S: MapStorage<K, V>,
 {
     /// Ensures a value is in the entry by inserting the default if empty,
     /// and returns a mutable reference to the value in the entry.

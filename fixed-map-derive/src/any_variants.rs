@@ -13,7 +13,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     let ident = &cx.ast.ident;
 
     let key_t = cx.toks.key_t();
-    let storage_t = cx.toks.storage_t();
+    let map_storage_t = cx.toks.map_storage_t();
     let set_storage_t = cx.toks.set_storage_t();
 
     let const_wrapper = Ident::new(
@@ -44,8 +44,8 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 }
 
                 let element = unnamed.unnamed.first().expect("Expected one element");
-                let storage = quote!(<#element as #key_t>::Storage::<V>);
-                let as_storage = quote!(<#storage as #storage_t<#element, V>>);
+                let map_storage = quote!(<#element as #key_t>::MapStorage::<V>);
+                let as_map_storage = quote!(<#map_storage as #map_storage_t<#element, V>>);
                 let set_storage = quote!(<#element as #key_t>::SetStorage);
                 let as_set_storage = quote!(<#set_storage as #set_storage_t<#element>>);
 
@@ -55,8 +55,8 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
                 Kind::Complex(Complex {
                     element,
-                    storage,
-                    as_storage,
+                    map_storage,
+                    as_map_storage,
                     set_storage,
                     as_set_storage,
                 })
@@ -86,21 +86,21 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
 
             #[automatically_derived]
             impl #key_t for #ident {
-                type Storage<V> = #map_storage_type_name<V>;
+                type MapStorage<V> = #map_storage_type_name<V>;
                 type SetStorage = #set_storage_type_name;
             }
         };
     })
 }
 
-/// Implement `Storage` implementation.
+/// Implement `MapStorage` implementation.
 fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenStream), ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
     let mem = cx.toks.mem();
     let option = cx.toks.option();
-    let storage_t = cx.toks.storage_t();
+    let map_storage_t = cx.toks.map_storage_t();
 
     let type_name = format_ident!("{MAP_STORAGE}");
 
@@ -140,7 +140,9 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
     {
         let clone_t = cx.toks.clone_t();
         let copy_t = cx.toks.copy_t();
-        let bounds = fields.complex().map(|Complex { storage, .. }| storage);
+        let bounds = fields
+            .complex()
+            .map(|Complex { map_storage, .. }| map_storage);
         let names = fields.names();
 
         output.impls.extend(quote! {
@@ -161,7 +163,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 
     {
         let inits = fields.iter().map(|f| match &f.kind {
-            Kind::Complex(Complex { as_storage, .. }) => quote!(#as_storage::empty()),
+            Kind::Complex(Complex { as_map_storage, .. }) => quote!(#as_map_storage::empty()),
             Kind::Simple => quote!(#option::None),
         });
 
@@ -181,8 +183,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
         let patterns = &fields.patterns;
 
         let insert = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::insert(&mut self.#name, v, value))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::insert(&mut self.#name, v, value))
             }
             Kind::Simple => quote!(#mem::replace(&mut self.#name, #option::Some(value))),
         });
@@ -199,8 +201,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 
     {
         let len = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::len(&self.#name))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::len(&self.#name))
             }
             Kind::Simple => quote!(usize::from(#option::is_some(&self.#name))),
         });
@@ -215,8 +217,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 
     {
         let is_empty = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::is_empty(&self.#name))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::is_empty(&self.#name))
             }
             Kind::Simple => quote!(#option::is_none(&self.#name)),
         });
@@ -233,8 +235,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
         let patterns = &fields.patterns;
 
         let contains_key = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::contains_key(&self.#name, v))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::contains_key(&self.#name, v))
             }
             Kind::Simple => quote!(#option::is_some(&self.#name)),
         });
@@ -253,8 +255,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
         let patterns = &fields.patterns;
 
         let get = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::get(&self.#name, v))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::get(&self.#name, v))
             }
             Kind::Simple => quote!(#option::as_ref(&self.#name)),
         });
@@ -273,8 +275,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
         let patterns = &fields.patterns;
 
         let get_mut = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::get_mut(&mut self.#name, v))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::get_mut(&mut self.#name, v))
             }
             Kind::Simple => quote!(#option::as_mut(&mut self.#name)),
         });
@@ -291,8 +293,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 
     {
         let remove = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => {
-                quote!(#as_storage::remove(&mut self.#name, v))
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                quote!(#as_map_storage::remove(&mut self.#name, v))
             }
             Kind::Simple => quote!(#mem::replace(&mut self.#name, #option::None)),
         });
@@ -314,8 +316,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
             |Field {
                  var, name, kind, ..
              }| match kind {
-                Kind::Complex(Complex { as_storage, .. }) => quote! {
-                    #as_storage::retain(&mut self.#name, |k, v| func(#ident::#var(k), v));
+                Kind::Complex(Complex { as_map_storage, .. }) => quote! {
+                    #as_map_storage::retain(&mut self.#name, |k, v| func(#ident::#var(k), v));
                 },
                 Kind::Simple => quote! {
                     if let #option::Some(val) = #option::as_mut(&mut self.#name) {
@@ -340,8 +342,8 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 
     {
         let clear = fields.iter().map(|Field { name, kind, .. }| match kind {
-            Kind::Complex(Complex { as_storage, .. }) => quote! {
-                #as_storage::clear(&mut self.#name)
+            Kind::Complex(Complex { as_map_storage, .. }) => quote! {
+                #as_map_storage::clear(&mut self.#name)
             },
             Kind::Simple => quote! {
                 self.#name = #option::None
@@ -357,7 +359,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
     }
 
     let field_decls = fields.iter().map(|Field { name, kind, .. }| match kind {
-        Kind::Complex(Complex { storage, .. }) => quote!(#name: #storage),
+        Kind::Complex(Complex { map_storage, .. }) => quote!(#name: #map_storage),
         Kind::Simple => quote!(#name: #option<V>),
     });
 
@@ -369,7 +371,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
         }
 
         #[automatically_derived]
-        impl<V> #storage_t<#ident, V> for #type_name<V> {
+        impl<V> #map_storage_t<#ident, V> for #type_name<V> {
             #items
         }
 
@@ -661,7 +663,7 @@ fn build_iter_next(
                     }
                 });
             }
-            Kind::Complex(Complex { as_storage, .. }) => {
+            Kind::Complex(Complex { as_map_storage, .. }) => {
                 step_forward.next.push(quote! {
                     #index => {
                         if let #option::Some((key, value)) = #iterator_t::next(&mut self.#name) {
@@ -683,9 +685,9 @@ fn build_iter_next(
                 let where_clause = step_backward.make_where_clause();
 
                 let assoc_type = if let Some(lt) = lt {
-                    quote!(#as_storage::#assoc_type<#lt>)
+                    quote!(#as_map_storage::#assoc_type<#lt>)
                 } else {
-                    quote!(#as_storage::#assoc_type)
+                    quote!(#as_map_storage::#assoc_type)
                 };
 
                 where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
@@ -738,9 +740,9 @@ fn map_storage_iter(
                 field_decls.push(quote!(#name: #option<&#lt V>));
                 init.push(quote!(#name: #option::as_ref(&self.#name)));
             }
-            Kind::Complex(Complex { as_storage, .. }) => {
-                field_decls.push(quote!(#name: #as_storage::Iter<#lt>));
-                init.push(quote!(#name: #as_storage::iter(&self.#name)));
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                field_decls.push(quote!(#name: #as_map_storage::Iter<#lt>));
+                init.push(quote!(#name: #as_map_storage::iter(&self.#name)));
             }
         }
     }
@@ -864,9 +866,9 @@ fn map_storage_keys(
                     }
                 });
             }
-            Kind::Complex(Complex { as_storage, .. }) => {
-                field_decls.push(quote!(#name: #as_storage::#assoc_type<#lt>));
-                init.push(quote!(#name: #as_storage::keys(&self.#name)));
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                field_decls.push(quote!(#name: #as_map_storage::#assoc_type<#lt>));
+                init.push(quote!(#name: #as_map_storage::keys(&self.#name)));
 
                 step_forward.next.push(quote! {
                     #index => {
@@ -886,7 +888,7 @@ fn map_storage_keys(
 
                 let where_clause = step_backward.make_where_clause();
 
-                let assoc_type = quote!(#as_storage::#assoc_type<#lt>);
+                let assoc_type = quote!(#as_map_storage::#assoc_type<#lt>);
 
                 where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
                     *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
@@ -1010,9 +1012,9 @@ fn map_storage_values(
                     }
                 });
             }
-            Kind::Complex(Complex { as_storage, .. }) => {
-                field_decls.push(quote!(#name: #as_storage::#assoc_type<#lt>));
-                init.push(quote!(#name: #as_storage::values(&self.#name)));
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                field_decls.push(quote!(#name: #as_map_storage::#assoc_type<#lt>));
+                init.push(quote!(#name: #as_map_storage::values(&self.#name)));
 
                 step_forward.next.push(quote! {
                     #index => {
@@ -1032,7 +1034,7 @@ fn map_storage_values(
 
                 let where_clause = step_backward.make_where_clause();
 
-                let assoc_type = quote!(#as_storage::#assoc_type<#lt>);
+                let assoc_type = quote!(#as_map_storage::#assoc_type<#lt>);
 
                 where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
                     *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
@@ -1143,12 +1145,12 @@ fn map_storage_iter_mut(
                 init.push(quote!(#name: #option::as_mut(&mut self.#name)));
             }
             Kind::Complex(Complex {
-                as_storage,
-                storage,
+                as_map_storage,
+                map_storage,
                 ..
             }) => {
-                field_decls.push(quote!(#name: #as_storage::#assoc_type<#lt>));
-                init.push(quote!(#name: #storage::iter_mut(&mut self.#name)));
+                field_decls.push(quote!(#name: #as_map_storage::#assoc_type<#lt>));
+                init.push(quote!(#name: #map_storage::iter_mut(&mut self.#name)));
             }
         }
     }
@@ -1254,9 +1256,9 @@ fn map_storage_values_mut(
                     }
                 });
             }
-            Kind::Complex(Complex { as_storage, .. }) => {
-                field_decls.push(quote!(#name: #as_storage::#assoc_type<#lt>));
-                init.push(quote!(#name: #as_storage::values_mut(&mut self.#name)));
+            Kind::Complex(Complex { as_map_storage, .. }) => {
+                field_decls.push(quote!(#name: #as_map_storage::#assoc_type<#lt>));
+                init.push(quote!(#name: #as_map_storage::values_mut(&mut self.#name)));
 
                 step_forward.next.push(quote! {
                     #index => {
@@ -1276,7 +1278,7 @@ fn map_storage_values_mut(
 
                 let where_clause = step_backward.make_where_clause();
 
-                let assoc_type = quote!(#as_storage::#assoc_type<#lt>);
+                let assoc_type = quote!(#as_map_storage::#assoc_type<#lt>);
 
                 where_clause.predicates.push(cx.fallible(|| syn::parse2(quote_spanned! {
                     *span => #assoc_type: #double_ended_iterator_t<Item = <#assoc_type as #iterator_t>::Item>
@@ -1374,12 +1376,12 @@ fn map_storage_into_iter(
                 init.push(quote!(#name: self.#name));
             }
             Kind::Complex(Complex {
-                as_storage,
-                storage,
+                as_map_storage,
+                map_storage,
                 ..
             }) => {
-                field_decls.push(quote!(#name: #as_storage::#assoc_type));
-                init.push(quote!(#name: #storage::into_iter(self.#name)));
+                field_decls.push(quote!(#name: #as_map_storage::#assoc_type));
+                init.push(quote!(#name: #map_storage::into_iter(self.#name)));
             }
         }
     }
@@ -1388,7 +1390,7 @@ fn map_storage_into_iter(
     let names = fields.names();
     let clone_bounds = fields
         .complex()
-        .map(|Complex { as_storage, .. }| quote!(#as_storage::#assoc_type: #clone_t));
+        .map(|Complex { as_map_storage, .. }| quote!(#as_map_storage::#assoc_type: #clone_t));
 
     output.impls.extend(quote! {
         #vis struct #type_name<V> {
@@ -1807,7 +1809,7 @@ impl ToTokens for IteratorNextBack {
 fn map_storage_entry(
     cx: &Ctxt<'_>,
     fields: &Fields<'_>,
-    storage: &Ident,
+    map_storage: &Ident,
     output: &mut Output,
 ) -> Result<(), ()> {
     let ident = &cx.ast.ident;
@@ -1820,7 +1822,7 @@ fn map_storage_entry(
     let option_bucket_none = cx.toks.option_bucket_none();
     let option_bucket_option = cx.toks.option_bucket_option();
     let option_bucket_some = cx.toks.option_bucket_some();
-    let storage_t = cx.toks.storage_t();
+    let map_storage_t = cx.toks.map_storage_t();
     let vacant_entry_t = cx.toks.vacant_entry_t();
 
     let mut init = Vec::new();
@@ -1848,22 +1850,24 @@ fn map_storage_entry(
                 init.push(quote!( #pattern => option_to_entry(&mut self.#name, key) ));
             }
             Kind::Complex(Complex {
-                element, storage, ..
+                element,
+                map_storage,
+                ..
             }) => {
-                let as_storage = quote!(<#storage as #storage_t<#element, V>>);
+                let as_map_storage = quote!(<#map_storage as #map_storage_t<#element, V>>);
 
-                occupied_variant.push(quote!( #name(#as_storage::Occupied<#lt>) ));
-                vacant_variant.push(quote!( #name(#as_storage::Vacant<#lt>) ));
+                occupied_variant.push(quote!( #name(#as_map_storage::Occupied<#lt>) ));
+                vacant_variant.push(quote!( #name(#as_map_storage::Vacant<#lt>) ));
 
                 init.push(quote! {
-                    #pattern(key) => match #storage_t::entry(&mut self.#name, key) {
+                    #pattern(key) => match #map_storage_t::entry(&mut self.#name, key) {
                         #entry_enum::Occupied(entry) => #entry_enum::Occupied(OccupiedEntry::#name(entry)),
                         #entry_enum::Vacant(entry) => #entry_enum::Vacant(VacantEntry::#name(entry)),
                     }
                 });
 
                 let as_vacant_entry =
-                    quote!(<#as_storage::Vacant<#lt> as #vacant_entry_t<#lt, #element, V>>);
+                    quote!(<#as_map_storage::Vacant<#lt> as #vacant_entry_t<#lt, #element, V>>);
 
                 vacant_key.push(
                     quote!( VacantEntry::#name(entry) => #pattern(#as_vacant_entry::key(entry)) ),
@@ -1873,7 +1877,7 @@ fn map_storage_entry(
                 );
 
                 let as_occupied_entry =
-                    quote!(<#as_storage::Occupied<#lt> as #occupied_entry_t<#lt, #element, V>>);
+                    quote!(<#as_map_storage::Occupied<#lt> as #occupied_entry_t<#lt, #element, V>>);
 
                 occupied_key.push(quote!( OccupiedEntry::#name(entry) => #pattern(#as_occupied_entry::key(entry)) ));
                 occupied_get
@@ -2018,7 +2022,7 @@ fn map_storage_entry(
         }
 
         #[inline]
-        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<'_, #storage<V>, #ident, V> {
+        fn option_to_entry<V>(opt: &mut #option<V>, key: #ident) -> #entry_enum<'_, #map_storage<V>, #ident, V> {
             match #option_bucket_option::new(opt) {
                 #option_bucket_option::Some(inner) => #entry_enum::Occupied(OccupiedEntry::Simple(SimpleOccupiedEntry { key, inner })),
                 #option_bucket_option::None(inner) => #entry_enum::Vacant(VacantEntry::Simple(SimpleVacantEntry { key, inner })),
@@ -2059,7 +2063,7 @@ pub(crate) struct Field<'a> {
     pub(crate) kind: Kind<'a>,
 }
 
-/// The kind of a single storage element.
+/// The stored kind of a single variant.
 pub(crate) enum Kind<'a> {
     Simple,
     Complex(Complex<'a>),
@@ -2069,10 +2073,10 @@ pub(crate) enum Kind<'a> {
 pub(crate) struct Complex<'a> {
     /// Type of variant field
     pub(crate) element: &'a syn::Field,
-    /// <E as Key>::Storage::<V> (E = type of variant field)
-    pub(crate) storage: TokenStream,
-    /// <<E as Key>::Storage::<V> as Storage<E, V>> (E = type of variant field)
-    pub(crate) as_storage: TokenStream,
+    /// <E as Key>::MapStorage::<V> (E = type of variant field)
+    pub(crate) map_storage: TokenStream,
+    /// <<E as Key>::MapStorage::<V> as MapStorage<E, V>> (E = type of variant field)
+    pub(crate) as_map_storage: TokenStream,
     /// <E as Key>::SetStorage (E = type of variant field)
     pub(crate) set_storage: TokenStream,
     /// <<E as Key>::SetStorage as SetStorage<E>> (E = type of variant field)

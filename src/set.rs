@@ -32,9 +32,9 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
-///     # #[cfg(feature = "map")]
+///     # #[cfg(feature = "hashbrown")]
 ///     String(&'static str),
-///     # #[cfg(feature = "map")]
+///     # #[cfg(feature = "hashbrown")]
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
@@ -45,9 +45,9 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 ///
 /// set.insert(Key::Simple);
 /// set.insert(Key::Composite(Part::One));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// set.insert(Key::String("foo"));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// set.insert(Key::Number(1));
 /// set.insert(Key::Singleton(()));
 /// set.insert(Key::Option(None));
@@ -57,13 +57,13 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 /// assert!(set.contains(Key::Simple));
 /// assert!(set.contains(Key::Composite(Part::One)));
 /// assert!(!set.contains(Key::Composite(Part::Two)));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert!(set.contains(Key::String("foo")));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert!(!set.contains(Key::String("bar")));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert!(set.contains(Key::Number(1)));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert!(!set.contains(Key::Number(2)));
 /// assert!(set.contains(Key::Singleton(())));
 /// assert!(set.contains(Key::Option(None)));

@@ -10,14 +10,12 @@ enum Part {
 enum Key {
     Simple,
     Composite(Part),
-    Number(u32),
     Singleton(()),
-    String(&'static str),
 }
 
 fn main() {
     let mut map = Map::new();
-    map.insert(Key::Number(42), 42);
-    assert_eq!(map.get(Key::Number(42)), Some(&42));
+    map.insert(Key::Composite(Part::One), 42);
+    assert_eq!(map.get(Key::Composite(Part::One)), Some(&42));
     assert_eq!(map.get(Key::Simple), None);
 }

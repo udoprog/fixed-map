@@ -64,7 +64,7 @@ fn composite() {
     assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
 }
 
-#[cfg(feature = "map")]
+#[cfg(feature = "hashbrown")]
 #[test]
 fn compound() {
     #[derive(Clone, Copy, Key)]

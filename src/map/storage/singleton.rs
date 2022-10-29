@@ -1,16 +1,16 @@
 use core::mem;
 
-use crate::map::{Entry, Storage};
+use crate::map::{Entry, MapStorage};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
-/// [`Storage`] type that can only inhabit a single value (like `()`).
+/// [`MapStorage`] type that can only inhabit a single value (like `()`).
 #[repr(transparent)]
 #[derive(Clone, Copy)]
-pub struct SingletonStorage<V> {
+pub struct SingletonMapStorage<V> {
     inner: Option<V>,
 }
 
-impl<V> PartialEq for SingletonStorage<V>
+impl<V> PartialEq for SingletonMapStorage<V>
 where
     V: PartialEq,
 {
@@ -20,9 +20,9 @@ where
     }
 }
 
-impl<V> Eq for SingletonStorage<V> where V: Eq {}
+impl<V> Eq for SingletonMapStorage<V> where V: Eq {}
 
-impl<K, V> Storage<K, V> for SingletonStorage<V>
+impl<K, V> MapStorage<K, V> for SingletonMapStorage<V>
 where
     K: Default,
 {

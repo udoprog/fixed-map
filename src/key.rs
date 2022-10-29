@@ -1,9 +1,9 @@
 //! Module for the trait to define a `Key`.
 
-#[cfg(feature = "map")]
-use crate::map::storage::MapStorage;
-use crate::map::storage::{BooleanStorage, OptionStorage, SingletonStorage, Storage};
-#[cfg(feature = "map")]
+#[cfg(feature = "hashbrown")]
+use crate::map::storage::HashbrownMapStorage;
+use crate::map::storage::{BooleanMapStorage, MapStorage, OptionMapStorage, SingletonMapStorage};
+#[cfg(feature = "hashbrown")]
 use crate::set::storage::HashbrownSetStorage;
 use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, SingletonSetStorage};
 
@@ -50,7 +50,7 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 ///
 /// #[derive(Clone, Copy, Key)]
 /// enum MyKey {
-///     # #[cfg(feature = "map")]
+///     # #[cfg(feature = "hashbrown")]
 ///     First(u32),
 ///     Second,
 /// }
@@ -123,17 +123,17 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// [`Map`]: crate::Map
 /// [`Set`]: crate::Set
 pub trait Key: Copy {
-    /// The [`Map`] `Storage` implementation to use for the key implementing
+    /// The [`Map`] storage implementation to use for the key implementing
     /// this trait.
-    type Storage<V>: Storage<Self, V>;
+    type MapStorage<V>: MapStorage<Self, V>;
 
-    /// The [`Set`] `Storage` implementation to use for the key implementing
+    /// The [`Set`] storage implementation to use for the key implementing
     /// this trait.
     type SetStorage: SetStorage<Self>;
 }
 
 impl Key for bool {
-    type Storage<V> = BooleanStorage<V>;
+    type MapStorage<V> = BooleanMapStorage<V>;
     type SetStorage = BooleanSetStorage;
 }
 
@@ -141,15 +141,15 @@ impl<K> Key for Option<K>
 where
     K: Key,
 {
-    type Storage<V> = OptionStorage<K, V>;
+    type MapStorage<V> = OptionMapStorage<K, V>;
     type SetStorage = OptionSetStorage<K>;
 }
 
 macro_rules! map_key {
     ($ty:ty) => {
-        #[cfg(feature = "map")]
+        #[cfg(feature = "hashbrown")]
         impl Key for $ty {
-            type Storage<V> = MapStorage<$ty, V>;
+            type MapStorage<V> = HashbrownMapStorage<$ty, V>;
             type SetStorage = HashbrownSetStorage<$ty>;
         }
     };
@@ -158,7 +158,7 @@ macro_rules! map_key {
 macro_rules! singleton_key {
     ($ty:ty) => {
         impl Key for $ty {
-            type Storage<V> = SingletonStorage<V>;
+            type MapStorage<V> = SingletonMapStorage<V>;
             type SetStorage = SingletonSetStorage;
         }
     };

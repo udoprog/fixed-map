@@ -1,18 +1,18 @@
 //! Module that defines the [`Storage`] trait.
 
 mod boolean;
-pub(crate) use self::boolean::BooleanStorage;
+pub(crate) use self::boolean::BooleanMapStorage;
 
-#[cfg(feature = "map")]
-mod map;
-#[cfg(feature = "map")]
-pub(crate) use self::map::MapStorage;
+#[cfg(feature = "hashbrown")]
+mod hashbrown;
+#[cfg(feature = "hashbrown")]
+pub(crate) use self::hashbrown::HashbrownMapStorage;
 
 mod option;
-pub(crate) use self::option::OptionStorage;
+pub(crate) use self::option::OptionMapStorage;
 
 mod singleton;
-pub(crate) use self::singleton::SingletonStorage;
+pub(crate) use self::singleton::SingletonMapStorage;
 
 use crate::map::Entry;
 
@@ -22,7 +22,7 @@ use crate::map::Entry;
 ///
 /// - `K` is the key being stored.
 /// - `V` is the value being stored.
-pub trait Storage<K, V>: Sized {
+pub trait MapStorage<K, V>: Sized {
     /// Immutable iterator over storage.
     type Iter<'this>: Iterator<Item = (K, &'this V)>
     where

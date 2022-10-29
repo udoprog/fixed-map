@@ -63,11 +63,11 @@
 //!
 //! The following features are available:
 //!
-//! * `std` - Disabling this feature causes this crate to be no-std.
-//!   This means that dynamic types cannot be used in keys, like ones enabled by
-//!   the `map` feature (default).
-//! * `map` - Causes [`Storage`] to be implemented by dynamic types such as
-//!   `&'static str` or `u32`. These are backed by a `hashbrown` (default).
+//! * `std` - Disabling this feature causes this crate to be no-std. This means
+//!   that dynamic types cannot be used in keys, like ones enabled by the `map`
+//!   feature (default).
+//! * `hashbrown` - Causes [`Storage`] to be implemented by dynamic types such
+//!   as `&'static str` or `u32`. These are backed by a `hashbrown` (default).
 //! * `entry` - Enables an [`entry`] API similar to that found on [`HashMap`].
 //! * `serde` - Causes [`Map`] and [`Set`] to implement [`Serialize`] and
 //!   [`Deserialize`] if it's implemented by the key and value.

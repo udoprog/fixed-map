@@ -6,9 +6,9 @@ pub use self::singleton::SingletonSetStorage;
 mod boolean;
 pub use self::boolean::BooleanSetStorage;
 
-#[cfg(feature = "map")]
+#[cfg(feature = "hashbrown")]
 mod hashbrown;
-#[cfg(feature = "map")]
+#[cfg(feature = "hashbrown")]
 pub use self::hashbrown::HashbrownSetStorage;
 
 mod option;
