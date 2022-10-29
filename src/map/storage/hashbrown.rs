@@ -1,14 +1,14 @@
 use core::hash::Hash;
 use core::iter;
 
-use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
 
 type S = ::hashbrown::hash_map::DefaultHashBuilder;
 type Occupied<'a, K, V> = ::hashbrown::hash_map::OccupiedEntry<'a, K, V, S>;
 type Vacant<'a, K, V> = ::hashbrown::hash_map::VacantEntry<'a, K, V, S>;
 type HashMapEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 
-/// Storage for dynamic types, using [`hashbrown::HashMap`].
+/// [`MapStorage`] for dynamic types, using [`hashbrown::HashMap`].
 ///
 /// This allows for dynamic types such as `&'static str` or `u32` to be used as
 /// a [`Key`][crate::Key].
@@ -31,24 +31,24 @@ type HashMapEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 /// assert_eq!(map.get(Key::Second), None);
 /// ```
 #[repr(transparent)]
-pub struct MapStorage<K, V> {
+pub struct HashbrownMapStorage<K, V> {
     inner: ::hashbrown::HashMap<K, V>,
 }
 
-impl<K, V> Clone for MapStorage<K, V>
+impl<K, V> Clone for HashbrownMapStorage<K, V>
 where
     K: Clone,
     V: Clone,
 {
     #[inline]
     fn clone(&self) -> Self {
-        MapStorage {
+        Self {
             inner: self.inner.clone(),
         }
     }
 }
 
-impl<K, V> PartialEq for MapStorage<K, V>
+impl<K, V> PartialEq for HashbrownMapStorage<K, V>
 where
     K: Eq + Hash,
     V: PartialEq,
@@ -59,7 +59,7 @@ where
     }
 }
 
-impl<K, V> Eq for MapStorage<K, V>
+impl<K, V> Eq for HashbrownMapStorage<K, V>
 where
     K: Eq + Hash,
     V: Eq,
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<K, V> Storage<K, V> for MapStorage<K, V>
+impl<K, V> MapStorage<K, V> for HashbrownMapStorage<K, V>
 where
     K: Copy + Eq + Hash,
 {

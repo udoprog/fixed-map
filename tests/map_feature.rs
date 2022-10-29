@@ -1,4 +1,4 @@
-#![cfg(feature = "map")]
+#![cfg(feature = "hashbrown")]
 
 use fixed_map::{Key, Map};
 

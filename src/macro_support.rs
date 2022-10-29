@@ -4,6 +4,8 @@
 //! other purposes is not supported, and this API will not abide by semver
 //! stability guarantees.
 
+#![allow(clippy::missing_inline_in_public_items)]
+
 use core::cmp::Ordering;
 
 #[inline]
@@ -16,7 +18,6 @@ fn flatten<T>(value: (usize, &Option<T>)) -> Option<(usize, &T)> {
 
 /// `partial_cmp` implementation over iterators which ensures that storage
 /// ordering between `None` and `Some` is handled in a reasonable manner.
-#[allow(clippy::missing_inline_in_public_items)]
 pub fn __storage_iterator_partial_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Option<Ordering>
 where
     A: IntoIterator<Item = &'a Option<T>>,
@@ -30,7 +31,6 @@ where
 
 /// `cmp` implementation over iterators which ensures that storage ordering
 /// between `None` and `Some` is handled in a reasonable manner.
-#[allow(clippy::missing_inline_in_public_items)]
 pub fn __storage_iterator_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Ordering
 where
     A: IntoIterator<Item = &'a Option<T>>,
@@ -39,5 +39,34 @@ where
 {
     let a = a.into_iter().enumerate().filter_map(flatten);
     let b = b.into_iter().enumerate().filter_map(flatten);
+    a.cmp(b)
+}
+
+#[inline]
+fn filter_bool(&(_, value): &(usize, &bool)) -> bool {
+    *value
+}
+
+/// `partial_cmp` implementation over iterators which ensures that storage
+/// ordering between `false` and `true` is handled in a reasonable manner.
+pub fn __storage_iterator_partial_cmp_bool<'a, A, B>(a: A, b: B) -> Option<Ordering>
+where
+    A: IntoIterator<Item = &'a bool>,
+    B: IntoIterator<Item = &'a bool>,
+{
+    let a = a.into_iter().enumerate().filter(filter_bool);
+    let b = b.into_iter().enumerate().filter(filter_bool);
+    a.partial_cmp(b)
+}
+
+/// `cmp` implementation over iterators which ensures that storage ordering
+/// between `false` and `true` is handled in a reasonable manner.
+pub fn __storage_iterator_cmp_bool<'a, A, B>(a: A, b: B) -> Ordering
+where
+    A: IntoIterator<Item = &'a bool>,
+    B: IntoIterator<Item = &'a bool>,
+{
+    let a = a.into_iter().enumerate().filter(filter_bool);
+    let b = b.into_iter().enumerate().filter(filter_bool);
     a.cmp(b)
 }

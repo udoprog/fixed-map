@@ -4,7 +4,7 @@ mod entry;
 pub use self::entry::Entry;
 
 pub(crate) mod storage;
-pub use self::storage::{OccupiedEntry, Storage, VacantEntry};
+pub use self::storage::{MapStorage, OccupiedEntry, VacantEntry};
 
 use core::cmp::{Ord, Ordering, PartialOrd};
 use core::fmt;
@@ -13,22 +13,22 @@ use core::hash::{Hash, Hasher};
 use crate::key::Key;
 
 /// The iterator produced by [`Map::iter`].
-pub type Iter<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Iter<'a>;
+pub type Iter<'a, K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::Iter<'a>;
 
 /// The iterator produced by [`Map::keys`].
-pub type Keys<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Keys<'a>;
+pub type Keys<'a, K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::Keys<'a>;
 
 /// The iterator produced by [`Map::values`].
-pub type Values<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::Values<'a>;
+pub type Values<'a, K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::Values<'a>;
 
 /// The iterator produced by [`Map::iter`].
-pub type IterMut<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IterMut<'a>;
+pub type IterMut<'a, K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IterMut<'a>;
 
 /// The iterator produced by [`Map::values_mut`].
-pub type ValuesMut<'a, K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::ValuesMut<'a>;
+pub type ValuesMut<'a, K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::ValuesMut<'a>;
 
 /// The iterator produced by [`Map::into_iter`].
-pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
+pub type IntoIter<K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IntoIter;
 
 /// A fixed map with storage specialized through the [`Key`] trait.
 ///
@@ -47,9 +47,9 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 /// enum Key {
 ///     Simple,
 ///     Composite(Part),
-///     # #[cfg(feature = "map")]
+///     # #[cfg(feature = "hashbrown")]
 ///     String(&'static str),
-///     # #[cfg(feature = "map")]
+///     # #[cfg(feature = "hashbrown")]
 ///     Number(u32),
 ///     Singleton(()),
 ///     Option(Option<Part>),
@@ -60,9 +60,9 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 ///
 /// map.insert(Key::Simple, 1);
 /// map.insert(Key::Composite(Part::One), 2);
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// map.insert(Key::String("foo"), 3);
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// map.insert(Key::Number(1), 4);
 /// map.insert(Key::Singleton(()), 5);
 /// map.insert(Key::Option(None), 6);
@@ -72,13 +72,13 @@ pub type IntoIter<K, V> = <<K as Key>::Storage<V> as Storage<K, V>>::IntoIter;
 /// assert_eq!(map.get(Key::Simple), Some(&1));
 /// assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
 /// assert_eq!(map.get(Key::Composite(Part::Two)), None);
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert_eq!(map.get(Key::String("foo")), Some(&3));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert_eq!(map.get(Key::String("bar")), None);
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert_eq!(map.get(Key::Number(1)), Some(&4));
-/// # #[cfg(feature = "map")]
+/// # #[cfg(feature = "hashbrown")]
 /// assert_eq!(map.get(Key::Number(2)), None);
 /// assert_eq!(map.get(Key::Singleton(())), Some(&5));
 /// assert_eq!(map.get(Key::Option(None)), Some(&6));
@@ -111,7 +111,7 @@ pub struct Map<K, V>
 where
     K: Key,
 {
-    storage: K::Storage<V>,
+    storage: K::MapStorage<V>,
 }
 
 /// A map implementation that uses fixed storage.
@@ -180,7 +180,7 @@ where
     #[must_use]
     pub fn new() -> Map<K, V> {
         Map {
-            storage: K::Storage::empty(),
+            storage: K::MapStorage::empty(),
         }
     }
 
@@ -827,8 +827,8 @@ where
     /// assert_eq!(map.get(Key::Second), Some(&vec![2; 4]));
     /// ```
     #[inline]
-    pub fn entry(&mut self, key: K) -> Entry<'_, K::Storage<V>, K, V> {
-        K::Storage::entry(&mut self.storage, key)
+    pub fn entry(&mut self, key: K) -> Entry<'_, K::MapStorage<V>, K, V> {
+        K::MapStorage::entry(&mut self.storage, key)
     }
 }
 
@@ -861,7 +861,7 @@ where
 impl<K, V> Clone for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: Clone,
+    K::MapStorage<V>: Clone,
 {
     #[inline]
     fn clone(&self) -> Map<K, V> {
@@ -902,7 +902,7 @@ where
 impl<K, V> Copy for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: Copy,
+    K::MapStorage<V>: Copy,
 {
 }
 
@@ -1010,7 +1010,7 @@ where
 impl<K, V> PartialEq for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: PartialEq,
+    K::MapStorage<V>: PartialEq,
 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -1021,7 +1021,7 @@ where
 impl<K, V> Eq for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: Eq,
+    K::MapStorage<V>: Eq,
 {
 }
 
@@ -1072,7 +1072,7 @@ where
 impl<K, V> Hash for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: Hash,
+    K::MapStorage<V>: Hash,
 {
     #[inline]
     fn hash<H>(&self, state: &mut H)
@@ -1135,7 +1135,7 @@ where
 impl<K, V> PartialOrd for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: PartialOrd,
+    K::MapStorage<V>: PartialOrd,
 {
     #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -1214,7 +1214,7 @@ where
 impl<K, V> Ord for Map<K, V>
 where
     K: Key,
-    K::Storage<V>: Ord,
+    K::MapStorage<V>: Ord,
 {
     #[inline]
     fn cmp(&self, other: &Self) -> Ordering {

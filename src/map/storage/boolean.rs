@@ -5,7 +5,7 @@ use core::iter;
 use core::mem;
 use core::option;
 
-use crate::map::{Entry, OccupiedEntry, Storage, VacantEntry};
+use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
 const TRUE_BIT: u8 = 0b10;
@@ -26,7 +26,7 @@ type IntoIter<V> = iter::Chain<
     iter::Map<option::IntoIter<V>, fn(V) -> (bool, V)>,
 >;
 
-/// Storage for [`bool`] types.
+/// [`MapStorage`] for [`bool`] types.
 ///
 /// # Examples
 ///
@@ -71,12 +71,12 @@ type IntoIter<V> = iter::Chain<
 /// ```
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct BooleanStorage<V> {
+pub struct BooleanMapStorage<V> {
     t: Option<V>,
     f: Option<V>,
 }
 
-/// See [`BooleanStorage::keys`].
+/// See [`BooleanMapStorage::keys`].
 pub struct Keys {
     bits: u8,
 }
@@ -191,7 +191,7 @@ impl<'a, V> OccupiedEntry<'a, bool, V> for Occupied<'a, V> {
     }
 }
 
-impl<V> Storage<bool, V> for BooleanStorage<V> {
+impl<V> MapStorage<bool, V> for BooleanMapStorage<V> {
     type Iter<'this> = Iter<'this, V> where V: 'this;
     type Keys<'this> = Keys where V: 'this;
     type Values<'this> = Values<'this, V> where V: 'this;

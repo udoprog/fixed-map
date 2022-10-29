@@ -17,9 +17,8 @@ categories = ["data-structures"]
 all-features = true
 
 [features]
-default = ["map", "std"]
+default = ["hashbrown", "std"]
 std = ["serde?/std"]
-map = ["hashbrown", "std"]
 
 [dependencies]
 fixed-map-derive = { version = "0.8.0-alpha.2", path = "fixed-map-derive" }
