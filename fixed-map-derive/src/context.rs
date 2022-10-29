@@ -113,6 +113,13 @@ fn suffixed<const N: usize>(prefix: &Path, parts: [&'static str; N]) -> Path {
     path
 }
 
+/// Options for derive.
+#[derive(Default)]
+pub(crate) struct Opts {
+    /// Implements sets as bitsets when possible.
+    pub(crate) bitset: Option<Span>,
+}
+
 pub(crate) struct Ctxt<'a> {
     /// Errors collected in the context.
     errors: RefCell<Vec<syn::Error>>,

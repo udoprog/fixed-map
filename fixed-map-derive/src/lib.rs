@@ -64,7 +64,9 @@ use syn::spanned::Spanned;
 use syn::{Data, DataEnum, DeriveInput, Fields};
 
 mod any_variants;
+mod attrs;
 mod context;
+mod symbol;
 mod unit_variants;
 
 /// Derive to implement the `Key` trait.
@@ -161,9 +163,11 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
 /// Derive to implement the `Key` trait.
 fn impl_storage(cx: &context::Ctxt<'_>) -> Result<TokenStream, ()> {
+    let opts = attrs::parse(cx)?;
+
     if let Data::Enum(en) = &cx.ast.data {
         if is_all_unit_variants(en) {
-            unit_variants::implement(cx, en)
+            unit_variants::implement(cx, &opts, en)
         } else {
             any_variants::implement(cx, en)
         }
