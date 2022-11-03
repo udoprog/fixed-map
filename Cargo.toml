@@ -1,9 +1,9 @@
 [package]
 name = "fixed-map"
-version = "0.8.0-alpha.2"
+version = "0.8.0"
 authors = ["John-John Tedro <udoprog@tedro.se>", "Peter Jaszkowiak <p.jaszkow@gmail.com>"]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.65.0"
 description = "A fixed map where storage layout is calculated by a procedural macro."
 documentation = "https://docs.rs/fixed-map"
 readme = "README.md"
@@ -21,7 +21,7 @@ default = ["hashbrown", "std"]
 std = ["serde?/std"]
 
 [dependencies]
-fixed-map-derive = { version = "0.8.0-alpha.2", path = "fixed-map-derive" }
+fixed-map-derive = { version = "0.8.0", path = "fixed-map-derive" }
 hashbrown = { version = "0.12.3", optional = true }
 serde = { version = "1.0.145", optional = true, default_features = false }
 

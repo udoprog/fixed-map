@@ -17,7 +17,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! fixed-map = "0.8.0-alpha.2"
+//! fixed-map = "0.8.0"
 //! ```
 //!
 //! Anything used as a key in either a [`Map`] or a [`Set`] needs to implement
@@ -181,11 +181,12 @@
 //! }
 //! ```
 //!
+//! <br>
+//!
 //! ## Unsafe use
 //!
-//! The Entry API uses `unwrap_unchecked` to obtain
-//! mutable references to the inner value of `Some`s,
-//! and to skip `drop` when overwriting `None`s.
+//! The Entry API uses `unwrap_unchecked` to obtain mutable references to the
+//! inner value of `Some`s, and to skip `drop` when overwriting `None`s.
 //!
 //! <br>
 //!

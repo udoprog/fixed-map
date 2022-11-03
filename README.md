@@ -19,7 +19,7 @@ Add `fixed-map` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fixed-map = "0.8.0-alpha.2"
+fixed-map = "0.8.0"
 ```
 
 Anything used as a key in either a [`Map`] or a [`Set`] needs to implement
@@ -63,11 +63,11 @@ assert!(!set.contains(Key::East));
 
 The following features are available:
 
-* `std` - Disabling this feature causes this crate to be no-std.
-  This means that dynamic types cannot be used in keys, like ones enabled by
-  the `map` feature (default).
-* `map` - Causes [`Storage`] to be implemented by dynamic types such as
-  `&'static str` or `u32`. These are backed by a `hashbrown` (default).
+* `std` - Disabling this feature causes this crate to be no-std. This means
+  that dynamic types cannot be used in keys, like ones enabled by the `map`
+  feature (default).
+* `hashbrown` - Causes [`Storage`] to be implemented by dynamic types such
+  as `&'static str` or `u32`. These are backed by a `hashbrown` (default).
 * `entry` - Enables an [`entry`] API similar to that found on [`HashMap`].
 * `serde` - Causes [`Map`] and [`Set`] to implement [`Serialize`] and
   [`Deserialize`] if it's implemented by the key and value.
@@ -177,10 +177,12 @@ if let Some(item) = map.get(Dir::North) {
 }
 ```
 
+<br>
+
 ## Unsafe use
-The Entry API uses `unwrap_unchecked` to obtain
-mutable references to the inner value of `Some`s,
-and to skip `drop` when overwriting `None`s.
+
+The Entry API uses `unwrap_unchecked` to obtain mutable references to the
+inner value of `Some`s, and to skip `drop` when overwriting `None`s.
 
 <br>
 

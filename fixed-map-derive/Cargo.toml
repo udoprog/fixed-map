@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map-derive"
-version = "0.8.0-alpha.2"
+version = "0.8.0"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 description = """
@@ -22,7 +22,7 @@ quote = "1.0.2"
 proc-macro2 = "1.0.6"
 
 [dev-dependencies]
-fixed-map = { version = "0.8.0-alpha.2", path = ".." }
+fixed-map = { version = "0.8.0", path = ".." }
 
 [lib]
 proc-macro = true
