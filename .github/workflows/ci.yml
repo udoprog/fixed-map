@@ -7,39 +7,46 @@ on:
       - main
 
 jobs:
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: rustup toolchain install 1.65 --profile minimal
+    - run: rustup default 1.65
+    - run: cargo build --workspace --no-default-features
+    - run: cargo build --workspace --all-features --all-targets
+
   clippy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - run: rustup toolchain install 1.68 --profile minimal --component clippy
-    - run: cargo +1.68 clippy --workspace --all-features --tests --examples --benches -- --deny warnings
-
-  rustfmt:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - run: rustup toolchain install stable --profile minimal --component rustfmt
-    - run: cargo +stable fmt --check
+    - run: cargo +1.68 clippy --workspace --all-features --all-targets -- --deny warnings
 
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - run: rustup toolchain install stable --profile minimal
-    - run: rustup default stable
-    - run: cargo build --no-default-features
-    - run: cargo build --all-features --examples --tests --benches
+    - run: cargo build --workspace --no-default-features
+    - run: cargo build --workspace --all-features --all-targets
 
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - run: rustup toolchain install stable --profile minimal
-    - run: rustup default stable
     # Test all relevant feature combos:
     # features: std, hashbrown, entry, serde
-    - run: cargo test --all-features
+    - run: cargo test --workspace --all-features
     # features: -std, -hashbrown, -entry, -serde
-    - run: cargo test --no-default-features
+    - run: cargo test --workspace --no-default-features
     # features: -std, -hashbrown, -entry, serde
-    - run: cargo test --no-default-features --features serde
+    - run: cargo test --workspace --no-default-features --features serde
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - run: rustup toolchain install stable --profile minimal --component rustfmt
+    - run: cargo fmt --check
