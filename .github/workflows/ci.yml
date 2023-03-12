@@ -11,42 +11,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: rustup toolchain install 1.65 --profile minimal
-    - run: rustup default 1.65
-    - run: cargo build --workspace --no-default-features
-    - run: cargo build --workspace --all-features --all-targets
-
-  clippy:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - run: rustup toolchain install 1.68 --profile minimal --component clippy
-    - run: cargo +1.68 clippy --workspace --all-features --all-targets -- --deny warnings
-
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - run: rustup toolchain install stable --profile minimal
-    - run: cargo build --workspace --no-default-features
-    - run: cargo build --workspace --all-features --all-targets
+    - uses: dtolnay/rust-toolchain@1.65
+    - run: cargo test --workspace --all-features
+    - run: cargo test --workspace --no-default-features
+    - run: cargo test --workspace --no-default-features --features serde
 
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: rustup toolchain install stable --profile minimal
-    # Test all relevant feature combos:
-    # features: std, hashbrown, entry, serde
+    - uses: dtolnay/rust-toolchain@stable
     - run: cargo test --workspace --all-features
-    # features: -std, -hashbrown, -entry, -serde
     - run: cargo test --workspace --no-default-features
-    # features: -std, -hashbrown, -entry, serde
     - run: cargo test --workspace --no-default-features --features serde
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: dtolnay/rust-toolchain@1.68
+      with:
+        components: clippy
+    - run: cargo clippy --workspace --all-features --all-targets -- -D warnings
 
   rustfmt:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: rustup toolchain install stable --profile minimal --component rustfmt
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
     - run: cargo fmt --check
