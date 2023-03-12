@@ -12,18 +12,18 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: dtolnay/rust-toolchain@1.65
-    - run: cargo test --workspace --all-features
-    - run: cargo test --workspace --no-default-features
-    - run: cargo test --workspace --no-default-features --features serde
+    - run: cargo test --workspace --all-targets --all-features
+    - run: cargo test --workspace --all-targets --no-default-features
+    - run: cargo test --workspace --all-targets --no-default-features --features serde
 
   test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - uses: dtolnay/rust-toolchain@stable
-    - run: cargo test --workspace --all-features
-    - run: cargo test --workspace --no-default-features
-    - run: cargo test --workspace --no-default-features --features serde
+    - run: cargo test --workspace --all-targets --all-features
+    - run: cargo test --workspace --all-targets --no-default-features
+    - run: cargo test --workspace --all-targets --no-default-features --features serde
 
   clippy:
     runs-on: ubuntu-latest
@@ -41,4 +41,4 @@ jobs:
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
-    - run: cargo fmt --check
+    - run: cargo fmt --check --all
