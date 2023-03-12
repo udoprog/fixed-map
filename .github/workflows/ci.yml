@@ -15,6 +15,9 @@ jobs:
     - run: cargo test --workspace --all-targets --all-features
     - run: cargo test --workspace --all-targets --no-default-features
     - run: cargo test --workspace --all-targets --no-default-features --features serde
+    - run: cargo test --workspace --doc --all-features
+    - run: cargo test --workspace --doc --no-default-features
+    - run: cargo test --workspace --doc --no-default-features --features serde
 
   test:
     runs-on: ubuntu-latest
@@ -24,6 +27,9 @@ jobs:
     - run: cargo test --workspace --all-targets --all-features
     - run: cargo test --workspace --all-targets --no-default-features
     - run: cargo test --workspace --all-targets --no-default-features --features serde
+    - run: cargo test --workspace --doc --all-features
+    - run: cargo test --workspace --doc --no-default-features
+    - run: cargo test --workspace --doc --no-default-features --features serde
 
   clippy:
     runs-on: ubuntu-latest
