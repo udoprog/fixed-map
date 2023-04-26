@@ -1,7 +1,7 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned, ToTokens};
+use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::{DataEnum, Ident, Pat};
 
 const MAP_STORAGE: &str = "__MapStorage";
 const SET_STORAGE: &str = "__SetStorage";
@@ -9,14 +9,14 @@ const SET_STORAGE: &str = "__SetStorage";
 use crate::context::Ctxt;
 
 ///
-pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()> {
+pub(crate) fn implement(cx: &Ctxt<'_>, en: &syn::DataEnum) -> Result<TokenStream, ()> {
     let ident = &cx.ast.ident;
 
     let key_t = cx.toks.key_t();
     let map_storage_t = cx.toks.map_storage_t();
     let set_storage_t = cx.toks.set_storage_t();
 
-    let const_wrapper = Ident::new(
+    let const_wrapper = syn::Ident::new(
         &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
         Span::call_site(),
     );
@@ -31,12 +31,12 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
             syn::Fields::Unit => {
                 fields
                     .patterns
-                    .push(cx.fallible(|| syn::parse2(quote!(#ident::#var)))?);
+                    .push(build_tuple_struct_pat(ident, var, None));
                 Kind::Simple
             }
             syn::Fields::Unnamed(unnamed) => {
                 if unnamed.unnamed.len() > 1 {
-                    cx.error(
+                    cx.span_error(
                         variant.fields.span(),
                         "unnamed variants must have a single field",
                     );
@@ -49,9 +49,10 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 let set_storage = quote!(<#element as #key_t>::SetStorage);
                 let as_set_storage = quote!(<#set_storage as #set_storage_t<#element>>);
 
-                fields
-                    .patterns
-                    .push(cx.fallible(|| syn::parse2(quote!(#ident::#var(v))))?);
+                let pat =
+                    build_tuple_struct_pat(ident, var, Some(syn::Ident::new("v", unnamed.span())));
+
+                fields.patterns.push(pat);
 
                 Kind::Complex(Complex {
                     element,
@@ -62,7 +63,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
                 })
             }
             syn::Fields::Named(_) => {
-                cx.error(variant.fields.span(), "named fields are not supported");
+                cx.span_error(variant.fields.span(), "named fields are not supported");
                 continue;
             }
         };
@@ -93,8 +94,57 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &DataEnum) -> Result<TokenStream, ()>
     })
 }
 
+fn build_tuple_struct_pat(
+    ident: &syn::Ident,
+    var: &syn::Ident,
+    arg: Option<syn::Ident>,
+) -> syn::Pat {
+    let mut segments = Punctuated::default();
+
+    segments.push(syn::PathSegment {
+        ident: ident.clone(),
+        arguments: syn::PathArguments::None,
+    });
+
+    segments.push(syn::PathSegment {
+        ident: var.clone(),
+        arguments: syn::PathArguments::None,
+    });
+
+    let path = syn::Path {
+        leading_colon: None,
+        segments,
+    };
+
+    if let Some(arg) = arg {
+        let mut elems = Punctuated::default();
+
+        elems.push(syn::Pat::Ident(syn::PatIdent {
+            attrs: Vec::new(),
+            by_ref: None,
+            mutability: None,
+            ident: arg,
+            subpat: None,
+        }));
+
+        syn::Pat::TupleStruct(syn::PatTupleStruct {
+            attrs: Vec::default(),
+            qself: None,
+            path,
+            paren_token: syn::token::Paren::default(),
+            elems,
+        })
+    } else {
+        syn::Pat::Path(syn::PatPath {
+            attrs: Vec::default(),
+            qself: None,
+            path,
+        })
+    }
+}
+
 /// Implement `MapStorage` implementation.
-fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenStream), ()> {
+fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(syn::Ident, TokenStream), ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
@@ -382,7 +432,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenS
 }
 
 /// Implement `SetStorage` implementation.
-fn impl_set_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(Ident, TokenStream), ()> {
+fn impl_set_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(syn::Ident, TokenStream), ()> {
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
@@ -628,7 +678,7 @@ fn build_iter_next(
     step_forward: &mut IteratorNext,
     step_backward: &mut IteratorNextBack,
     fields: &Fields<'_>,
-    assoc_type: &Ident,
+    assoc_type: &syn::Ident,
     lt: Option<&syn::Lifetime>,
 ) -> Result<(), ()> {
     let option = cx.toks.option();
@@ -708,7 +758,7 @@ fn map_storage_iter(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let lt = cx.lt;
     let ident = &cx.ast.ident;
@@ -817,7 +867,7 @@ fn map_storage_keys(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let lt = cx.lt;
     let ident = &cx.ast.ident;
@@ -967,7 +1017,7 @@ fn map_storage_values(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let lt = cx.lt;
     let vis = &cx.ast.vis;
@@ -1113,7 +1163,7 @@ fn map_storage_iter_mut(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let ident = &cx.ast.ident;
     let lt = cx.lt;
@@ -1212,7 +1262,7 @@ fn map_storage_values_mut(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let lt = cx.lt;
     let vis = &cx.ast.vis;
@@ -1344,7 +1394,7 @@ fn map_storage_into_iter(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{MAP_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
@@ -1454,7 +1504,7 @@ fn set_storage_iter(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{SET_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let lt = cx.lt;
     let ident = &cx.ast.ident;
@@ -1599,7 +1649,7 @@ fn set_storage_into_iter(
     output: &mut Output,
 ) -> Result<(), ()> {
     let type_name = format_ident!("{SET_STORAGE}{assoc_type}");
-    let assoc_type = Ident::new(assoc_type, Span::call_site());
+    let assoc_type = syn::Ident::new(assoc_type, Span::call_site());
 
     let ident = &cx.ast.ident;
     let vis = &cx.ast.vis;
@@ -1809,7 +1859,7 @@ impl ToTokens for IteratorNextBack {
 fn map_storage_entry(
     cx: &Ctxt<'_>,
     fields: &Fields<'_>,
-    map_storage: &Ident,
+    map_storage: &syn::Ident,
     output: &mut Output,
 ) -> Result<(), ()> {
     let ident = &cx.ast.ident;
@@ -2057,9 +2107,9 @@ pub(crate) struct Field<'a> {
     pub(crate) span: Span,
     pub(crate) index: usize,
     /// Index-based name (`f1`, `f2`)
-    pub(crate) name: Ident,
+    pub(crate) name: syn::Ident,
     /// Variant name
-    pub(crate) var: &'a Ident,
+    pub(crate) var: &'a syn::Ident,
     pub(crate) kind: Kind<'a>,
 }
 
@@ -2086,12 +2136,12 @@ pub(crate) struct Complex<'a> {
 #[derive(Default)]
 pub(crate) struct Fields<'a> {
     fields: Vec<Field<'a>>,
-    patterns: Vec<Pat>,
+    patterns: Vec<syn::Pat>,
 }
 
 impl<'a> Fields<'a> {
     /// Get names of all the fields.
-    fn names(&self) -> impl Iterator<Item = &'_ Ident> {
+    fn names(&self) -> impl Iterator<Item = &'_ syn::Ident> {
         self.fields.iter().map(|f| &f.name)
     }
 

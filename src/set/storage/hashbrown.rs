@@ -14,16 +14,16 @@ use crate::set::SetStorage;
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(u32),
 ///     Second,
 /// }
 ///
 /// let mut map = Set::new();
-/// map.insert(Key::First(1));
-/// assert_eq!(map.contains(Key::First(1)), true);
-/// assert_eq!(map.contains(Key::First(2)), false);
-/// assert_eq!(map.contains(Key::Second), false);
+/// map.insert(MyKey::First(1));
+/// assert_eq!(map.contains(MyKey::First(1)), true);
+/// assert_eq!(map.contains(MyKey::First(2)), false);
+/// assert_eq!(map.contains(MyKey::Second), false);
 /// ```
 #[repr(transparent)]
 pub struct HashbrownSetStorage<T> {

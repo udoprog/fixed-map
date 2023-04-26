@@ -70,21 +70,21 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Third);
+/// b.insert(MyKey::Third);
 ///
 /// let mut c = Set::new();
-/// c.insert(Key::First);
-/// c.insert(Key::Third);
+/// c.insert(MyKey::First);
+/// c.insert(MyKey::Third);
 ///
 /// assert!(a < b);
 /// assert!(c < b);
@@ -97,21 +97,21 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// use std::collections::BTreeSet;
 ///
 /// #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
 /// }
 ///
 /// let mut a = BTreeSet::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// let mut b = BTreeSet::new();
-/// b.insert(Key::Third);
+/// b.insert(MyKey::Third);
 ///
 /// let mut c = BTreeSet::new();
-/// c.insert(Key::First);
-/// c.insert(Key::Third);
+/// c.insert(MyKey::First);
+/// c.insert(MyKey::Third);
 ///
 /// assert!(a < b);
 /// assert!(c < b);

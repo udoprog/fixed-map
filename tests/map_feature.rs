@@ -9,7 +9,7 @@ enum Part {
 }
 
 #[derive(Clone, Copy, Key)]
-enum Key {
+enum MyKey {
     Simple,
     Composite(Part),
     String(&'static str),
@@ -21,18 +21,18 @@ enum Key {
 fn map_feature() {
     let mut map = Map::new();
 
-    map.insert(Key::Simple, 1);
-    map.insert(Key::Composite(Part::One), 2);
-    map.insert(Key::String("foo"), 3);
-    map.insert(Key::Number(1), 4);
-    map.insert(Key::Singleton(()), 5);
+    map.insert(MyKey::Simple, 1);
+    map.insert(MyKey::Composite(Part::One), 2);
+    map.insert(MyKey::String("foo"), 3);
+    map.insert(MyKey::Number(1), 4);
+    map.insert(MyKey::Singleton(()), 5);
 
-    assert_eq!(map.get(Key::Simple), Some(&1));
-    assert_eq!(map.get(Key::Composite(Part::One)), Some(&2));
-    assert_eq!(map.get(Key::Composite(Part::Two)), None);
-    assert_eq!(map.get(Key::String("foo")), Some(&3));
-    assert_eq!(map.get(Key::String("bar")), None);
-    assert_eq!(map.get(Key::Number(1)), Some(&4));
-    assert_eq!(map.get(Key::Number(2)), None);
-    assert_eq!(map.get(Key::Singleton(())), Some(&5));
+    assert_eq!(map.get(MyKey::Simple), Some(&1));
+    assert_eq!(map.get(MyKey::Composite(Part::One)), Some(&2));
+    assert_eq!(map.get(MyKey::Composite(Part::Two)), None);
+    assert_eq!(map.get(MyKey::String("foo")), Some(&3));
+    assert_eq!(map.get(MyKey::String("bar")), None);
+    assert_eq!(map.get(MyKey::Number(1)), Some(&4));
+    assert_eq!(map.get(MyKey::Number(2)), None);
+    assert_eq!(map.get(MyKey::Singleton(())), Some(&5));
 }

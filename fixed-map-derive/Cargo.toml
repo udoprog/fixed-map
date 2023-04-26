@@ -18,9 +18,9 @@ keywords = ["container", "data-structure", "map", "no_std"]
 categories = ["data-structures"]
 
 [dependencies]
-syn = { version = "1.0.8", features = ["full"] }
-quote = "1.0.2"
-proc-macro2 = "1.0.6"
+syn = { version = "2.0.15", features = ["full"] }
+quote = "1.0.26"
+proc-macro2 = "1.0.56"
 
 [dev-dependencies]
 fixed-map = { version = "=0.8.3", path = ".." }

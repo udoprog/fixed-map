@@ -29,7 +29,7 @@ the [`Key`] trait. This should be derived:
 use fixed_map::{Key, Map};
 
 #[derive(Clone, Copy, Key)]
-enum Key {
+enum MyKey {
     North,
     South,
     East,
@@ -43,18 +43,18 @@ After this you can use one of our containers:
 use fixed_map::{Map, Set};
 
 let mut map = Map::new();
-map.insert(Key::North, 200);
-map.insert(Key::South, 100);
+map.insert(MyKey::North, 200);
+map.insert(MyKey::South, 100);
 
-assert_eq!(map.get(Key::North), Some(&200));
-assert_eq!(map.get(Key::East), None);
+assert_eq!(map.get(MyKey::North), Some(&200));
+assert_eq!(map.get(MyKey::East), None);
 
 let mut set = Set::new();
-set.insert(Key::North);
-set.insert(Key::South);
+set.insert(MyKey::North);
+set.insert(MyKey::South);
 
-assert!(set.contains(Key::South));
-assert!(!set.contains(Key::East));
+assert!(set.contains(MyKey::South));
+assert!(!set.contains(MyKey::East));
 ```
 
 <br>
@@ -83,7 +83,7 @@ optimized storage for a given [`Key`]. We also require any key to be [`Copy`].
 use fixed_map::Key;
 
 #[derive(Clone, Copy, Key)]
-enum Key {
+enum MyKey {
     North,
     South,
     East,

@@ -1,6 +1,3 @@
-use syn::spanned::Spanned;
-use syn::{Meta, NestedMeta};
-
 use crate::context::{Ctxt, Opts};
 use crate::symbol;
 
@@ -9,30 +6,22 @@ pub(crate) fn parse(cx: &Ctxt<'_>) -> Result<Opts, ()> {
     let mut opts = Opts::default();
 
     for attr in &cx.ast.attrs {
-        if attr.path != symbol::KEY {
+        if attr.path() != symbol::KEY {
             continue;
         }
 
-        let meta = cx.fallible(|| attr.parse_meta())?;
-
-        let nested = match meta {
-            Meta::List(meta) => meta.nested.into_iter(),
-            other => {
-                cx.error(other.span(), "unsupported attribute");
-                return Err(());
+        let result = attr.parse_nested_meta(|input| {
+            if input.path == symbol::BITSET {
+                opts.bitset = Some(input.input.span());
+            } else {
+                return Err(syn::Error::new(input.input.span(), "Unsupported attribute"));
             }
-        };
 
-        for meta in nested {
-            match meta {
-                NestedMeta::Meta(Meta::Path(p)) if p == symbol::BITSET => {
-                    opts.bitset = Some(p.span());
-                }
-                other => {
-                    cx.error(other.span(), "unsupported attribute");
-                    return Err(());
-                }
-            }
+            Ok(())
+        });
+
+        if let Err(error) = result {
+            cx.error(error);
         }
     }
 

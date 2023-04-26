@@ -83,7 +83,7 @@ mod unit_variants;
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy, Key)]
-/// pub enum Key {
+/// pub enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
@@ -96,29 +96,29 @@ mod unit_variants;
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy)]
-/// pub enum Key {
+/// pub enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
 /// }
 ///
 /// /// Build a storage struct containing an item for each key:
-/// pub struct KeyStorage<V> {
-///     /// Storage for `Key::First`.
+/// pub struct MyKeyStorage<V> {
+///     /// Storage for `MyKey::First`.
 ///     f1: Option<V>,
-///     /// Storage for `Key::Second`.
+///     /// Storage for `MyKey::Second`.
 ///     f2: Option<V>,
-///     /// Storage for `Key::Third`.
+///     /// Storage for `MyKey::Third`.
 ///     f3: Option<V>,
 /// }
 ///
 /// /// Implement storage for `KeyStorage`.
-/// impl<V> fixed_map::storage::Storage<Key, V> for KeyStorage<V> {
-///     fn get(&self, key: Key) -> Option<&V> {
+/// impl<V> fixed_map::storage::Storage<MyKey, V> for KeyStorage<V> {
+///     fn get(&self, key: MyKey) -> Option<&V> {
 ///         match key {
-///             Key::First => self.f1.as_ref(),
-///             Key::Second => self.f2.as_ref(),
-///             Key::Third => self.f3.as_ref(),
+///             MyKey::First => self.f1.as_ref(),
+///             MyKey::Second => self.f2.as_ref(),
+///             MyKey::Third => self.f3.as_ref(),
 ///         }
 ///     }
 ///
@@ -136,7 +136,7 @@ mod unit_variants;
 /// }
 ///
 /// /// Implement the `Key` trait to point out storage.
-/// impl<V> fixed_map::key::Key<Key, V> for Key {
+/// impl<V> fixed_map::Key<Key, V> for MyKey {
 ///     type Storage = KeyStorage<V>;
 /// }
 /// ```
@@ -171,7 +171,7 @@ fn impl_storage(cx: &context::Ctxt<'_>) -> Result<TokenStream, ()> {
             any_variants::implement(cx, en)
         }
     } else {
-        cx.error(cx.ast.span(), "named fields are not supported");
+        cx.span_error(cx.ast.span(), "named fields are not supported");
         Err(())
     }
 }

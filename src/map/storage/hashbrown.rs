@@ -19,16 +19,16 @@ type HashMapEntry<'a, K, V> = ::hashbrown::hash_map::Entry<'a, K, V, S>;
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(u32),
 ///     Second,
 /// }
 ///
 /// let mut map = Map::new();
-/// map.insert(Key::First(1), 10);
-/// assert_eq!(map.get(Key::First(1)).copied(), Some(10));
-/// assert_eq!(map.get(Key::First(2)), None);
-/// assert_eq!(map.get(Key::Second), None);
+/// map.insert(MyKey::First(1), 10);
+/// assert_eq!(map.get(MyKey::First(1)).copied(), Some(10));
+/// assert_eq!(map.get(MyKey::First(2)), None);
+/// assert_eq!(map.get(MyKey::Second), None);
 /// ```
 #[repr(transparent)]
 pub struct HashbrownMapStorage<K, V> {

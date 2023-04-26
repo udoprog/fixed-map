@@ -1,13 +1,13 @@
 //! Contains the fixed [`Set`] implementation.
 
 pub mod storage;
-pub use crate::set::storage::SetStorage;
 
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
-use crate::key::Key;
+pub use crate::set::storage::SetStorage;
+use crate::Key;
 
 /// The iterator produced by [`Set::iter`].
 pub type Iter<'a, T> = <<T as Key>::SetStorage as SetStorage<T>>::Iter<'a>;
@@ -29,7 +29,7 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 /// }
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     Simple,
 ///     Composite(Part),
 ///     # #[cfg(feature = "hashbrown")]
@@ -43,34 +43,34 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 ///
 /// let mut set = Set::new();
 ///
-/// set.insert(Key::Simple);
-/// set.insert(Key::Composite(Part::One));
+/// set.insert(MyKey::Simple);
+/// set.insert(MyKey::Composite(Part::One));
 /// # #[cfg(feature = "hashbrown")]
-/// set.insert(Key::String("foo"));
+/// set.insert(MyKey::String("foo"));
 /// # #[cfg(feature = "hashbrown")]
-/// set.insert(Key::Number(1));
-/// set.insert(Key::Singleton(()));
-/// set.insert(Key::Option(None));
-/// set.insert(Key::Option(Some(Part::One)));
-/// set.insert(Key::Boolean(true));
+/// set.insert(MyKey::Number(1));
+/// set.insert(MyKey::Singleton(()));
+/// set.insert(MyKey::Option(None));
+/// set.insert(MyKey::Option(Some(Part::One)));
+/// set.insert(MyKey::Boolean(true));
 ///
-/// assert!(set.contains(Key::Simple));
-/// assert!(set.contains(Key::Composite(Part::One)));
-/// assert!(!set.contains(Key::Composite(Part::Two)));
+/// assert!(set.contains(MyKey::Simple));
+/// assert!(set.contains(MyKey::Composite(Part::One)));
+/// assert!(!set.contains(MyKey::Composite(Part::Two)));
 /// # #[cfg(feature = "hashbrown")]
-/// assert!(set.contains(Key::String("foo")));
+/// assert!(set.contains(MyKey::String("foo")));
 /// # #[cfg(feature = "hashbrown")]
-/// assert!(!set.contains(Key::String("bar")));
+/// assert!(!set.contains(MyKey::String("bar")));
 /// # #[cfg(feature = "hashbrown")]
-/// assert!(set.contains(Key::Number(1)));
+/// assert!(set.contains(MyKey::Number(1)));
 /// # #[cfg(feature = "hashbrown")]
-/// assert!(!set.contains(Key::Number(2)));
-/// assert!(set.contains(Key::Singleton(())));
-/// assert!(set.contains(Key::Option(None)));
-/// assert!(set.contains(Key::Option(Some(Part::One))));
-/// assert!(!set.contains(Key::Option(Some(Part::Two))));
-/// assert!(set.contains(Key::Boolean(true)));
-/// assert!(!set.contains(Key::Boolean(false)));
+/// assert!(!set.contains(MyKey::Number(2)));
+/// assert!(set.contains(MyKey::Singleton(())));
+/// assert!(set.contains(MyKey::Option(None)));
+/// assert!(set.contains(MyKey::Option(Some(Part::One))));
+/// assert!(!set.contains(MyKey::Option(Some(Part::Two))));
+/// assert!(set.contains(MyKey::Boolean(true)));
+/// assert!(!set.contains(MyKey::Boolean(false)));
 /// ```
 pub struct Set<T>
 where
@@ -87,16 +87,16 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut m = Set::new();
-/// m.insert(Key::First);
+/// m.insert(MyKey::First);
 ///
-/// assert_eq!(m.contains(Key::First), true);
-/// assert_eq!(m.contains(Key::Second), false);
+/// assert_eq!(m.contains(MyKey::First), true);
+/// assert_eq!(m.contains(MyKey::Second), false);
 /// ```
 ///
 /// ```rust
@@ -109,18 +109,18 @@ where
 /// }
 ///
 /// #[derive(Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     Simple,
 ///     Composite(Part),
 /// }
 ///
 /// let mut m = Set::new();
-/// m.insert(Key::Simple);
-/// m.insert(Key::Composite(Part::A));
+/// m.insert(MyKey::Simple);
+/// m.insert(MyKey::Composite(Part::A));
 ///
-/// assert_eq!(m.contains(Key::Simple), true);
-/// assert_eq!(m.contains(Key::Composite(Part::A)), true);
-/// assert_eq!(m.contains(Key::Composite(Part::B)), false);
+/// assert_eq!(m.contains(MyKey::Simple), true);
+/// assert_eq!(m.contains(MyKey::Composite(Part::A)), true);
+/// assert_eq!(m.contains(MyKey::Composite(Part::B)), false);
 /// ```
 impl<T> Set<T>
 where
@@ -134,12 +134,12 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
-    /// let set: Set<Key> = Set::new();
+    /// let set: Set<MyKey> = Set::new();
     /// ```
     #[inline]
     #[must_use]
@@ -157,18 +157,18 @@ where
     /// ```
     /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-    /// enum Key {
+    /// #[derive(Debug, Clone, Copy, Key, PartialEq, Eq)]
+    /// enum MyKey {
     ///     One,
     ///     Two,
     ///     Three,
     /// }
     ///
     /// let mut set = Set::new();
-    /// set.insert(Key::One);
-    /// set.insert(Key::Two);
+    /// set.insert(MyKey::One);
+    /// set.insert(MyKey::Two);
     ///
-    /// assert_eq!(set.iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.iter().collect::<Vec<_>>(), vec![MyKey::One, MyKey::Two]);
     /// ```
     #[inline]
     pub fn iter(&self) -> Iter<'_, T> {
@@ -183,15 +183,15 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
     /// let mut set = Set::new();
-    /// set.insert(Key::One);
-    /// assert_eq!(set.contains(Key::One), true);
-    /// assert_eq!(set.contains(Key::Two), false);
+    /// set.insert(MyKey::One);
+    /// assert_eq!(set.contains(MyKey::One), true);
+    /// assert_eq!(set.contains(MyKey::Two), false);
     /// ```
     #[inline]
     pub fn contains(&self, value: T) -> bool {
@@ -210,18 +210,18 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
     /// let mut set = Set::new();
-    /// assert!(set.insert(Key::One));
+    /// assert!(set.insert(MyKey::One));
     /// assert!(!set.is_empty());
     ///
-    /// set.insert(Key::Two);
-    /// assert!(!set.insert(Key::Two));
-    /// assert!(set.contains(Key::Two));
+    /// set.insert(MyKey::Two);
+    /// assert!(!set.insert(MyKey::Two));
+    /// assert!(set.contains(MyKey::Two));
     /// ```
     #[inline]
     pub fn insert(&mut self, value: T) -> bool {
@@ -237,15 +237,15 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
     /// let mut set = Set::new();
-    /// set.insert(Key::One);
-    /// assert_eq!(set.remove(Key::One), true);
-    /// assert_eq!(set.remove(Key::One), false);
+    /// set.insert(MyKey::One);
+    /// assert_eq!(set.remove(MyKey::One), true);
+    /// assert_eq!(set.remove(MyKey::One), false);
     /// ```
     #[inline]
     pub fn remove(&mut self, value: T) -> bool {
@@ -263,21 +263,21 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
     /// let mut set = Set::new();
     ///
-    /// set.insert(Key::First);
-    /// set.insert(Key::Second);
+    /// set.insert(MyKey::First);
+    /// set.insert(MyKey::Second);
     ///
-    /// set.retain(|k| matches!(k, Key::First));
+    /// set.retain(|k| matches!(k, MyKey::First));
     ///
     /// assert_eq!(set.len(), 1);
-    /// assert_eq!(set.contains(Key::First), true);
-    /// assert_eq!(set.contains(Key::Second), false);
+    /// assert_eq!(set.contains(MyKey::First), true);
+    /// assert_eq!(set.contains(MyKey::Second), false);
     /// ```
     ///
     /// Using a composite key:
@@ -286,36 +286,36 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second(bool),
     /// }
     ///
     /// let mut set = Set::new();
     ///
-    /// set.insert(Key::First(true));
-    /// set.insert(Key::First(false));
-    /// set.insert(Key::Second(true));
-    /// set.insert(Key::Second(false));
+    /// set.insert(MyKey::First(true));
+    /// set.insert(MyKey::First(false));
+    /// set.insert(MyKey::Second(true));
+    /// set.insert(MyKey::Second(false));
     ///
     /// let mut other = set.clone();
     /// assert_eq!(set.len(), 4);
     ///
-    /// set.retain(|k| matches!(k, Key::First(true) | Key::Second(true)));
+    /// set.retain(|k| matches!(k, MyKey::First(true) | MyKey::Second(true)));
     ///
     /// assert_eq!(set.len(), 2);
-    /// assert_eq!(set.contains(Key::First(true)), true);
-    /// assert_eq!(set.contains(Key::First(false)), false);
-    /// assert_eq!(set.contains(Key::Second(true)), true);
-    /// assert_eq!(set.contains(Key::Second(false)), false);
+    /// assert_eq!(set.contains(MyKey::First(true)), true);
+    /// assert_eq!(set.contains(MyKey::First(false)), false);
+    /// assert_eq!(set.contains(MyKey::Second(true)), true);
+    /// assert_eq!(set.contains(MyKey::Second(false)), false);
     ///
-    /// other.retain(|k| matches!(k, Key::First(_)));
+    /// other.retain(|k| matches!(k, MyKey::First(_)));
     ///
     /// assert_eq!(other.len(), 2);
-    /// assert_eq!(other.contains(Key::First(true)), true);
-    /// assert_eq!(other.contains(Key::First(false)), true);
-    /// assert_eq!(other.contains(Key::Second(true)), false);
-    /// assert_eq!(other.contains(Key::Second(false)), false);
+    /// assert_eq!(other.contains(MyKey::First(true)), true);
+    /// assert_eq!(other.contains(MyKey::First(false)), true);
+    /// assert_eq!(other.contains(MyKey::Second(true)), false);
+    /// assert_eq!(other.contains(MyKey::Second(false)), false);
     /// ```
     #[inline]
     pub fn retain<F>(&mut self, f: F)
@@ -333,13 +333,13 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
     /// let mut set = Set::new();
-    /// set.insert(Key::One);
+    /// set.insert(MyKey::One);
     /// set.clear();
     /// assert!(set.is_empty());
     /// ```
@@ -356,14 +356,14 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     One,
     ///     Two,
     /// }
     ///
     /// let mut set = Set::new();
     /// assert!(set.is_empty());
-    /// set.insert(Key::One);
+    /// set.insert(MyKey::One);
     /// assert!(!set.is_empty());
     /// ```
     #[inline]
@@ -379,14 +379,14 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
     /// let mut set = Set::new();
     /// assert_eq!(set.len(), 0);
-    /// set.insert(Key::First);
+    /// set.insert(MyKey::First);
     /// assert_eq!(set.len(), 1);
     /// ```
     #[inline]
@@ -403,23 +403,23 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(true));
+/// a.insert(MyKey::First(true));
 /// let mut b = a.clone();
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 ///
 /// assert_ne!(a, b);
 ///
-/// assert!(a.contains(Key::First(true)));
-/// assert!(!a.contains(Key::Second));
+/// assert!(a.contains(MyKey::First(true)));
+/// assert!(!a.contains(MyKey::Second));
 ///
-/// assert!(b.contains(Key::First(true)));
-/// assert!(b.contains(Key::Second));
+/// assert!(b.contains(MyKey::First(true)));
+/// assert!(b.contains(MyKey::Second));
 /// ```
 impl<T> Clone for Set<T>
 where
@@ -444,23 +444,23 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 /// let mut b = a;
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 ///
 /// assert_ne!(a, b);
 ///
-/// assert!(a.contains(Key::First));
-/// assert!(!a.contains(Key::Second));
+/// assert!(a.contains(MyKey::First));
+/// assert!(!a.contains(MyKey::Second));
 ///
-/// assert!(b.contains(Key::First));
-/// assert!(b.contains(Key::Second));
+/// assert!(b.contains(MyKey::First));
+/// assert!(b.contains(MyKey::Second));
 /// ```
 impl<T> Copy for Set<T>
 where
@@ -477,13 +477,13 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
-/// let a = Set::<Key>::default();
-/// let b = Set::<Key>::new();
+/// let a = Set::<MyKey>::default();
+/// let b = Set::<MyKey>::new();
 ///
 /// assert_eq!(a, b);
 /// ```
@@ -505,13 +505,13 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// assert_eq!("{First}", format!("{:?}", a));
 /// ```
@@ -533,19 +533,19 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 /// // Note: `a` is Copy since it's using a simple key.
 /// let mut b = a;
 ///
 /// assert_eq!(a, b);
 ///
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 /// assert_ne!(a, b);
 /// ```
 ///
@@ -555,18 +555,18 @@ where
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(true));
+/// a.insert(MyKey::First(true));
 /// let mut b = a.clone();
 ///
 /// assert_eq!(a, b);
 ///
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 /// assert_ne!(a, b);
 /// ```
 impl<T> PartialEq for Set<T>
@@ -596,14 +596,14 @@ where
 ///
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// let mut set = HashSet::new();
 /// set.insert(a);
@@ -616,14 +616,14 @@ where
 ///
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(true));
+/// a.insert(MyKey::First(true));
 ///
 /// // TODO: support this
 /// // let mut set = HashSet::new();
@@ -652,18 +652,18 @@ where
 /// ```
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Third);
+/// b.insert(MyKey::Third);
 ///
 /// assert!(a < b);
 ///
@@ -677,17 +677,17 @@ where
 /// ```
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(true));
+/// a.insert(MyKey::First(true));
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 ///
 /// // TODO: support this
 /// // assert!(a < b);
@@ -732,17 +732,17 @@ where
 /// ```
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First,
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First);
+/// a.insert(MyKey::First);
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 ///
 /// let mut list = vec![b, a];
 /// list.sort();
@@ -755,17 +755,17 @@ where
 /// ```
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, Hash, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, Hash)]
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(true));
+/// a.insert(MyKey::First(true));
 ///
 /// let mut b = Set::new();
-/// b.insert(Key::Second);
+/// b.insert(MyKey::Second);
 ///
 /// // TODO: support this
 /// // let mut list = vec![a, b];
@@ -824,18 +824,18 @@ where
 /// ```
 /// use fixed_map::{Key, Set};
 ///
-/// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-/// enum Key {
+/// #[derive(Debug, Clone, Copy, Key, PartialEq, Eq)]
+/// enum MyKey {
 ///     First,
 ///     Second,
 ///     Third,
 /// }
 ///
 /// let mut set = Set::new();
-/// set.insert(Key::First);
-/// set.insert(Key::Second);
+/// set.insert(MyKey::First);
+/// set.insert(MyKey::Second);
 ///
-/// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::First, Key::Second]);
+/// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![MyKey::First, MyKey::Second]);
 /// ```
 impl<T> IntoIterator for Set<T>
 where
@@ -852,18 +852,18 @@ where
     /// ```
     /// use fixed_map::{Key, Set};
     ///
-    /// #[derive(Debug, Clone, Copy, PartialEq, Eq, Key)]
-    /// enum Key {
+    /// #[derive(Debug, Clone, Copy, Key, PartialEq, Eq)]
+    /// enum MyKey {
     ///     One,
     ///     Two,
     ///     Three,
     /// }
     ///
     /// let mut set = Set::new();
-    /// set.insert(Key::One);
-    /// set.insert(Key::Two);
+    /// set.insert(MyKey::One);
+    /// set.insert(MyKey::Two);
     ///
-    /// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![Key::One, Key::Two]);
+    /// assert_eq!(set.into_iter().collect::<Vec<_>>(), vec![MyKey::One, MyKey::Two]);
     /// ```
     #[inline]
     fn into_iter(self) -> Self::IntoIter {

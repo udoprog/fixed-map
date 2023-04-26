@@ -7,7 +7,7 @@ enum Part {
 }
 
 #[derive(Clone, Copy, Key)]
-enum Key {
+enum MyKey {
     Simple,
     Composite(Part),
     Singleton(()),
@@ -15,7 +15,7 @@ enum Key {
 
 fn main() {
     let mut map = Map::new();
-    map.insert(Key::Composite(Part::One), 42);
-    assert_eq!(map.get(Key::Composite(Part::One)), Some(&42));
-    assert_eq!(map.get(Key::Simple), None);
+    map.insert(MyKey::Composite(Part::One), 42);
+    assert_eq!(map.get(MyKey::Composite(Part::One)), Some(&42));
+    assert_eq!(map.get(MyKey::Simple), None);
 }

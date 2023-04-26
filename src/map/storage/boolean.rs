@@ -34,21 +34,21 @@ type IntoIter<V> = iter::Chain<
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Map::new();
-/// a.insert(Key::First(false), 1);
+/// a.insert(MyKey::First(false), 1);
 ///
-/// assert_eq!(a.get(Key::First(true)), None);
-/// assert_eq!(a.get(Key::First(false)), Some(&1));
-/// assert_eq!(a.get(Key::Second), None);
+/// assert_eq!(a.get(MyKey::First(true)), None);
+/// assert_eq!(a.get(MyKey::First(false)), Some(&1));
+/// assert_eq!(a.get(MyKey::Second), None);
 ///
-/// assert!(a.iter().eq([(Key::First(false), &1)]));
+/// assert!(a.iter().eq([(MyKey::First(false), &1)]));
 /// assert!(a.values().copied().eq([1]));
-/// assert!(a.keys().eq([Key::First(false)]));
+/// assert!(a.keys().eq([MyKey::First(false)]));
 /// ```
 ///
 /// Iterator over boolean storage:
@@ -57,17 +57,17 @@ type IntoIter<V> = iter::Chain<
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     Bool(bool),
 ///     Other,
 /// }
 ///
 /// let mut a = Map::new();
-/// a.insert(Key::Bool(true), 1);
-/// a.insert(Key::Bool(false), 2);
+/// a.insert(MyKey::Bool(true), 1);
+/// a.insert(MyKey::Bool(false), 2);
 ///
-/// assert!(a.iter().eq([(Key::Bool(true), &1), (Key::Bool(false), &2)]));
-/// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![(Key::Bool(false), &2), (Key::Bool(true), &1)]);
+/// assert!(a.iter().eq([(MyKey::Bool(true), &1), (MyKey::Bool(false), &2)]));
+/// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![(MyKey::Bool(false), &2), (MyKey::Bool(true), &1)]);
 /// ```
 
 #[derive(Clone, Copy, PartialEq, Eq)]

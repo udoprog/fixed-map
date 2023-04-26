@@ -2,8 +2,8 @@ use core::iter;
 use core::mem;
 use core::option;
 
-use crate::key::Key;
 use crate::set::SetStorage;
+use crate::Key;
 
 type Iter<'a, T> = iter::Chain<
     iter::Map<<<T as Key>::SetStorage as SetStorage<T>>::Iter<'a>, fn(T) -> Option<T>>,
@@ -28,23 +28,23 @@ type IntoIter<T> = iter::Chain<
 /// }
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(Option<Part>),
 ///     Second,
 /// }
 ///
 /// let mut a = Map::new();
-/// a.insert(Key::First(None), 1);
-/// a.insert(Key::First(Some(Part::A)), 2);
+/// a.insert(MyKey::First(None), 1);
+/// a.insert(MyKey::First(Some(Part::A)), 2);
 ///
-/// assert_eq!(a.get(Key::First(Some(Part::A))), Some(&2));
-/// assert_eq!(a.get(Key::First(Some(Part::B))), None);
-/// assert_eq!(a.get(Key::First(None)), Some(&1));
-/// assert_eq!(a.get(Key::Second), None);
+/// assert_eq!(a.get(MyKey::First(Some(Part::A))), Some(&2));
+/// assert_eq!(a.get(MyKey::First(Some(Part::B))), None);
+/// assert_eq!(a.get(MyKey::First(None)), Some(&1));
+/// assert_eq!(a.get(MyKey::Second), None);
 ///
-/// assert!(a.iter().eq([(Key::First(Some(Part::A)), &2), (Key::First(None), &1)]));
+/// assert!(a.iter().eq([(MyKey::First(Some(Part::A)), &2), (MyKey::First(None), &1)]));
 /// assert!(a.values().copied().eq([2, 1]));
-/// assert!(a.keys().eq([Key::First(Some(Part::A)), Key::First(None)]));
+/// assert!(a.keys().eq([MyKey::First(Some(Part::A)), MyKey::First(None)]));
 /// ```
 pub struct OptionSetStorage<T>
 where

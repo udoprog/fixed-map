@@ -131,20 +131,20 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// let occupied = match map.entry(Key::First) {
+    /// let occupied = match map.entry(MyKey::First) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
     ///
-    /// assert_eq!(occupied.key(), Key::First);
+    /// assert_eq!(occupied.key(), MyKey::First);
     /// ```
     ///
     /// Using a composite key:
@@ -154,20 +154,20 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(false), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(false), 12);
     ///
-    /// let occupied = match map.entry(Key::First(false)) {
+    /// let occupied = match map.entry(MyKey::First(false)) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
     ///
-    /// assert_eq!(occupied.key(), Key::First(false));
+    /// assert_eq!(occupied.key(), MyKey::First(false));
     /// ```
     fn key(&self) -> K;
 
@@ -180,15 +180,15 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// let occupied = match map.entry(Key::First) {
+    /// let occupied = match map.entry(MyKey::First) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
@@ -203,15 +203,15 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(false), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(false), 12);
     ///
-    /// let occupied = match map.entry(Key::First(false)) {
+    /// let occupied = match map.entry(MyKey::First(false)) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
@@ -232,15 +232,15 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// let mut occupied = match map.entry(Key::First) {
+    /// let mut occupied = match map.entry(MyKey::First) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
@@ -255,15 +255,15 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(false), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(false), 12);
     ///
-    /// let mut occupied = match map.entry(Key::First(false)) {
+    /// let mut occupied = match map.entry(MyKey::First(false)) {
     ///     Entry::Occupied(entry) => entry,
     ///     _ => unreachable!(),
     /// };
@@ -288,19 +288,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// if let Entry::Occupied(occupied) = map.entry(Key::First) {
+    /// if let Entry::Occupied(occupied) = map.entry(MyKey::First) {
     ///     *occupied.into_mut() += 10;
     /// };
     ///
-    /// assert_eq!(map.get(Key::First), Some(&22));
+    /// assert_eq!(map.get(MyKey::First), Some(&22));
     /// ```
     ///
     /// Using a composite key:
@@ -310,19 +310,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(false), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(false), 12);
     ///
-    /// if let Entry::Occupied(occupied) = map.entry(Key::First(false)) {
+    /// if let Entry::Occupied(occupied) = map.entry(MyKey::First(false)) {
     ///     *occupied.into_mut() += 10;
     /// };
     ///
-    /// assert_eq!(map.get(Key::First(false)), Some(&22));
+    /// assert_eq!(map.get(MyKey::First(false)), Some(&22));
     /// ```
     fn into_mut(self) -> &'a mut V;
 
@@ -335,19 +335,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// if let Entry::Occupied(mut occupied) = map.entry(Key::First) {
+    /// if let Entry::Occupied(mut occupied) = map.entry(MyKey::First) {
     ///     assert_eq!(occupied.insert(10), 12);
     /// };
     ///
-    /// assert_eq!(map.get(Key::First), Some(&10));
+    /// assert_eq!(map.get(MyKey::First), Some(&10));
     /// ```
     ///
     /// Using a composite key:
@@ -357,19 +357,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(false), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(false), 12);
     ///
-    /// if let Entry::Occupied(mut occupied) = map.entry(Key::First(false)) {
+    /// if let Entry::Occupied(mut occupied) = map.entry(MyKey::First(false)) {
     ///     assert_eq!(occupied.insert(10), 12);
     /// };
     ///
-    /// assert_eq!(map.get(Key::First(false)), Some(&10));
+    /// assert_eq!(map.get(MyKey::First(false)), Some(&10));
     /// ```
     fn insert(&mut self, value: V) -> V;
 
@@ -382,19 +382,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First, 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First, 12);
     ///
-    /// if let Entry::Occupied(occupied) = map.entry(Key::First) {
+    /// if let Entry::Occupied(occupied) = map.entry(MyKey::First) {
     ///     assert_eq!(occupied.remove(), 12);
     /// };
     ///
-    /// assert_eq!(map.contains_key(Key::First), false);
+    /// assert_eq!(map.contains_key(MyKey::First), false);
     /// ```
     ///
     /// Using a composite key:
@@ -404,19 +404,19 @@ pub trait OccupiedEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, OccupiedEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// map.insert(Key::First(true), 12);
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// map.insert(MyKey::First(true), 12);
     ///
-    /// if let Entry::Occupied(occupied) = map.entry(Key::First(true)) {
+    /// if let Entry::Occupied(occupied) = map.entry(MyKey::First(true)) {
     ///     assert_eq!(occupied.remove(), 12);
     /// };
     ///
-    /// assert_eq!(map.contains_key(Key::First(true)), false);
+    /// assert_eq!(map.contains_key(MyKey::First(true)), false);
     /// ```
     fn remove(self) -> V;
 }
@@ -434,18 +434,18 @@ pub trait VacantEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, VacantEntry};
     ///
     /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// let vacant = match map.entry(Key::First) {
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// let vacant = match map.entry(MyKey::First) {
     ///     Entry::Vacant(entry) => entry,
     ///     _ => unreachable!(),
     /// };
     ///
-    /// assert_eq!(vacant.key(), Key::First);
+    /// assert_eq!(vacant.key(), MyKey::First);
     /// ```
     ///
     /// Using a composite key:
@@ -455,18 +455,18 @@ pub trait VacantEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, VacantEntry};
     ///
     /// #[derive(Clone, Copy, Key, Debug, PartialEq)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
-    /// let vacant = match map.entry(Key::First(false)) {
+    /// let mut map: Map<MyKey, i32> = Map::new();
+    /// let vacant = match map.entry(MyKey::First(false)) {
     ///     Entry::Vacant(entry) => entry,
     ///     _ => unreachable!(),
     /// };
     ///
-    /// assert_eq!(vacant.key(), Key::First(false));
+    /// assert_eq!(vacant.key(), MyKey::First(false));
     /// ```
     fn key(&self) -> K;
 
@@ -480,18 +480,18 @@ pub trait VacantEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, VacantEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First,
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
+    /// let mut map: Map<MyKey, i32> = Map::new();
     ///
-    /// if let Entry::Vacant(vacant) = map.entry(Key::First) {
+    /// if let Entry::Vacant(vacant) = map.entry(MyKey::First) {
     ///     assert_eq!(vacant.insert(37), &37);
     /// }
     ///
-    /// assert_eq!(map.get(Key::First), Some(&37));
+    /// assert_eq!(map.get(MyKey::First), Some(&37));
     /// ```
     ///
     /// Using a composite key:
@@ -501,18 +501,18 @@ pub trait VacantEntry<'a, K, V> {
     /// use fixed_map::map::{Entry, VacantEntry};
     ///
     /// #[derive(Clone, Copy, Key)]
-    /// enum Key {
+    /// enum MyKey {
     ///     First(bool),
     ///     Second,
     /// }
     ///
-    /// let mut map: Map<Key, i32> = Map::new();
+    /// let mut map: Map<MyKey, i32> = Map::new();
     ///
-    /// if let Entry::Vacant(vacant) = map.entry(Key::First(false)) {
+    /// if let Entry::Vacant(vacant) = map.entry(MyKey::First(false)) {
     ///     assert_eq!(vacant.insert(37), &37);
     /// }
     ///
-    /// assert_eq!(map.get(Key::First(false)), Some(&37));
+    /// assert_eq!(map.get(MyKey::First(false)), Some(&37));
     /// ```
     fn insert(self, value: V) -> &'a mut V;
 }

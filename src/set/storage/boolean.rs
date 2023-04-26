@@ -16,19 +16,19 @@ const FALSE_BIT: u8 = 0b01;
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     First(bool),
 ///     Second,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::First(false));
+/// a.insert(MyKey::First(false));
 ///
-/// assert!(!a.contains(Key::First(true)));
-/// assert!(a.contains(Key::First(false)));
-/// assert!(!a.contains(Key::Second));
+/// assert!(!a.contains(MyKey::First(true)));
+/// assert!(a.contains(MyKey::First(false)));
+/// assert!(!a.contains(MyKey::Second));
 ///
-/// assert!(a.iter().eq([Key::First(false)]));
+/// assert!(a.iter().eq([MyKey::First(false)]));
 /// ```
 ///
 /// Iterator over boolean set:
@@ -37,17 +37,17 @@ const FALSE_BIT: u8 = 0b01;
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Debug, Clone, Copy, PartialEq, Key)]
-/// enum Key {
+/// enum MyKey {
 ///     Bool(bool),
 ///     Other,
 /// }
 ///
 /// let mut a = Set::new();
-/// a.insert(Key::Bool(true));
-/// a.insert(Key::Bool(false));
+/// a.insert(MyKey::Bool(true));
+/// a.insert(MyKey::Bool(false));
 ///
-/// assert!(a.iter().eq([Key::Bool(true), Key::Bool(false)]));
-/// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![Key::Bool(false), Key::Bool(true)]);
+/// assert!(a.iter().eq([MyKey::Bool(true), MyKey::Bool(false)]));
+/// assert_eq!(a.iter().rev().collect::<Vec<_>>(), vec![MyKey::Bool(false), MyKey::Bool(true)]);
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BooleanSetStorage {

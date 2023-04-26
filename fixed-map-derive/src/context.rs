@@ -67,7 +67,7 @@ toks! {
         iterator_partial_cmp = [crate::macro_support::__storage_iterator_partial_cmp],
         iterator_partial_cmp_bool = [crate::macro_support::__storage_iterator_partial_cmp_bool],
         iterator_t = [::core::iter::Iterator],
-        key_t = [crate::key::Key],
+        key_t = [crate::Key],
         mem = [::core::mem],
         occupied_entry_t = [crate::map::OccupiedEntry],
         option = [::core::option::Option],
@@ -142,10 +142,13 @@ impl<'a> Ctxt<'a> {
     }
 
     /// Emit an error.
-    pub(crate) fn error(&self, span: Span, message: impl fmt::Display) {
-        self.errors
-            .borrow_mut()
-            .push(syn::Error::new(span, message));
+    pub(crate) fn error(&self, error: syn::Error) {
+        self.errors.borrow_mut().push(error);
+    }
+
+    /// Emit an error.
+    pub(crate) fn span_error(&self, span: Span, message: impl fmt::Display) {
+        self.error(syn::Error::new(span, message));
     }
 
     /// Convert into interior errors.

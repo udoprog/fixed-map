@@ -1,14 +1,14 @@
 use fixed_map::{Key, Map};
 
 #[derive(Debug, Clone, Copy, Key)]
-enum Key {
+enum MyKey {
     First,
     Second,
 }
 
 fn main() {
     let mut map = Map::new();
-    map.insert(Key::First, 42);
-    assert_eq!(map.get(Key::First), Some(&42));
-    assert_eq!(map.get(Key::Second), None);
+    map.insert(MyKey::First, 42);
+    assert_eq!(map.get(MyKey::First), Some(&42));
+    assert_eq!(map.get(MyKey::Second), None);
 }

@@ -1,9 +1,9 @@
 use fixed_map::{Key, Map};
 
 #[derive(Debug, Clone, Copy, Key)]
-enum Key {}
+enum MyKey {}
 
 #[test]
 fn empty() {
-    let _ = Map::<Key, u32>::new();
+    let _ = Map::<MyKey, u32>::new();
 }

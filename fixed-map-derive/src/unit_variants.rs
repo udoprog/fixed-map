@@ -27,7 +27,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, opts: &Opts, en: &DataEnum) -> Result<Tok
 
     let set_storage_impl = if let Some(span) = opts.bitset {
         if !cfg!(fixed_map_experimental) {
-            cx.error(span, "trying to use experimental feature `bitset` without specifying `--cfg fixed_map_experimental`");
+            cx.span_error(span, "trying to use experimental feature `bitset` without specifying `--cfg fixed_map_experimental`");
             return Err(());
         }
 
@@ -531,7 +531,7 @@ fn determine_bits(cx: &Ctxt<'_>, en: &DataEnum) -> Result<(Ident, usize), ()> {
         33..=64 => (Ident::new("u64", Span::call_site()), 64),
         65..=128 => (Ident::new("u128", Span::call_site()), 64),
         other => {
-            cx.error(
+            cx.span_error(
                 cx.ast.ident.span(),
                 format_args!("only support up until 128 variants, got {other}"),
             );

@@ -20,7 +20,7 @@ macro_rules! benches {
 
             // Assert that size of Key is identical to array.
             const _: () = assert!(
-                mem::size_of::<<Key as fixed_map::key::Key>::MapStorage<usize>>() == mem::size_of::<[Option<usize>; $len]>()
+                mem::size_of::<<Key as fixed_map::Key>::MapStorage<usize>>() == mem::size_of::<[Option<usize>; $len]>()
             );
 
             group.bench_with_input(BenchmarkId::new("fixed", $len), &$len, |b: &mut Bencher, _| {
