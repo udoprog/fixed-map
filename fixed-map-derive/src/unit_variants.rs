@@ -411,10 +411,11 @@ fn impl_bitset(cx: &Ctxt<'_>, en: &DataEnum, set_storage: &Ident) -> Result<Toke
         .variants
         .iter()
         .enumerate()
-        .map(|(n, v)| LitInt::new(&format!("{}", 1 << n), v.span()))
+        .map(|(n, v)| LitInt::new(&format!("{}", 1u128 << n), v.span()))
         .collect::<Vec<_>>();
 
     Ok(quote! {
+        #[inline]
         const fn to_bits(value: #ident) -> #ty {
             match value {
                 #(#ident::#variants => #numbers,)*
@@ -524,7 +525,7 @@ fn determine_bits(cx: &Ctxt<'_>, en: &DataEnum) -> Result<(Ident, usize), ()> {
         9..=16 => (Ident::new("u16", Span::call_site()), 16),
         17..=32 => (Ident::new("u32", Span::call_site()), 32),
         33..=64 => (Ident::new("u64", Span::call_site()), 64),
-        65..=128 => (Ident::new("u128", Span::call_site()), 64),
+        65..=128 => (Ident::new("u128", Span::call_site()), 128),
         other => {
             cx.span_error(
                 cx.ast.ident.span(),
