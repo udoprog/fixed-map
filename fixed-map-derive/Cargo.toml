@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map-derive"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 rust-version = "1.65"

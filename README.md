@@ -19,7 +19,7 @@ Add `fixed-map` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fixed-map = "0.9.0"
+fixed-map = "0.9.1"
 ```
 
 Anything used as a key in either a [`Map`] or a [`Set`] needs to implement
