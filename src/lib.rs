@@ -314,8 +314,25 @@
 #![allow(clippy::type_repetition_in_bounds)]
 #![allow(clippy::expl_impl_clone_on_copy)]
 
+pub mod raw;
+
 mod key;
 pub use self::key::Key;
+
+pub mod map;
+#[doc(inline)]
+pub use self::map::Map;
+
+pub mod set;
+#[doc(inline)]
+pub use self::set::Set;
+
+// Re-export the option bucket types for use in `derive(Key)`
+#[doc(hidden)]
+pub mod option_bucket;
+
+#[doc(hidden)]
+pub mod macro_support;
 
 /// Derive to implement the [`Key`] trait.
 ///
@@ -458,18 +475,3 @@ pub use self::key::Key;
 /// ```
 #[doc(inline)]
 pub use fixed_map_derive::Key;
-
-pub mod map;
-#[doc(inline)]
-pub use self::map::Map;
-
-pub mod set;
-#[doc(inline)]
-pub use self::set::Set;
-
-// Re-export the option bucket types for use in `derive(Key)`
-#[doc(hidden)]
-pub mod option_bucket;
-
-#[doc(hidden)]
-pub mod macro_support;

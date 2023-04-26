@@ -404,6 +404,7 @@ fn impl_bitset(cx: &Ctxt<'_>, en: &DataEnum, set_storage: &Ident) -> Result<Toke
     let partial_eq_t = cx.toks.partial_eq_t();
     let partial_ord_t = cx.toks.partial_ord_t();
     let set_storage_t = cx.toks.set_storage_t();
+    let raw_storage_t = cx.toks.raw_storage_t();
 
     let variants = en.variants.iter().map(|v| &v.ident).collect::<Vec<_>>();
 
@@ -514,6 +515,21 @@ fn impl_bitset(cx: &Ctxt<'_>, en: &DataEnum, set_storage: &Ident) -> Result<Toke
             #[inline]
             fn into_iter(self) -> Self::IntoIter {
                 #iterator_t::flatten(#into_iterator_t::into_iter([#(if self.data & #numbers != 0 { Some(#ident::#variants) } else { None }),*]))
+            }
+        }
+
+        #[automatically_derived]
+        impl #raw_storage_t for #set_storage {
+            type Value = #ty;
+
+            #[inline]
+            fn as_raw(&self) -> #ty {
+                self.data
+            }
+
+            #[inline]
+            fn from_raw(data: #ty) -> #set_storage {
+                #set_storage { data }
             }
         }
     })

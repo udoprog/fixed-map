@@ -82,6 +82,7 @@ toks! {
         slice_iter_mut = [::core::slice::IterMut],
         map_storage_t = [crate::map::MapStorage],
         set_storage_t = [crate::set::SetStorage],
+        raw_storage_t = [crate::raw::RawStorage],
         vacant_entry_t = [crate::map::VacantEntry],
     }
 }

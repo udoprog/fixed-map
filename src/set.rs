@@ -1,12 +1,13 @@
 //! Contains the fixed [`Set`] implementation.
 
-pub mod storage;
-
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
-pub use crate::set::storage::SetStorage;
+pub mod storage;
+pub use self::storage::SetStorage;
+
+use crate::raw::RawStorage;
 use crate::Key;
 
 /// The iterator produced by [`Set::iter`].
@@ -392,6 +393,68 @@ where
     #[inline]
     pub fn len(&self) -> usize {
         self.storage.len()
+    }
+}
+
+impl<T> Set<T>
+where
+    T: Key,
+    T::SetStorage: RawStorage,
+{
+    /// Get the raw value of the set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Debug, Clone, Copy, Key)]
+    /// #[key(bitset)]
+    /// enum MyKey {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut set = Set::new();
+    /// assert!(set.as_raw() == 0);
+    /// set.insert(MyKey::First);
+    /// assert!(set.as_raw() != 0);
+    ///
+    /// let set2 = Set::from_raw(set.as_raw());
+    /// assert_eq!(set, set2);
+    /// ```
+    #[inline]
+    pub fn as_raw(&self) -> <T::SetStorage as RawStorage>::Value {
+        self.storage.as_raw()
+    }
+
+    /// Construct the set from a raw value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Debug, Clone, Copy, Key)]
+    /// #[key(bitset)]
+    /// enum MyKey {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut set = Set::new();
+    /// assert!(set.as_raw() == 0);
+    /// set.insert(MyKey::First);
+    /// assert!(set.as_raw() != 0);
+    ///
+    /// let set2 = Set::from_raw(set.as_raw());
+    /// assert_eq!(set, set2);
+    /// ```
+    #[inline]
+    pub fn from_raw(raw: <T::SetStorage as RawStorage>::Value) -> Self {
+        Self {
+            storage: <T::SetStorage as RawStorage>::from_raw(raw),
+        }
     }
 }
 
