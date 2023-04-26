@@ -1,4 +1,4 @@
-//! Module that defines the [`Storage`] trait.
+//! Module that defines the [`MapStorage`] trait.
 
 mod boolean;
 pub(crate) use self::boolean::BooleanMapStorage;

@@ -284,54 +284,180 @@
 #![no_std]
 #![deny(unsafe_code)]
 #![deny(missing_docs)]
-// Enable pedantic lints as warnings so we don't break builds when
-// lints are modified or new lints are added to clippy.
-#![warn(
-    // Enable more useful rustc lints
-    absolute_paths_not_starting_with_crate,
-    elided_lifetimes_in_paths,
-    explicit_outlives_requirements,
-    keyword_idents,
-    macro_use_extern_crate,
-    meta_variable_misuse,
-    missing_copy_implementations,
-    non_ascii_idents,
-    noop_method_call,
-    pointer_structural_match,
-    single_use_lifetimes,
-    trivial_casts,
-    trivial_numeric_casts,
-    unreachable_pub,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_lifetimes,
-    unused_macro_rules,
-    unused_qualifications,
-    unused_tuple_struct_fields,
-    variant_size_differences,
-    // Enable pedantic clippy lints
-    clippy::pedantic,
-    // Useful clippy lints for no_std support
-    clippy::std_instead_of_core,
-    clippy::std_instead_of_alloc,
-    clippy::alloc_instead_of_core,
-    // Useful extra perf lints
-    clippy::missing_inline_in_public_items
-)]
-// `clippy::pedantic` exceptions
-#![allow(
-    // style choice
-    clippy::module_name_repetitions,
-    // false positive
-    clippy::type_repetition_in_bounds,
-    // false positive
-    clippy::expl_impl_clone_on_copy
-)]
+#![warn(absolute_paths_not_starting_with_crate)]
+#![warn(elided_lifetimes_in_paths)]
+#![warn(explicit_outlives_requirements)]
+#![warn(keyword_idents)]
+#![warn(macro_use_extern_crate)]
+#![warn(meta_variable_misuse)]
+#![warn(missing_copy_implementations)]
+#![warn(non_ascii_idents)]
+#![warn(noop_method_call)]
+#![warn(pointer_structural_match)]
+#![warn(single_use_lifetimes)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unreachable_pub)]
+#![warn(unused_extern_crates)]
+#![warn(unused_import_braces)]
+#![warn(unused_lifetimes)]
+#![warn(unused_macro_rules)]
+#![warn(unused_qualifications)]
+#![warn(unused_tuple_struct_fields)]
+#![warn(variant_size_differences)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::std_instead_of_core)]
+#![warn(clippy::std_instead_of_alloc)]
+#![warn(clippy::alloc_instead_of_core)]
+#![warn(clippy::missing_inline_in_public_items)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::type_repetition_in_bounds)]
+#![allow(clippy::expl_impl_clone_on_copy)]
 
 mod key;
 pub use self::key::Key;
+
+/// Derive to implement the [`Key`] trait.
+///
+/// This derive implements the [`Key`] trait for a given type.
+///
+/// The [`Key`] trait is what allows `fixed_map` to set up storage for a type
+/// that will be the key in a fixed map.
+///
+/// > Note: this requires the `::fixed_map` crate to be in scope when it's
+/// > derived.
+///
+/// # Container attributes
+///
+/// #### `#[key(bitset)]`
+///
+/// This ensures that backing storage is performed with a bitset when used with
+/// a [`Set`].
+///
+/// ```rust
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Clone, Copy, Key)]
+/// pub enum Regular {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// #[derive(Clone, Copy, Key)]
+/// #[key(bitset)]
+/// pub enum Bits {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// // Normal storage uses an array of booleans:
+/// assert_eq!(std::mem::size_of::<Set<Regular>>(), 3);
+///
+/// // Bitset storage uses a single u8 (or other appropriate type based on size):
+/// assert_eq!(std::mem::size_of::<Set<Bits>>(), 1);
+/// ```
+///
+/// > **Warning:** not all operations will be implemented when this attributes
+/// > is present, so some container methods might not work.
+///
+/// # Guide
+///
+/// Given the following enum:
+///
+/// ```rust
+/// use fixed_map::Key;
+///
+/// #[derive(Clone, Copy, Key)]
+/// pub enum MyKey {
+///     First,
+///     Second,
+///     Third,
+/// }
+/// ```
+///
+/// It performs the following expansion:
+///
+/// ```rust,no_compile,no_run
+/// use fixed_map::Key;
+///
+/// #[derive(Clone, Copy)]
+/// pub enum MyKey {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// /// Build a storage struct containing an item for each key:
+/// pub struct MyKeyMapStorage<V> {
+///     /// Storage for `MyKey::First`.
+///     f1: Option<V>,
+///     /// Storage for `MyKey::Second`.
+///     f2: Option<V>,
+///     /// Storage for `MyKey::Third`.
+///     f3: Option<V>,
+/// }
+///
+/// /// Build a storage struct containing an element for each key:
+/// pub struct MyKeySetStorage {
+///     data: [bool; 3],
+/// }
+///
+/// /// Implement map storage for key.
+/// impl<V> fixed_map::map::storage::MapStorage<MyKey, V> for MyKeyMapStorage<V> {
+///     fn get(&self, key: MyKey) -> Option<&V> {
+///         match key {
+///             MyKey::First => self.f1.as_ref(),
+///             MyKey::Second => self.f2.as_ref(),
+///             MyKey::Third => self.f3.as_ref(),
+///         }
+///     }
+///
+///     /* skipped */
+/// }
+///
+/// /// Implement set storage for key.
+/// impl fixed_map::set::storage::SetStorage<MyKey> for MyKeySetStorage {
+///     fn contains(&self, key: MyKey) -> Option<&V> {
+///         let [a, b, c] = &self.data;
+///
+///         match key {
+///             MyKey::First => a,
+///             MyKey::Second => b,
+///             MyKey::Third => c,
+///         }
+///     }
+///
+///     /* skipped */
+/// }
+///
+/// impl Default for MyKeyMapStorage<V> {
+///     fn default() -> Self {
+///         Self {
+///             f1: None,
+///             f2: None,
+///             f3: None,
+///         }
+///     }
+/// }
+///
+/// impl Default for MyKeySetStorage {
+///     fn default() -> Self {
+///         Self {
+///             data: [false, false, false]
+///         }
+///     }
+/// }
+///
+/// /// Implement the Key trait to point out storage.
+/// impl fixed_map::Key for MyKey {
+///     type MapStorage<V> = MyKeyMapStorage<V>;
+///     type SetStorage = MyKeySetStorage;
+/// }
+/// ```
 #[doc(inline)]
-pub use fixed_map_derive::*;
+pub use fixed_map_derive::Key;
 
 pub mod map;
 #[doc(inline)]

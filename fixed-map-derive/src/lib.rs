@@ -68,111 +68,6 @@ mod context;
 mod symbol;
 mod unit_variants;
 
-/// Derive to implement the `Key` trait.
-///
-/// This derive implements the `Key` trait for a given type.
-///
-/// The `Key` trait is what allows `fixed_map` to set up storage for a type that
-/// will be the key in a fixed map.
-///
-/// # Container attributes
-///
-/// #### `#[key(bitset)]`
-///
-/// This ensures that backing storage is performed with a bitset when used with
-/// a [`Set`].
-///
-/// ```rust
-/// use fixed_map::{Key, Set};
-///
-/// #[derive(Clone, Copy, Key)]
-/// pub enum Regular {
-///     First,
-///     Second,
-///     Third,
-/// }
-///
-///
-/// #[derive(Clone, Copy, Key)]
-/// #[key(bitset)]
-/// pub enum Bits {
-///     First,
-///     Second,
-///     Third,
-/// }
-///
-/// // Normal storage uses an array of booleans:
-/// assert_eq!(std::mem::size_of::<Set<Regular>>(), 3);
-///
-/// // Bitset storage uses a single u8 (or other appropriate type based on size):
-/// assert_eq!(std::mem::size_of::<Set<Bits>>(), 1);
-/// ```
-///
-/// # Guide
-///
-/// Given the following enum:
-///
-/// ```rust
-/// use fixed_map::Key;
-///
-/// #[derive(Clone, Copy, Key)]
-/// pub enum MyKey {
-///     First,
-///     Second,
-///     Third,
-/// }
-/// ```
-///
-/// It performs the following simplified expansion:
-///
-/// ```rust,no_compile,no_run
-/// use fixed_map::Key;
-///
-/// #[derive(Clone, Copy)]
-/// pub enum MyKey {
-///     First,
-///     Second,
-///     Third,
-/// }
-///
-/// /// Build a storage struct containing an item for each key:
-/// pub struct MyKeyStorage<V> {
-///     /// Storage for `MyKey::First`.
-///     f1: Option<V>,
-///     /// Storage for `MyKey::Second`.
-///     f2: Option<V>,
-///     /// Storage for `MyKey::Third`.
-///     f3: Option<V>,
-/// }
-///
-/// /// Implement storage for `KeyStorage`.
-/// impl<V> fixed_map::storage::Storage<MyKey, V> for KeyStorage<V> {
-///     fn get(&self, key: MyKey) -> Option<&V> {
-///         match key {
-///             MyKey::First => self.f1.as_ref(),
-///             MyKey::Second => self.f2.as_ref(),
-///             MyKey::Third => self.f3.as_ref(),
-///         }
-///     }
-///
-///     /* skipped */
-/// }
-///
-/// impl<V> Default for KeyStorage<V> {
-///     fn default() -> Self {
-///         Self {
-///             f1: None,
-///             f2: None,
-///             f3: None,
-///         }
-///     }
-/// }
-///
-/// /// Implement the `Key` trait to point out storage.
-/// impl<V> fixed_map::Key<Key, V> for MyKey {
-///     type Storage = KeyStorage<V>;
-/// }
-/// ```
 #[proc_macro_derive(Key, attributes(key))]
 pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
@@ -193,7 +88,6 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     quote!(#(#compile_errors)*).into()
 }
 
-/// Derive to implement the `Key` trait.
 fn impl_storage(cx: &context::Ctxt<'_>) -> Result<TokenStream, ()> {
     let opts = attrs::parse(cx)?;
 

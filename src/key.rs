@@ -123,12 +123,12 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// [`Map`]: crate::Map
 /// [`Set`]: crate::Set
 pub trait Key: Copy {
-    /// The [`Map`] storage implementation to use for the key implementing
-    /// this trait.
+    /// The [`Map`][crate::Map] storage implementation to use for the key
+    /// implementing this trait.
     type MapStorage<V>: MapStorage<Self, V>;
 
-    /// The [`Set`] storage implementation to use for the key implementing
-    /// this trait.
+    /// The [`Set`][crate::Set] storage implementation to use for the key
+    /// implementing this trait.
     type SetStorage: SetStorage<Self>;
 }
 
