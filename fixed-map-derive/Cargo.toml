@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map-derive"
-version = "0.8.3"
+version = "0.9.0"
 authors = ["John-John Tedro <udoprog@tedro.se>"]
 edition = "2018"
 rust-version = "1.65"
@@ -21,9 +21,6 @@ categories = ["data-structures"]
 syn = { version = "2.0.15", features = ["full"] }
 quote = "1.0.26"
 proc-macro2 = "1.0.56"
-
-[dev-dependencies]
-fixed-map = { version = "=0.8.3", path = ".." }
 
 [lib]
 proc-macro = true
