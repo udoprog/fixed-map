@@ -70,12 +70,45 @@ mod unit_variants;
 
 /// Derive to implement the `Key` trait.
 ///
-/// Requires that `fixed_map` is in scope.
-///
 /// This derive implements the `Key` trait for a given type.
 ///
-/// The `Key` trait is what allows `fixed_map` to set up storage for a type that will be the key in
-/// a fixed map.
+/// The `Key` trait is what allows `fixed_map` to set up storage for a type that
+/// will be the key in a fixed map.
+///
+/// # Container attributes
+///
+/// #### `#[key(bitset)]`
+///
+/// This ensures that backing storage is performed with a bitset when used with
+/// a [`Set`].
+///
+/// ```rust
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Clone, Copy, Key)]
+/// pub enum Regular {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+///
+/// #[derive(Clone, Copy, Key)]
+/// #[key(bitset)]
+/// pub enum Bits {
+///     First,
+///     Second,
+///     Third,
+/// }
+///
+/// // Normal storage uses an array of booleans:
+/// assert_eq!(std::mem::size_of::<Set<Regular>>(), 3);
+///
+/// // Bitset storage uses a single u8 (or other appropriate type based on size):
+/// assert_eq!(std::mem::size_of::<Set<Bits>>(), 1);
+/// ```
+///
+/// # Guide
 ///
 /// Given the following enum:
 ///

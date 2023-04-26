@@ -25,12 +25,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, opts: &Opts, en: &DataEnum) -> Result<Tok
     let entry_impl = impl_entry(cx, &map_storage)?;
     let map_storage_impl = impl_map(cx, en, &map_storage, &names)?;
 
-    let set_storage_impl = if let Some(span) = opts.bitset {
-        if !cfg!(fixed_map_experimental) {
-            cx.span_error(span, "trying to use experimental feature `bitset` without specifying `--cfg fixed_map_experimental`");
-            return Err(());
-        }
-
+    let set_storage_impl = if opts.bitset.is_some() {
         impl_bitset(cx, en, &set_storage)?
     } else {
         impl_set(cx, en, &set_storage, &names)?
