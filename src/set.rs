@@ -73,6 +73,7 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 /// assert!(set.contains(MyKey::Boolean(true)));
 /// assert!(!set.contains(MyKey::Boolean(false)));
 /// ```
+#[repr(transparent)]
 pub struct Set<T>
 where
     T: Key,
