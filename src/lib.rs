@@ -16,7 +16,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! fixed-map = "0.9.2"
+//! fixed-map = "0.9.3"
 //! ```
 //!
 //! Anything used as a key in either a [`Map`] or a [`Set`] needs to implement

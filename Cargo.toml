@@ -1,6 +1,6 @@
 [package]
 name = "fixed-map"
-version = "0.9.2"
+version = "0.9.3"
 authors = ["John-John Tedro <udoprog@tedro.se>", "Peter Jaszkowiak <p.jaszkow@gmail.com>"]
 edition = "2021"
 rust-version = "1.65"
@@ -9,7 +9,7 @@ documentation = "https://docs.rs/fixed-map"
 readme = "README.md"
 homepage = "https://github.com/udoprog/fixed-map"
 repository = "https://github.com/udoprog/fixed-map"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 keywords = ["container", "data-structure", "map", "no_std"]
 categories = ["data-structures"]
 
@@ -21,7 +21,7 @@ default = ["hashbrown", "std"]
 std = ["serde?/std"]
 
 [dependencies]
-fixed-map-derive = { version = "=0.9.2", path = "fixed-map-derive" }
+fixed-map-derive = { version = "=0.9.3", path = "fixed-map-derive" }
 hashbrown = { version = "0.13.2", optional = true }
 serde = { version = "1.0.145", optional = true, default_features = false }
 
