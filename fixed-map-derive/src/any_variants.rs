@@ -148,7 +148,6 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(syn::Ident, T
     let vis = &cx.ast.vis;
     let ident = &cx.ast.ident;
 
-    let mem = cx.toks.mem();
     let option = cx.toks.option();
     let map_storage_t = cx.toks.map_storage_t();
 
@@ -236,7 +235,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(syn::Ident, T
             Kind::Complex(Complex { as_map_storage, .. }) => {
                 quote!(#as_map_storage::insert(&mut self.#name, v, value))
             }
-            Kind::Simple => quote!(#mem::replace(&mut self.#name, #option::Some(value))),
+            Kind::Simple => quote!(#option::replace(&mut self.#name, value)),
         });
 
         output.items.extend(quote! {
@@ -346,7 +345,7 @@ fn impl_map_storage(cx: &Ctxt<'_>, fields: &Fields<'_>) -> Result<(syn::Ident, T
             Kind::Complex(Complex { as_map_storage, .. }) => {
                 quote!(#as_map_storage::remove(&mut self.#name, v))
             }
-            Kind::Simple => quote!(#mem::replace(&mut self.#name, #option::None)),
+            Kind::Simple => quote!(#option::take(&mut self.#name)),
         });
 
         let patterns = &fields.patterns;

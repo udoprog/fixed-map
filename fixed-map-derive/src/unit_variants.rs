@@ -275,7 +275,7 @@ fn impl_map(
                 let [#(#names),*] = &mut self.data;
 
                 match key {
-                    #(#ident::#variants => #mem::replace(#names, #option::Some(value)),)*
+                    #(#ident::#variants => #option::replace(#names, value),)*
                 }
             }
 

@@ -278,7 +278,7 @@ where
     fn remove(&mut self, key: Option<K>) -> Option<V> {
         match key {
             Some(key) => self.some.remove(key),
-            None => mem::replace(&mut self.none, None),
+            None => self.none.take(),
         }
     }
 

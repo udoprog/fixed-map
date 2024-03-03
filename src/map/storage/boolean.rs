@@ -258,9 +258,9 @@ impl<V> MapStorage<bool, V> for BooleanMapStorage<V> {
     #[inline]
     fn remove(&mut self, key: bool) -> Option<V> {
         if key {
-            mem::replace(&mut self.t, None)
+            self.t.take()
         } else {
-            mem::replace(&mut self.f, None)
+            self.f.take()
         }
     }
 

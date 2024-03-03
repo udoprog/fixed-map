@@ -74,7 +74,7 @@ where
 
     #[inline]
     fn remove(&mut self, _: K) -> Option<V> {
-        mem::replace(&mut self.inner, None)
+        self.inner.take()
     }
 
     #[inline]

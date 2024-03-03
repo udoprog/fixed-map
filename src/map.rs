@@ -1394,7 +1394,7 @@ where
 
         let mut map = serializer.serialize_map(Some(self.len()))?;
 
-        for (k, v) in self.iter() {
+        for (k, v) in self {
             map.serialize_entry(&k, v)?;
         }
 
