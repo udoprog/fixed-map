@@ -282,9 +282,15 @@
 //! [documentation]: https://docs.rs/fixed-map
 
 #![no_std]
-#![deny(unsafe_code)]
 #![deny(missing_docs)]
+#![deny(unsafe_code)]
 #![warn(absolute_paths_not_starting_with_crate)]
+#![warn(clippy::alloc_instead_of_core)]
+#![warn(clippy::missing_inline_in_public_items)]
+#![warn(clippy::pedantic)]
+#![warn(clippy::std_instead_of_alloc)]
+#![warn(clippy::std_instead_of_core)]
+#![warn(dead_code)]
 #![warn(elided_lifetimes_in_paths)]
 #![warn(explicit_outlives_requirements)]
 #![warn(keyword_idents)]
@@ -303,16 +309,10 @@
 #![warn(unused_lifetimes)]
 #![warn(unused_macro_rules)]
 #![warn(unused_qualifications)]
-#![warn(unused_tuple_struct_fields)]
 #![warn(variant_size_differences)]
-#![warn(clippy::pedantic)]
-#![warn(clippy::std_instead_of_core)]
-#![warn(clippy::std_instead_of_alloc)]
-#![warn(clippy::alloc_instead_of_core)]
-#![warn(clippy::missing_inline_in_public_items)]
+#![allow(clippy::expl_impl_clone_on_copy)]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::type_repetition_in_bounds)]
-#![allow(clippy::expl_impl_clone_on_copy)]
 
 pub mod raw;
 

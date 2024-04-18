@@ -7,11 +7,6 @@ use crate::context::{Ctxt, Opts};
 
 /// Every variant is a unit variant.
 pub(crate) fn implement(cx: &Ctxt<'_>, opts: &Opts, en: &DataEnum) -> Result<TokenStream, ()> {
-    let const_wrapper = Ident::new(
-        &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
-        Span::call_site(),
-    );
-
     let map_storage = format_ident!("__MapStorage");
     let set_storage = format_ident!("__SetStorage");
 
@@ -35,7 +30,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, opts: &Opts, en: &DataEnum) -> Result<Tok
     let key_t = cx.toks.key_t();
 
     Ok(quote! {
-        const #const_wrapper: () = {
+        const _: () = {
             #entry_impl
             #map_storage_impl
             #set_storage_impl

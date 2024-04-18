@@ -8,18 +8,13 @@ const SET_STORAGE: &str = "__SetStorage";
 
 use crate::context::Ctxt;
 
-///
+/// Implement the `Key` trait for an enum.
 pub(crate) fn implement(cx: &Ctxt<'_>, en: &syn::DataEnum) -> Result<TokenStream, ()> {
     let ident = &cx.ast.ident;
 
     let key_t = cx.toks.key_t();
     let map_storage_t = cx.toks.map_storage_t();
     let set_storage_t = cx.toks.set_storage_t();
-
-    let const_wrapper = syn::Ident::new(
-        &format!("__IMPL_KEY_FOR_{}", cx.ast.ident),
-        Span::call_site(),
-    );
 
     let mut fields = Fields::default();
 
@@ -81,7 +76,7 @@ pub(crate) fn implement(cx: &Ctxt<'_>, en: &syn::DataEnum) -> Result<TokenStream
     let (set_storage_type_name, set_storage_impl) = impl_set_storage(cx, &fields)?;
 
     Ok(quote! {
-        const #const_wrapper: () = {
+        const _: () = {
             #map_storage_impl
             #set_storage_impl
 
@@ -1830,7 +1825,7 @@ impl IteratorNextBack {
     pub(crate) fn make_where_clause(&mut self) -> &mut syn::WhereClause {
         self.where_clause.get_or_insert_with(|| syn::WhereClause {
             where_token: <syn::Token![where]>::default(),
-            predicates: syn::punctuated::Punctuated::new(),
+            predicates: Punctuated::new(),
         })
     }
 }
