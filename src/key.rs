@@ -10,8 +10,9 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// The trait for a key that can be used to store values in a
 /// [`Map`][crate::Set] or [`Set`][crate::Set].
 ///
-/// This can be derived automatically from enums. The following is a *simple*
-/// key which has no nested keys:
+/// This is implemented automatically from enums through the
+/// [`Key`][key-derive]. The following is a *simple* key which has no nested
+/// keys:
 ///
 /// ```
 /// use fixed_map::Key;
@@ -122,6 +123,7 @@ use crate::set::storage::{BooleanSetStorage, OptionSetStorage, SetStorage, Singl
 /// [`BTreeSet`]: https://doc.rust-lang.org/std/collections/struct.BTreeSet.html
 /// [`Map`]: crate::Map
 /// [`Set`]: crate::Set
+/// [key-derive]: derive@crate::Key
 pub trait Key: Copy {
     /// The [`Map`][crate::Map] storage implementation to use for the key
     /// implementing this trait.

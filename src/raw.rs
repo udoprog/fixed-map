@@ -6,8 +6,8 @@
 /// Trait implemented for storage which can be easily converted to and from a
 /// raw value.
 ///
-/// This is implemented for [`SetStorage`] which is generated from
-/// `#[key(bitset)]`.
+/// This is implemented for [`SetStorage`] when the `#[key(bitset)]` attribute
+/// is present.
 ///
 /// [`SetStorage`]: crate::set::SetStorage
 pub trait RawStorage: Sized {

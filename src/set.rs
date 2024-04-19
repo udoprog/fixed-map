@@ -20,7 +20,7 @@ pub type IntoIter<T> = <<T as Key>::SetStorage as SetStorage<T>>::IntoIter;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -85,7 +85,7 @@ where
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -101,7 +101,9 @@ where
 /// assert_eq!(m.contains(MyKey::Second), false);
 /// ```
 ///
-/// ```rust
+/// Using a composite key:
+///
+/// ```
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]

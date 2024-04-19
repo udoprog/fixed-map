@@ -344,14 +344,23 @@ pub mod macro_support;
 /// > Note: this requires the `::fixed_map` crate to be in scope when it's
 /// > derived.
 ///
-/// # Container attributes
+/// <br>
+///
+/// ## Container attributes
+///
+/// <br>
+///
+/// Container attributes are attributes which apply directly onto container
+/// types. For [`Key`] this is just enums.
+///
+/// <br>
 ///
 /// #### `#[key(bitset)]`
 ///
 /// This ensures that backing storage is performed with a bitset when used with
 /// a [`Set`].
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Set};
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -376,14 +385,16 @@ pub mod macro_support;
 /// assert_eq!(std::mem::size_of::<Set<Bits>>(), 1);
 /// ```
 ///
-/// > **Warning:** not all operations will be implemented when this attributes
-/// > is present, so some container methods might not work.
+/// > **Note:** not all operations will be implemented when this attribute is
+/// > present, so some container methods might not work.
 ///
-/// # Guide
+/// <br>
+///
+/// ## Guide
 ///
 /// Given the following enum:
 ///
-/// ```rust
+/// ```
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -396,7 +407,7 @@ pub mod macro_support;
 ///
 /// It performs the following expansion:
 ///
-/// ```rust,no_compile,no_run
+/// ```ignore
 /// use fixed_map::Key;
 ///
 /// #[derive(Clone, Copy)]
@@ -422,7 +433,7 @@ pub mod macro_support;
 /// }
 ///
 /// /// Implement map storage for key.
-/// impl<V> fixed_map::map::storage::MapStorage<MyKey, V> for MyKeyMapStorage<V> {
+/// impl<V> ::fixed_map::map::MapStorage<MyKey, V> for MyKeyMapStorage<V> {
 ///     fn get(&self, key: MyKey) -> Option<&V> {
 ///         match key {
 ///             MyKey::First => self.f1.as_ref(),
@@ -435,21 +446,21 @@ pub mod macro_support;
 /// }
 ///
 /// /// Implement set storage for key.
-/// impl fixed_map::set::storage::SetStorage<MyKey> for MyKeySetStorage {
-///     fn contains(&self, key: MyKey) -> Option<&V> {
+/// impl ::fixed_map::set::SetStorage<MyKey> for MyKeySetStorage {
+///     fn contains(&self, key: MyKey) -> bool {
 ///         let [a, b, c] = &self.data;
 ///
 ///         match key {
-///             MyKey::First => a,
-///             MyKey::Second => b,
-///             MyKey::Third => c,
+///             MyKey::First => *a,
+///             MyKey::Second => *b,
+///             MyKey::Third => *c,
 ///         }
 ///     }
 ///
 ///     /* skipped */
 /// }
 ///
-/// impl Default for MyKeyMapStorage<V> {
+/// impl<V> Default for MyKeyMapStorage<V> {
 ///     fn default() -> Self {
 ///         Self {
 ///             f1: None,
@@ -468,7 +479,7 @@ pub mod macro_support;
 /// }
 ///
 /// /// Implement the Key trait to point out storage.
-/// impl fixed_map::Key for MyKey {
+/// impl ::fixed_map::Key for MyKey {
 ///     type MapStorage<V> = MyKeyMapStorage<V>;
 ///     type SetStorage = MyKeySetStorage;
 /// }
