@@ -34,7 +34,7 @@ pub type IntoIter<K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IntoI
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -90,7 +90,7 @@ pub type IntoIter<K, V> = <<K as Key>::MapStorage<V> as MapStorage<K, V>>::IntoI
 ///
 /// Storing references:
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Debug, Clone, Copy, Key)]
@@ -118,7 +118,7 @@ where
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Clone, Copy, Key)]
@@ -134,7 +134,9 @@ where
 /// assert_eq!(m.get(MyKey::Two), None);
 /// ```
 ///
-/// ```rust
+/// Using a composite key:
+///
+/// ```
 /// use fixed_map::{Key, Map};
 ///
 /// #[derive(Clone, Copy, Key)]
