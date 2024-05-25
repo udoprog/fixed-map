@@ -23,7 +23,7 @@ std = ["serde?/std"]
 [dependencies]
 fixed-map-derive = { version = "=0.9.5", path = "fixed-map-derive" }
 hashbrown = { version = "0.13.2", optional = true }
-serde = { version = "1.0.145", optional = true, default_features = false }
+serde = { version = "1.0.145", optional = true, default-features = false }
 
 [dev-dependencies]
 criterion = "0.4.0"

@@ -64,8 +64,8 @@ pub fn storage_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let result = impl_storage(&cx);
 
-    if let Ok(gen) = result {
-        return gen.into();
+    if let Ok(g) = result {
+        return g.into();
     }
 
     let errors = cx.into_errors();
