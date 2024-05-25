@@ -2117,13 +2117,13 @@ pub(crate) enum Kind<'a> {
 pub(crate) struct Complex<'a> {
     /// Type of variant field
     pub(crate) element: &'a syn::Field,
-    /// <E as Key>::MapStorage::<V> (E = type of variant field)
+    /// `<E as Key>::MapStorage::<V>` (`E` = type of variant field)
     pub(crate) map_storage: TokenStream,
-    /// <<E as Key>::MapStorage::<V> as MapStorage<E, V>> (E = type of variant field)
+    /// `<<E as Key>::MapStorage::<V> as MapStorage<E, V>>` (`E` = type of variant field)
     pub(crate) as_map_storage: TokenStream,
-    /// <E as Key>::SetStorage (E = type of variant field)
+    /// `<E as Key>::SetStorage` (`E` = type of variant field)
     pub(crate) set_storage: TokenStream,
-    /// <<E as Key>::SetStorage as SetStorage<E>> (E = type of variant field)
+    /// `<<E as Key>::SetStorage as SetStorage<E>>` (`E` = type of variant field)
     pub(crate) as_set_storage: TokenStream,
 }
 

@@ -18,11 +18,11 @@ fn flatten<T>(value: (usize, &Option<T>)) -> Option<(usize, &T)> {
 
 /// `partial_cmp` implementation over iterators which ensures that storage
 /// ordering between `None` and `Some` is handled in a reasonable manner.
-pub fn __storage_iterator_partial_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Option<Ordering>
+pub fn __storage_iterator_partial_cmp<'a, A, B, T>(a: A, b: B) -> Option<Ordering>
 where
     A: IntoIterator<Item = &'a Option<T>>,
     B: IntoIterator<Item = &'a Option<T>>,
-    T: PartialOrd<T>,
+    T: 'a + PartialOrd<T>,
 {
     let a = a.into_iter().enumerate().filter_map(flatten);
     let b = b.into_iter().enumerate().filter_map(flatten);
@@ -31,11 +31,11 @@ where
 
 /// `cmp` implementation over iterators which ensures that storage ordering
 /// between `None` and `Some` is handled in a reasonable manner.
-pub fn __storage_iterator_cmp<'a, A, B, T: 'a>(a: A, b: B) -> Ordering
+pub fn __storage_iterator_cmp<'a, A, B, T>(a: A, b: B) -> Ordering
 where
     A: IntoIterator<Item = &'a Option<T>>,
     B: IntoIterator<Item = &'a Option<T>>,
-    T: Ord,
+    T: 'a + Ord,
 {
     let a = a.into_iter().enumerate().filter_map(flatten);
     let b = b.into_iter().enumerate().filter_map(flatten);
