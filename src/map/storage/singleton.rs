@@ -1,4 +1,4 @@
-use core::mem;
+use ::core::mem;
 
 use crate::map::{Entry, MapStorage};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};

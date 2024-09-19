@@ -1,7 +1,7 @@
 // Iterators are confusing if they impl `Copy`.
 #![allow(missing_copy_implementations)]
 
-use core::mem;
+use ::core::mem;
 
 use crate::set::SetStorage;
 

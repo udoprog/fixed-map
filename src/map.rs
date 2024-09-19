@@ -6,9 +6,9 @@ pub use self::entry::Entry;
 pub(crate) mod storage;
 pub use self::storage::{MapStorage, OccupiedEntry, VacantEntry};
 
-use core::cmp::{Ord, Ordering, PartialOrd};
-use core::fmt;
-use core::hash::{Hash, Hasher};
+use ::core::cmp::{Ord, Ordering, PartialOrd};
+use ::core::fmt;
+use ::core::hash::{Hash, Hasher};
 
 use crate::Key;
 

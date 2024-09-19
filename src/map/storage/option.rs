@@ -1,6 +1,6 @@
-use core::iter;
-use core::mem;
-use core::option;
+use ::core::iter;
+use ::core::mem;
+use ::core::option;
 
 use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};

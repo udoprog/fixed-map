@@ -1,4 +1,4 @@
-use core::mem;
+use ::core::mem;
 
 use crate::set::SetStorage;
 
@@ -11,7 +11,7 @@ pub struct SingletonSetStorage {
 
 impl<T> SetStorage<T> for SingletonSetStorage
 where
-    T: Default,
+    T: Default + Clone,
 {
     type Iter<'this> = ::core::option::IntoIter<T>;
     type IntoIter = ::core::option::IntoIter<T>;

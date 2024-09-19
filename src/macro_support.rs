@@ -6,7 +6,7 @@
 
 #![allow(clippy::missing_inline_in_public_items)]
 
-use core::cmp::Ordering;
+use ::core::cmp::Ordering;
 
 #[inline]
 fn flatten<T>(value: (usize, &Option<T>)) -> Option<(usize, &T)> {

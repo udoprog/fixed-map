@@ -1,10 +1,13 @@
 //! Contains the fixed [`Set`] implementation.
 
-use core::cmp::Ordering;
-use core::fmt;
-use core::hash::{Hash, Hasher};
+use ::core::cmp::Ordering;
+use ::core::fmt;
+use ::core::hash::{Hash, Hasher};
 
+pub mod intersection;
 pub mod storage;
+
+pub use self::intersection::Intersection;
 pub use self::storage::SetStorage;
 
 use crate::raw::RawStorage;
@@ -396,6 +399,50 @@ where
     #[inline]
     pub fn len(&self) -> usize {
         self.storage.len()
+    }
+
+    /// Visits the values representing the intersection,
+    /// i.e., the values that are both in `self` and `other`.
+    ///
+    /// When an equal element is present in `self` and `other`
+    /// then the resulting `Intersection` may yield references to
+    /// one or the other. This can be relevant if `T` contains fields which
+    /// are not compared by its `Eq` implementation, and may hold different
+    /// value between the two equal copies of `T` in the two sets.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Clone, Copy, Key, Debug)]
+    /// enum MyKey {
+    ///     First,
+    ///     Second,
+    /// }
+    ///
+    /// let mut a = Set::new();
+    /// a.insert(MyKey::First);
+    /// let mut b = Set::new();
+    /// b.insert(MyKey::First);
+    /// b.insert(MyKey::Second);
+    ///
+    /// let intersection: Set<_> = a.intersection(&b).collect();
+    /// assert_eq!(intersection, [MyKey::First].into_iter().collect());
+    /// ```
+    #[inline]
+    pub fn intersection<'a>(&'a self, other: &'a Set<T>) -> Intersection<'a, T> {
+        if self.len() <= other.len() {
+            Intersection {
+                iter: self.iter(),
+                other,
+            }
+        } else {
+            Intersection {
+                iter: other.iter(),
+                other: self,
+            }
+        }
     }
 }
 

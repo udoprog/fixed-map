@@ -21,7 +21,7 @@ pub use self::option::OptionSetStorage;
 /// - `T` is the key being stored.
 pub trait SetStorage<T>: Sized {
     /// Immutable iterator over storage.
-    type Iter<'this>: Iterator<Item = T>
+    type Iter<'this>: Iterator<Item = T> + Clone
     where
         Self: 'this;
 
