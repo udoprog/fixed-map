@@ -1,4 +1,4 @@
-use ::core::mem;
+use core::mem;
 
 use crate::map::{Entry, MapStorage};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
@@ -26,12 +26,12 @@ impl<K, V> MapStorage<K, V> for SingletonMapStorage<V>
 where
     K: Default,
 {
-    type Iter<'this> = ::core::option::IntoIter<(K, &'this V)> where V: 'this;
-    type Keys<'this> = ::core::option::IntoIter<K> where V: 'this;
-    type Values<'this> = ::core::option::Iter<'this, V> where V: 'this;
-    type IterMut<'this> = ::core::option::IntoIter<(K, &'this mut V)> where V: 'this;
-    type ValuesMut<'this> = ::core::option::IterMut<'this, V> where V: 'this;
-    type IntoIter = ::core::option::IntoIter<(K, V)>;
+    type Iter<'this> = core::option::IntoIter<(K, &'this V)> where V: 'this;
+    type Keys<'this> = core::option::IntoIter<K> where V: 'this;
+    type Values<'this> = core::option::Iter<'this, V> where V: 'this;
+    type IterMut<'this> = core::option::IntoIter<(K, &'this mut V)> where V: 'this;
+    type ValuesMut<'this> = core::option::IterMut<'this, V> where V: 'this;
+    type IntoIter = core::option::IntoIter<(K, V)>;
     type Occupied<'this> = SomeBucket<'this, V> where V: 'this;
     type Vacant<'this> = NoneBucket<'this, V> where V: 'this;
 

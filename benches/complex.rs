@@ -1,5 +1,6 @@
+use core::mem;
+
 use criterion::{Bencher, BenchmarkId, Criterion};
-use std::mem;
 
 macro_rules! benches {
     (

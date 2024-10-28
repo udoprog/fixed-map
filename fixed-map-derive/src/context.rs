@@ -39,7 +39,7 @@ macro_rules! toks {
         }
     };
 
-    (@path ::core $(:: $rest:tt)*) => {
+    (@path core $(:: $rest:tt)*) => {
         |s| suffixed(&s.core, [$(stringify!($rest)),*])
     };
 
@@ -50,36 +50,36 @@ macro_rules! toks {
 
 toks! {
     pub(crate) struct Toks<'a> {
-        array_into_iter = [::core::array::IntoIter],
-        bool_type = [::core::primitive::bool],
-        clone_t = [::core::clone::Clone],
-        copy_t = [::core::marker::Copy],
-        double_ended_iterator_t = [::core::iter::DoubleEndedIterator],
+        array_into_iter = [core::array::IntoIter],
+        bool_type = [core::primitive::bool],
+        clone_t = [core::clone::Clone],
+        copy_t = [core::marker::Copy],
+        double_ended_iterator_t = [core::iter::DoubleEndedIterator],
         entry_enum = [crate::map::Entry],
-        eq_t = [::core::cmp::Eq],
-        hash_t = [::core::hash::Hash],
-        hasher_t = [::core::hash::Hasher],
-        into_iterator_t = [::core::iter::IntoIterator],
+        eq_t = [core::cmp::Eq],
+        hash_t = [core::hash::Hash],
+        hasher_t = [core::hash::Hasher],
+        into_iterator_t = [core::iter::IntoIterator],
         iterator_cmp = [crate::macro_support::__storage_iterator_cmp],
         iterator_cmp_bool = [crate::macro_support::__storage_iterator_cmp_bool],
-        iterator_flat_map = [::core::iter::FlatMap],
-        iterator_flatten = [::core::iter::Flatten],
+        iterator_flat_map = [core::iter::FlatMap],
+        iterator_flatten = [core::iter::Flatten],
         iterator_partial_cmp = [crate::macro_support::__storage_iterator_partial_cmp],
         iterator_partial_cmp_bool = [crate::macro_support::__storage_iterator_partial_cmp_bool],
-        iterator_t = [::core::iter::Iterator],
+        iterator_t = [core::iter::Iterator],
         key_t = [crate::Key],
-        mem = [::core::mem],
+        mem = [core::mem],
         occupied_entry_t = [crate::map::OccupiedEntry],
-        option = [::core::option::Option],
+        option = [core::option::Option],
         option_bucket_none = [crate::option_bucket::NoneBucket],
         option_bucket_option = [crate::option_bucket::OptionBucket],
         option_bucket_some = [crate::option_bucket::SomeBucket],
-        ord_t = [::core::cmp::Ord],
-        ordering = [::core::cmp::Ordering],
-        partial_eq_t = [::core::cmp::PartialEq],
-        partial_ord_t = [::core::cmp::PartialOrd],
-        slice_iter = [::core::slice::Iter],
-        slice_iter_mut = [::core::slice::IterMut],
+        ord_t = [core::cmp::Ord],
+        ordering = [core::cmp::Ordering],
+        partial_eq_t = [core::cmp::PartialEq],
+        partial_ord_t = [core::cmp::PartialOrd],
+        slice_iter = [core::slice::Iter],
+        slice_iter_mut = [core::slice::IterMut],
         map_storage_t = [crate::map::MapStorage],
         set_storage_t = [crate::set::SetStorage],
         raw_storage_t = [crate::raw::RawStorage],

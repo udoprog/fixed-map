@@ -1,4 +1,4 @@
-use ::core::mem;
+use core::mem;
 
 use crate::set::SetStorage;
 
@@ -13,8 +13,8 @@ impl<T> SetStorage<T> for SingletonSetStorage
 where
     T: Default + Clone,
 {
-    type Iter<'this> = ::core::option::IntoIter<T>;
-    type IntoIter = ::core::option::IntoIter<T>;
+    type Iter<'this> = core::option::IntoIter<T>;
+    type IntoIter = core::option::IntoIter<T>;
 
     #[inline]
     fn empty() -> Self {

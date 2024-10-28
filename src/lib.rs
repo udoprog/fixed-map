@@ -352,10 +352,10 @@ pub mod macro_support;
 /// }
 ///
 /// // Normal storage uses an array of booleans:
-/// assert_eq!(std::mem::size_of::<Set<Regular>>(), 3);
+/// assert_eq!(core::mem::size_of::<Set<Regular>>(), 3);
 ///
 /// // Bitset storage uses a single u8 (or other appropriate type based on size):
-/// assert_eq!(std::mem::size_of::<Set<Bits>>(), 1);
+/// assert_eq!(core::mem::size_of::<Set<Bits>>(), 1);
 /// ```
 ///
 /// > **Note:** not all operations will be implemented when this attribute is
