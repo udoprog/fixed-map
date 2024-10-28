@@ -2148,7 +2148,7 @@ impl<'a> Fields<'a> {
     }
 
     /// Iterate over fields.
-    fn iter(&self) -> ::core::slice::Iter<'_, Field<'a>> {
+    fn iter(&self) -> core::slice::Iter<'_, Field<'a>> {
         self.fields.iter()
     }
 
@@ -2160,7 +2160,7 @@ impl<'a> Fields<'a> {
 
 impl<'b, 'a> IntoIterator for &'b Fields<'a> {
     type Item = &'b Field<'a>;
-    type IntoIter = ::core::slice::Iter<'b, Field<'a>>;
+    type IntoIter = core::slice::Iter<'b, Field<'a>>;
 
     #[inline]
     fn into_iter(self) -> Self::IntoIter {

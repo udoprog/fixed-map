@@ -1,5 +1,5 @@
-use ::core::hash::Hash;
-use ::core::iter;
+use core::hash::Hash;
+use core::iter;
 
 use crate::set::SetStorage;
 

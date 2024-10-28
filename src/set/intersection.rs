@@ -1,6 +1,6 @@
 //! Module that defines the [`Intersection`] for [`Set`].
 
-use ::core::fmt;
+use core::fmt;
 
 use super::{Iter, Key, Set};
 

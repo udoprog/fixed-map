@@ -1,6 +1,6 @@
-use ::core::iter;
-use ::core::mem;
-use ::core::option;
+use core::iter;
+use core::mem;
+use core::option;
 
 use crate::set::SetStorage;
 use crate::Key;

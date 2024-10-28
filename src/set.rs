@@ -1,8 +1,8 @@
 //! Contains the fixed [`Set`] implementation.
 
-use ::core::cmp::Ordering;
-use ::core::fmt;
-use ::core::hash::{Hash, Hasher};
+use core::cmp::Ordering;
+use core::fmt;
+use core::hash::{Hash, Hasher};
 
 pub mod intersection;
 pub mod storage;
