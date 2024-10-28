@@ -6,11 +6,29 @@ use super::{Iter, Key, Set};
 
 /// A lazy iterator producing elements in the intersection of `Set`s.
 ///
-/// This `struct` is created by the [`intersection`] method on [`Set`].
-/// See its documentation for more.
+/// This `struct` is created by the [`intersection`] method on [`Set`]. See its
+/// documentation for more.
 ///
 /// [`intersection`]: Set::intersection
 ///
+/// # Examples
+///
+/// ```
+/// use fixed_map::{Key, Set};
+///
+/// #[derive(Clone, Copy, Key, Debug)]
+/// enum K {
+///     One,
+///     Two,
+///     Three,
+/// }
+///
+/// let a = Set::from([K::One]);
+/// let b = Set::from([K::One, K::Two, K::Two]);
+///
+/// let intersection = a.intersection(&b).collect::<Set<_>>();
+/// assert_eq!(intersection, Set::from([K::One]));
+/// ```
 #[must_use = "this returns the intersection as an iterator, \
               without modifying either input set"]
 pub struct Intersection<'a, T: 'a + Key> {
@@ -40,6 +58,7 @@ where
     fn next(&mut self) -> Option<T> {
         loop {
             let elt = self.iter.next()?;
+
             if self.other.contains(elt) {
                 return Some(elt);
             }
