@@ -401,14 +401,14 @@ where
         self.storage.len()
     }
 
-    /// Visits the values representing the intersection,
-    /// i.e., the values that are both in `self` and `other`.
+    /// Visits the values representing the intersection, i.e., the values that
+    /// are both in `self` and `other`.
     ///
-    /// When an equal element is present in `self` and `other`
-    /// then the resulting `Intersection` may yield references to
-    /// one or the other. This can be relevant if `T` contains fields which
-    /// are not compared by its `Eq` implementation, and may hold different
-    /// value between the two equal copies of `T` in the two sets.
+    /// When an equal element is present in `self` and `other` then the
+    /// resulting `Intersection` may yield references to one or the other. This
+    /// can be relevant if `T` contains fields which are not compared by its
+    /// `Eq` implementation, and may hold different value between the two equal
+    /// copies of `T` in the two sets.
     ///
     /// # Examples
     ///
@@ -416,19 +416,17 @@ where
     /// use fixed_map::{Key, Set};
     ///
     /// #[derive(Clone, Copy, Key, Debug)]
-    /// enum MyKey {
-    ///     First,
-    ///     Second,
+    /// enum K {
+    ///     One,
+    ///     Two,
+    ///     Three,
     /// }
     ///
-    /// let mut a = Set::new();
-    /// a.insert(MyKey::First);
-    /// let mut b = Set::new();
-    /// b.insert(MyKey::First);
-    /// b.insert(MyKey::Second);
+    /// let a = Set::from([K::One]);
+    /// let b = Set::from([K::One, K::Two, K::Two]);
     ///
-    /// let intersection: Set<_> = a.intersection(&b).collect();
-    /// assert_eq!(intersection, [MyKey::First].into_iter().collect());
+    /// let intersection = a.intersection(&b).collect::<Set<_>>();
+    /// assert_eq!(intersection, Set::from([K::One]));
     /// ```
     #[inline]
     pub fn intersection<'a>(&'a self, other: &'a Set<T>) -> Intersection<'a, T> {
@@ -1063,5 +1061,30 @@ where
         }
 
         deserializer.deserialize_seq(SeqVisitor(core::marker::PhantomData))
+    }
+}
+
+impl<T, const N: usize> From<[T; N]> for Set<T>
+where
+    T: Key,
+{
+    /// # Examples
+    ///
+    /// ```
+    /// use fixed_map::{Key, Set};
+    ///
+    /// #[derive(Debug, Clone, Copy, Key, PartialEq, Eq)]
+    /// enum K {
+    ///     One,
+    ///     Two,
+    ///     Three,
+    /// }
+    ///
+    /// let set1 = Set::from([K::One, K::Two, K::Three]);
+    /// let set2: Set<_> = [K::One, K::Two, K::Three].into();
+    /// assert_eq!(set1, set2);
+    /// ```
+    fn from(arr: [T; N]) -> Self {
+        Self::from_iter(arr)
     }
 }
