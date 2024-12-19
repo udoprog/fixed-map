@@ -97,7 +97,10 @@ impl<T> SetStorage<Option<T>> for OptionSetStorage<T>
 where
     T: Key,
 {
-    type Iter<'this> = Iter<'this, T> where T: 'this;
+    type Iter<'this>
+        = Iter<'this, T>
+    where
+        T: 'this;
     type IntoIter = IntoIter<T>;
 
     #[inline]

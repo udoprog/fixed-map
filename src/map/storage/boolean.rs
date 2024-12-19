@@ -193,14 +193,35 @@ impl<'a, V> OccupiedEntry<'a, bool, V> for Occupied<'a, V> {
 }
 
 impl<V> MapStorage<bool, V> for BooleanMapStorage<V> {
-    type Iter<'this> = Iter<'this, V> where V: 'this;
-    type Keys<'this> = Keys where V: 'this;
-    type Values<'this> = Values<'this, V> where V: 'this;
-    type IterMut<'this> = IterMut<'this, V> where V: 'this;
-    type ValuesMut<'this> = ValuesMut<'this, V> where V: 'this;
+    type Iter<'this>
+        = Iter<'this, V>
+    where
+        V: 'this;
+    type Keys<'this>
+        = Keys
+    where
+        V: 'this;
+    type Values<'this>
+        = Values<'this, V>
+    where
+        V: 'this;
+    type IterMut<'this>
+        = IterMut<'this, V>
+    where
+        V: 'this;
+    type ValuesMut<'this>
+        = ValuesMut<'this, V>
+    where
+        V: 'this;
     type IntoIter = IntoIter<V>;
-    type Occupied<'this> = Occupied<'this, V> where V: 'this;
-    type Vacant<'this> = Vacant<'this, V> where V: 'this;
+    type Occupied<'this>
+        = Occupied<'this, V>
+    where
+        V: 'this;
+    type Vacant<'this>
+        = Vacant<'this, V>
+    where
+        V: 'this;
 
     #[inline]
     fn empty() -> Self {

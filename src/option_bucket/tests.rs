@@ -86,7 +86,10 @@ trait OptionEntry {
 }
 
 impl<T> OptionEntry for Option<T> {
-    type Entry<'this> = Entry<'this, T> where T: 'this;
+    type Entry<'this>
+        = Entry<'this, T>
+    where
+        T: 'this;
 
     fn entry(&mut self) -> Self::Entry<'_> {
         match OptionBucket::new(self) {

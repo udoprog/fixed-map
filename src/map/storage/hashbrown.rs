@@ -120,14 +120,48 @@ impl<K, V> MapStorage<K, V> for HashbrownMapStorage<K, V>
 where
     K: Copy + Eq + Hash,
 {
-    type Iter<'this> = iter::Map<::hashbrown::hash_map::Iter<'this, K, V>, fn((&'this K, &'this V)) -> (K, &'this V)> where K: 'this, V: 'this;
-    type Keys<'this> = iter::Copied<::hashbrown::hash_map::Keys<'this, K, V>> where K: 'this, V: 'this;
-    type Values<'this> = ::hashbrown::hash_map::Values<'this, K, V> where K: 'this, V: 'this;
-    type IterMut<'this> = iter::Map<::hashbrown::hash_map::IterMut<'this, K, V>, fn((&'this K, &'this mut V)) -> (K, &'this mut V)> where K: 'this, V: 'this;
-    type ValuesMut<'this> = ::hashbrown::hash_map::ValuesMut<'this, K, V> where K: 'this, V: 'this;
+    type Iter<'this>
+        = iter::Map<
+        ::hashbrown::hash_map::Iter<'this, K, V>,
+        fn((&'this K, &'this V)) -> (K, &'this V),
+    >
+    where
+        K: 'this,
+        V: 'this;
+    type Keys<'this>
+        = iter::Copied<::hashbrown::hash_map::Keys<'this, K, V>>
+    where
+        K: 'this,
+        V: 'this;
+    type Values<'this>
+        = ::hashbrown::hash_map::Values<'this, K, V>
+    where
+        K: 'this,
+        V: 'this;
+    type IterMut<'this>
+        = iter::Map<
+        ::hashbrown::hash_map::IterMut<'this, K, V>,
+        fn((&'this K, &'this mut V)) -> (K, &'this mut V),
+    >
+    where
+        K: 'this,
+        V: 'this;
+    type ValuesMut<'this>
+        = ::hashbrown::hash_map::ValuesMut<'this, K, V>
+    where
+        K: 'this,
+        V: 'this;
     type IntoIter = ::hashbrown::hash_map::IntoIter<K, V>;
-    type Occupied<'this> = Occupied<'this, K, V> where K: 'this, V: 'this;
-    type Vacant<'this> = Vacant<'this, K, V> where K: 'this, V: 'this;
+    type Occupied<'this>
+        = Occupied<'this, K, V>
+    where
+        K: 'this,
+        V: 'this;
+    type Vacant<'this>
+        = Vacant<'this, K, V>
+    where
+        K: 'this,
+        V: 'this;
 
     #[inline]
     fn empty() -> Self {

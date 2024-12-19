@@ -58,7 +58,10 @@ impl<T> SetStorage<T> for HashbrownSetStorage<T>
 where
     T: Copy + Eq + Hash,
 {
-    type Iter<'this> = iter::Copied<::hashbrown::hash_set::Iter<'this, T>> where T: 'this;
+    type Iter<'this>
+        = iter::Copied<::hashbrown::hash_set::Iter<'this, T>>
+    where
+        T: 'this;
     type IntoIter = ::hashbrown::hash_set::IntoIter<T>;
 
     #[inline]
