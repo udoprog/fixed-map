@@ -48,7 +48,7 @@ impl<T: Key> Clone for Intersection<'_, T> {
     }
 }
 
-impl<'a, T> Iterator for Intersection<'a, T>
+impl<T> Iterator for Intersection<'_, T>
 where
     T: Key,
 {
