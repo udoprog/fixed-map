@@ -1,5 +1,3 @@
-use core::mem;
-
 use crate::map::{Entry, MapStorage};
 use crate::option_bucket::{NoneBucket, OptionBucket, SomeBucket};
 
@@ -75,7 +73,7 @@ where
 
     #[inline]
     fn insert(&mut self, _: K, value: V) -> Option<V> {
-        mem::replace(&mut self.inner, Some(value))
+        self.inner.replace(value)
     }
 
     #[inline]

@@ -3,7 +3,6 @@
 #![allow(missing_copy_implementations)]
 
 use core::iter;
-use core::mem;
 use core::option;
 
 use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
@@ -244,9 +243,9 @@ impl<V> MapStorage<bool, V> for BooleanMapStorage<V> {
     #[inline]
     fn insert(&mut self, key: bool, value: V) -> Option<V> {
         if key {
-            mem::replace(&mut self.t, Some(value))
+            self.t.replace(value)
         } else {
-            mem::replace(&mut self.f, Some(value))
+            self.f.replace(value)
         }
     }
 

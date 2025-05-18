@@ -1,5 +1,4 @@
 use core::iter;
-use core::mem;
 use core::option;
 
 use crate::map::{Entry, MapStorage, OccupiedEntry, VacantEntry};
@@ -274,7 +273,7 @@ where
     fn insert(&mut self, key: Option<K>, value: V) -> Option<V> {
         match key {
             Some(key) => self.some.insert(key, value),
-            None => mem::replace(&mut self.none, Some(value)),
+            None => self.none.replace(value),
         }
     }
 
